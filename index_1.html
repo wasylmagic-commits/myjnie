@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Serwis myjni</title>
+<meta name="theme-color" content="#2457d6">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  :root{--bg:#f2f4f8;--bg2:#e9edf5;--card:rgba(255,255,255,.86);--solid:#fff;--ink:#0f1720;--mute:#667085;--line:rgba(15,23,32,.08);--acc:#2457d6;--acc2:#e8eefc;--accg:linear-gradient(135deg,#2457d6 0%,#5b3fd6 100%);
+        --red:#d92d20;--redbg:#fdecea;--org:#dc6803;--orgbg:#fef0e1;--yel:#a37f00;--yelbg:#fbf5d9;--grn:#079455;--grnbg:#e3f6ec;--c2:#7a5af8;
+        --sh:0 1px 2px rgba(16,24,40,.04),0 6px 20px rgba(16,24,40,.06);--nav:66px;--r:18px}
+  @media (prefers-color-scheme:dark){:root:not([data-t=jasny]){--bg:#0b0e13;--bg2:#121722;--card:rgba(24,29,38,.82);--solid:#181d26;--ink:#eef1f5;--mute:#98a2b3;--line:rgba(255,255,255,.08);--acc:#84adff;--acc2:rgba(132,173,255,.14);--accg:linear-gradient(135deg,#2f5fe0 0%,#6a4be0 100%);
+        --red:#f97066;--redbg:rgba(249,112,102,.14);--org:#fdb022;--orgbg:rgba(253,176,34,.14);--yel:#fde272;--yelbg:rgba(253,226,114,.12);--grn:#47cd89;--grnbg:rgba(71,205,137,.14);--c2:#b692f6;
+        --sh:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)}}
+  :root[data-t=ciemny]{--bg:#0b0e13;--bg2:#121722;--card:rgba(24,29,38,.82);--solid:#181d26;--ink:#eef1f5;--mute:#98a2b3;--line:rgba(255,255,255,.08);--acc:#84adff;--acc2:rgba(132,173,255,.14);--accg:linear-gradient(135deg,#2f5fe0 0%,#6a4be0 100%);
+        --red:#f97066;--redbg:rgba(249,112,102,.14);--org:#fdb022;--orgbg:rgba(253,176,34,.14);--yel:#fde272;--yelbg:rgba(253,226,114,.12);--grn:#47cd89;--grnbg:rgba(71,205,137,.14);--c2:#b692f6;
+        --sh:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)}
+  *{box-sizing:border-box}
+  html{background:var(--bg)}
+  body{margin:0;min-height:100vh;background:radial-gradient(1200px 500px at 100% -10%,var(--acc2),transparent 60%),var(--bg);color:var(--ink);
+       font:15px/1.45 "Inter",-apple-system,Roboto,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+  svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:0 0 auto;vertical-align:middle}
+  svg.i.s{width:16px;height:16px}
+  header{position:sticky;top:0;padding-top:env(safe-area-inset-top);z-index:5;background:color-mix(in srgb,var(--solid) 72%,transparent);backdrop-filter:saturate(1.8) blur(16px);-webkit-backdrop-filter:saturate(1.8) blur(16px);border-bottom:1px solid var(--line)}
+  .top{display:flex;align-items:center;gap:10px;padding:10px 16px;max-width:760px;margin:0 auto}
+  .top h1{font-size:16px;margin:0;flex:1;font-weight:700;letter-spacing:-.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .top h1 small{display:block;font-weight:500;color:var(--mute);font-size:12px;letter-spacing:0}
+  .logo{width:34px;height:34px;border-radius:11px;background:var(--accg);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(36,87,214,.35)}
+  button{font:inherit;cursor:pointer;color:inherit;transition:transform .12s ease,background .2s}
+  button:active{transform:scale(.96)}
+  .ib{border:0;background:var(--acc2);color:var(--acc);border-radius:12px;width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center}
+  .ib.spin svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .btn{border:0;background:var(--accg);color:#fff;border-radius:12px;padding:9px 16px;font-weight:600;display:inline-flex;align-items:center;gap:6px;box-shadow:0 4px 14px rgba(36,87,214,.3)}
+  .btn2{border:1px solid var(--line);background:var(--solid);color:var(--acc);border-radius:12px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;font-size:14px;font-weight:600}
+  #bnav{position:fixed;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom));z-index:6;display:flex;justify-content:center;pointer-events:none}
+  #bnav .in{pointer-events:auto;display:flex;width:100%;max-width:560px;padding:6px;border-radius:22px;background:color-mix(in srgb,var(--solid) 78%,transparent);
+            backdrop-filter:saturate(1.8) blur(18px);-webkit-backdrop-filter:saturate(1.8) blur(18px);border:1px solid var(--line);box-shadow:0 10px 30px rgba(16,24,40,.16)}
+  #bnav button{flex:1;border:0;background:none;color:var(--mute);height:54px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;padding:0;min-width:0;border-radius:16px}
+  #bnav button svg{transition:transform .2s}
+  #bnav button.on{color:var(--acc);background:var(--acc2)}
+  #bnav button.on svg{stroke-width:2.2;transform:translateY(-1px)}
+  main{padding:14px 14px calc(var(--nav) + 40px);max-width:760px;margin:0 auto}
+  main.anim>*{animation:up .32s cubic-bezier(.2,.8,.2,1) both}
+  main.anim>*:nth-child(2){animation-delay:.03s} main.anim>*:nth-child(3){animation-delay:.06s} main.anim>*:nth-child(4){animation-delay:.09s} main.anim>*:nth-child(n+5){animation-delay:.12s}
+  @keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+  .card{background:var(--card);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;margin-bottom:12px;box-shadow:var(--sh)}
+  .card h3{margin:0 0 10px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.6px;color:var(--mute)}
+  .card h3 svg{color:var(--acc)}
+  .hero{background:var(--accg);color:#fff;border-radius:22px;padding:18px;margin-bottom:12px;box-shadow:0 12px 30px rgba(36,87,214,.28);position:relative;overflow:hidden}
+  .hero::after{content:"";position:absolute;right:-60px;top:-60px;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.12)}
+  .hero small{opacity:.8;font-size:13px}
+  .hero h2{margin:2px 0 12px;font-size:22px;letter-spacing:-.3px}
+  .hero .hs{display:flex;gap:18px;flex-wrap:wrap;position:relative;z-index:1}
+  .hero .hs div{cursor:pointer}
+  .hero .hs b{display:block;font-size:26px;line-height:1.1}
+  .hero .hs span{font-size:12px;opacity:.85}
+  .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+  .tile{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px;box-shadow:var(--sh);display:flex;gap:10px;align-items:center}
+  .tile .ch{width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .tile b{display:block;font-size:20px;line-height:1.15;font-weight:700;letter-spacing:-.3px}
+  .tile span{color:var(--mute);font-size:12px}
+  .row{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line)}
+  .card h3 + .row,.row:first-child{border-top:0}
+  .row .g{flex:1;min-width:0}
+  .av{width:36px;height:36px;border-radius:11px;background:var(--acc2);color:var(--acc);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:0 0 auto}
+  .mute{color:var(--mute);font-size:13px}
+  .pill{display:inline-block;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--line);color:var(--mute)}
+  .r{background:var(--redbg);color:var(--red)} .o{background:var(--orgbg);color:var(--org)} .y{background:var(--yelbg);color:var(--yel)} .ok{background:var(--grnbg);color:var(--grn)}
+  .chk{border:1px solid var(--line);background:var(--grnbg);color:var(--grn);border-radius:12px;width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center}
+  input[type=search],textarea{width:100%;font:inherit;color:var(--ink);background:var(--solid);border:1px solid var(--line);border-radius:14px;padding:11px 14px;margin-bottom:12px;outline:none;transition:box-shadow .2s,border-color .2s}
+  input[type=search]:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc2)}
+  textarea{min-height:76px;resize:vertical}
+  .seg{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding:4px;background:var(--card);border:1px solid var(--line);border-radius:16px}
+  .seg::-webkit-scrollbar{display:none}
+  .seg button{flex:1 0 auto;border:0;background:none;border-radius:12px;padding:8px 12px;font-size:13px;font-weight:600;color:var(--mute);display:inline-flex;align-items:center;justify-content:center;gap:6px}
+  .seg button.on{background:var(--solid);color:var(--acc);box-shadow:var(--sh)}
+  .w{cursor:pointer}
+  a{color:var(--acc);text-decoration:none}
+  .tl{position:relative;margin-left:6px;padding-left:16px}
+  .tl::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:2px;background:linear-gradient(var(--acc),transparent);border-radius:2px}
+  .tl div{margin-bottom:12px;position:relative}
+  .tl div::before{content:"";position:absolute;left:-20px;top:5px;width:10px;height:10px;border-radius:50%;background:var(--solid);border:2px solid var(--acc)}
+  .tl i{font-style:normal;color:var(--mute);font-size:12px;display:block;font-weight:600}
+  #det{position:fixed;inset:0;background:var(--bg);z-index:10;overflow-y:auto;display:none}
+  #det.on{display:block;animation:slide .28s cubic-bezier(.2,.8,.2,1)}
+  @keyframes slide{from{transform:translateX(24px);opacity:0}to{transform:none;opacity:1}}
+  #det header{position:sticky;top:0}
+  #det main{padding-bottom:30px}
+  .bar{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-top:5px}
+  .bar>div{height:100%;border-radius:99px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+  svg text{fill:var(--mute);font-size:11px;font-weight:500}
+  .leg{display:flex;gap:12px;font-size:12px;color:var(--mute);margin-top:6px;flex-wrap:wrap}
+  .leg span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;background:var(--c)}
+  .empty{color:var(--mute);text-align:center;padding:28px 0}
+  .sk{height:84px;border-radius:var(--r);margin-bottom:12px;background:linear-gradient(90deg,var(--card) 0%,var(--bg2) 50%,var(--card) 100%);background-size:200% 100%;animation:sh 1.2s infinite}
+  @keyframes sh{to{background-position:-200% 0}}
+  .more{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+  .more button{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px 14px;text-align:left;display:flex;flex-direction:column;gap:8px;box-shadow:var(--sh)}
+  .more button .ch{width:42px;height:42px;border-radius:13px;background:var(--acc2);color:var(--acc);display:flex;align-items:center;justify-content:center}
+  .more button b{font-size:15px}
+  .more button span{color:var(--mute);font-size:12px}
+  .phead{display:flex;align-items:center;gap:12px;margin:4px 2px 14px}
+  .phead b{font-size:20px;letter-spacing:-.3px}
+  .phead span{color:var(--mute);font-size:12px;display:block;font-weight:500}
+  .kpi{display:flex;gap:18px;flex-wrap:wrap;margin:2px 0 10px;align-items:center}
+  .kpi>div:not(.ring){flex:1 1 0;min-width:90px}
+  .kpi b{display:block;font-size:22px;line-height:1.2;letter-spacing:-.3px}
+  .kpi span{color:var(--mute);font-size:12px}
+  .ring{position:relative;width:86px;height:86px;flex:0 0 auto}
+  .ring svg{width:86px;height:86px;transform:rotate(-90deg)}
+  .ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:20px}
+  .big{font-size:32px!important;background:linear-gradient(135deg,var(--grn),#12b76a);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .note{font-size:12px;color:var(--mute);border-top:1px dashed var(--line);margin-top:10px;padding-top:10px}
+  #toast{position:fixed;left:50%;bottom:calc(var(--nav) + 30px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-size:14px;font-weight:500;display:none;z-index:20;box-shadow:0 10px 30px rgba(0,0,0,.25)}
+</style>
+</head>
+<body>
+<header>
+  <div class="top">
+    <div class="logo" id="logo"></div>
+    <h1>Serwis myjni · Wasyl<small id="upd">wczytuję…</small></h1>
+    <button class="ib" onclick="motyw()" aria-label="Motyw" id="mot"></button>
+    <button class="ib" onclick="load()" aria-label="Odśwież" id="odsw"></button>
+  </div>
+</header>
+<main id="main"><div class="sk"></div><div class="sk"></div><div class="sk" style="height:160px"></div></main>
+<nav id="bnav"><div class="in" id="nav"></div></nav>
+<div id="det"></div>
+<div id="toast"></div>
+
+<script>
+const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
+(function () {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('k')) LS.set('k', h.get('k'));
+  if (h.get('u')) LS.set('u', h.get('u'));
+  if (location.hash) history.replaceState(null, '', location.pathname);
+})();
+const K = LS.get('k'), API = LS.get('u');
+// zapytanie do Apps Script (GET, bez preflight CORS)
+function api(akcja, par) {
+  const q = new URLSearchParams(Object.assign({ api: akcja, k: K }, par || {}));
+  return fetch(API + '?' + q.toString(), { redirect: 'follow' }).then(r => r.json()).then(j => { if (!j.ok) throw new Error(j.blad || 'błąd serwera'); return j; });
+}
+const MOTYWY = { auto: ['Auto', 'half'], jasny: ['Jasny', 'sun'], ciemny: ['Ciemny', 'moon'] };
+function ustawMotyw(m) {
+  if (m === 'auto') document.documentElement.removeAttribute('data-t'); else document.documentElement.setAttribute('data-t', m);
+  LS.set('motyw', m);
+  const b = document.getElementById('mot'); if (b) b.innerHTML = I(MOTYWY[m][1]);
+}
+function motyw() { const k = Object.keys(MOTYWY), m = k[(k.indexOf(LS.get('motyw') || 'auto') + 1) % k.length]; ustawMotyw(m); toast('Motyw: ' + MOTYWY[m][0]); }
+let D = null, TAB = 'dzis', OGF = 'naprawy', Q = '', DW = null, ANIM = true;
+
+/* ---------- ikony (SVG, bez emoji) ---------- */
+const IC = {
+  home: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  wrench: '<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z"/>',
+  cal: '<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  panel: '<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/>',
+  grid: '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  refresh: '<path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/>',
+  back: '<path d="M15 18l-6-6 6-6"/>',
+  route: '<path d="M3 11l18-8-8 18-2-8z"/>',
+  check: '<path d="M5 12l5 5 9-11"/>',
+  alert: '<path d="M12 3 2 20h20z"/><path d="M12 9v5M12 17h.01"/>',
+  fuel: '<path d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10"/><path d="M14 8h2a2 2 0 0 1 2 2v6a1.5 1.5 0 0 0 3 0V8l-3-3"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  money: '<rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 10v4M18 10v4"/>',
+  shield: '<path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  star: '<path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  box: '<path d="M21 8 12 3 3 8v8l9 5 9-5z"/><path d="M3 8l9 5 9-5M12 13v8"/>',
+  print: '<path d="M6 9V3h12v6"/><path d="M6 18H4a1 1 0 0 1-1-1v-6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v6a1 1 0 0 1-1 1h-2"/><path d="M6 14h12v7H6z"/>',
+  cart: '<path d="M3 4h2l2.4 11h11l2-8H6.2"/><circle cx="9" cy="20" r="1.5"/><circle cx="17" cy="20" r="1.5"/>',
+  office: '<path d="M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16M16 9h2a2 2 0 0 1 2 2v10M3 21h18M8 7h4M8 11h4M8 15h4"/>',
+  pen: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+  brush: '<path d="M18 3l3 3-9 9-3-3z"/><path d="M9 12l-3 1-3 7 7-3 1-3"/>',
+  phone: '<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/>',
+  doc: '<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/>',
+  folder: '<path d="M3 6a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',
+  pulse: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
+  history: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 7v5l3 2"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
+  half: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'
+};
+const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
+
+const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['panel','panel','Panel'],['wiecej','grid','Więcej']];
+const WIECEJ = { magazyn: 1, druk: 1, wykresy: 1 };
+
+/* ---------- pomocnicze ---------- */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const jsq = s => esc(String(s == null ? '' : s).replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+const pl = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
+const dt = iso => iso ? iso.slice(8,10) + '.' + iso.slice(5,7) + '.' + iso.slice(0,4) : '';
+const dzisIso = () => { const t = new Date(); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+const dni = iso => iso ? Math.round((new Date(iso) - new Date(dzisIso())) / 864e5) : null;
+const dniTxt = n => n + ' ' + (n === 1 ? 'dzień' : 'dni');
+const zl = x => Math.round(x).toLocaleString('pl-PL') + ' zł';
+const lic = x => (Math.round(x * 10) / 10).toLocaleString('pl-PL');
+const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.style.display = 'block'; setTimeout(() => e.style.display = 'none', 2500); };
+const open_ = o => o.status === 'otwarty';
+const kat = o => o.typ === 'do kupienia' ? 'kupic' : o.typ === 'do biura' ? 'biuro' : 'naprawy';
+const skrot = n => String(n || '').replace('Orlen SP ', 'SP ');
+
+// czy tekst (myjnia z zadania / firma z Dane) to ta myjnia
+function sama(tekst, w) {
+  const t = pl(tekst), num = (String(w.klucz || w.nazwa).match(/(\d{3,4})/) || [])[1];
+  if (num) return new RegExp('(^|\\D)0*' + (+num) + '(\\D|$)').test(t);
+  const k = pl(w.klucz || w.nazwa);
+  return k.length > 2 && t.indexOf(k) >= 0;
+}
+function pillDni(d) {
+  if (d == null) return '<span class="pill">brak daty</span>';
+  const c = d < 0 ? 'r' : d <= 14 ? 'o' : d <= 30 ? 'y' : 'ok';
+  return '<span class="pill ' + c + '">' + (d < 0 ? 'po terminie ' + dniTxt(-d) : d === 0 ? 'dziś' : d === 1 ? 'jutro' : 'za ' + dniTxt(d)) + '</span>';
+}
+
+function load() {
+  if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację linkiem z bota: napisz <b>/aplikacja</b> w Telegramie i kliknij link. Potem już zawsze z ikony.</div>'; document.getElementById('upd').textContent = 'brak klucza'; return; }
+  document.getElementById('upd').textContent = 'odświeżam…'; document.getElementById('odsw').classList.add('spin');
+  api('dane').then(j => { D = j.dane; document.getElementById('odsw').classList.remove('spin'); document.getElementById('upd').textContent = 'stan na ' + D.teraz; ANIM = true; render(); })
+    .catch(e => { document.getElementById('odsw').classList.remove('spin'); document.getElementById('upd').textContent = 'błąd połączenia';
+      if (!D) document.getElementById('main').innerHTML = '<div class="card">' + I('alert') + ' ' + esc(e.message) + '<div class="mute">Sprawdź internet i odśwież.</div></div>'; else toast('Nie udało się odświeżyć'); });
+}
+function nav() {
+  const akt = WIECEJ[TAB] ? 'wiecej' : TAB;
+  document.getElementById('nav').innerHTML = TABS.map(([id, ic, t]) =>
+    '<button class="' + (id === akt ? 'on' : '') + '" onclick="go(\'' + id + '\')">' + I(ic) + '<span>' + t + '</span></button>').join('');
+}
+function go(t) { TAB = t; Q = ''; ANIM = true; render(); window.scrollTo(0, 0); }
+function render() {
+  nav();
+  if (!D) return;
+  const m = document.getElementById('main');
+  m.classList.remove('anim'); m.innerHTML = ({ dzis, myjnie, ogony, przeglady, panel, wiecej, magazyn, druk, wykresy })[TAB]();
+  if (ANIM) { void m.offsetWidth; m.classList.add('anim'); }
+  ANIM = false;
+}
+function naglowek(ic, t, sub) {
+  return '<div class="phead"><button class="ib" onclick="go(\'wiecej\')">' + I('back') + '</button><div><b>' + t + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div></div>';
+}
+
+/* ---------- zadania (ogony) ---------- */
+function ogonRow(o, zNazwa) {
+  return '<div class="row"><div class="g">' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
+    (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
+    '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + '</div></div>' +
+    (open_(o) ? '<button class="chk" aria-label="Zamknij" onclick="zamknij(\'' + jsq(o.id) + '\',this)">' + I('check') + '</button>' : '<span class="mute">' + dt(o.zamkn) + '</span>') + '</div>';
+}
+function zamknij(id, b) {
+  b.disabled = true;
+  api('zamknij', { id: id }).then(j => { const ok = j.wynik;
+      const o = D.ogony.find(x => String(x.id) === String(id));
+      if (o && ok) { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
+      toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW); })
+    .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
+}
+function notatka() {
+  const t = document.getElementById('nt').value.trim();
+  if (t.length < 5) return toast('Napisz trochę więcej');
+  document.getElementById('ntb').disabled = true;
+  api('notatka', { t: t }).then(() => { document.getElementById('nt').value = ''; document.getElementById('ntb').disabled = false; toast('Wysłane — potwierdź w Telegramie'); })
+    .catch(e => { document.getElementById('ntb').disabled = false; toast('Błąd: ' + e.message); });
+}
+
+/* ---------- Dziś ---------- */
+function dzis() {
+  const ot = D.ogony.filter(open_), napr = ot.filter(o => kat(o) === 'naprawy');
+  const prz = D.myjnie.filter(w => w.dni != null && w.dni <= 21).sort((a, b) => a.dni - b.dni);
+  const akty = D.prace.filter(p => /czeka|pytania/.test(p.status));
+  const mies = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
+  const wyd = D.zaliczka.filter(z => z.mies === mies).reduce((a, z) => a + z.kwota, 0);
+  const g = new Date().getHours(), pora = g < 11 ? 'Dzień dobry' : g < 18 ? 'Cześć' : 'Dobry wieczór';
+  const data = new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' });
+  const poTer = D.myjnie.filter(w => w.dni != null && w.dni < 0).length;
+  let h = '<div class="hero"><small>' + esc(data) + '</small><h2>' + pora + ', Wasyl</h2><div class="hs">' +
+    '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
+    '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
+    (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') + '</div></div>';
+  h += '<div class="tiles">' +
+    '<div class="tile"><div class="ch o">' + I('doc') + '</div><div><b>' + akty.length + '</b><span>dokumenty czekają</span></div></div>' +
+    '<div class="tile"><div class="ch ok">' + I('money') + '</div><div><b>' + zl(D.limitZaliczki - wyd) + '</b><span>zostało z zaliczki</span></div></div></div>';
+  h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
+       '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
+  if (prz.length) h += '<div class="card"><h3>' + I('cal', 1) + 'Przeglądy — 3 tygodnie</h3>' + prz.map(w => {
+      const n = napr.filter(o => sama(o.myjnia, w)).length;
+      return '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+        (n ? '<div class="mute" style="color:var(--org)">' + I('star', 1) + ' przy okazji do zamknięcia: ' + n + '</div>' : '') + '</div><div style="text-align:right">' + pillDni(w.dni) + '<div class="mute">' + esc(w.termin) + '</div></div></div>';
+    }).join('') + '</div>';
+  if (akty.length) h += '<div class="card"><h3>' + I('doc', 1) + 'Dokumenty</h3>' + akty.map(p => '<div class="row"><div class="g">' + esc(p.nr) + ' · ' + esc(p.firma) +
+      '<div class="mute">' + dt(p.d) + ' · ' + esc(statusPl(p.status)) + '</div></div></div>').join('') + '</div>';
+  const kup = ot.filter(o => kat(o) === 'kupic'), bi = ot.filter(o => kat(o) === 'biuro');
+  if (kup.length) h += '<div class="card"><h3>' + I('cart', 1) + 'Do kupienia</h3>' + kup.map(o => ogonRow(o, true)).join('') + '</div>';
+  if (bi.length) h += '<div class="card"><h3>' + I('office', 1) + 'Biuro / wysyłka</h3>' + bi.map(o => ogonRow(o, true)).join('') + '</div>';
+  const mal = D.magazyn.filter(m => m.min && +String(m.ilosc).replace(',', '.') < +String(m.min).replace(',', '.'));
+  if (mal.length) h += '<div class="card"><h3>' + I('box', 1) + 'Magazyn poniżej minimum</h3>' + mal.map(m => '<div class="row"><div class="g">' + esc(m.nazwa) + '<div class="mute">' + esc(m.kod) + '</div></div><span class="pill r">' + esc(m.ilosc) + ' / ' + esc(m.min) + '</span></div>').join('') + '</div>';
+  const sz = D.myjnie.filter(w => /łys|lys/i.test(w.szczotki) || +w.odWymiany >= 45000);
+  if (sz.length) h += '<div class="card"><h3>' + I('brush', 1) + 'Szczotki</h3>' + sz.map(w => '<div class="row"><div class="g">' + esc(skrot(w.nazwa)) + '</div><span class="pill ' + (+w.odWymiany >= 50000 || /łys|lys/i.test(w.szczotki) ? 'r' : 'y') + '">' + (w.odWymiany ? esc(w.odWymiany) + ' myć' : esc(w.szczotki)) + '</span></div>').join('') + '</div>';
+  if (D.dyzury.length) h += '<div class="card"><h3>' + I('phone', 1) + 'Dyżury</h3>' + D.dyzury.map(x => '<div class="row"><div class="g">Tydzień ' + x.tydz + (x.swieto ? ' <span class="pill o">święto</span>' : '') + '</div><span class="mute">' + x.od + '–' + x.do + '</span></div>').join('') + '</div>';
+  return h;
+}
+function statusPl(s) {
+  return ({ czeka_na_czas: 'czeka na godziny', pytania: 'pytania w bocie', czeka_koniec_dnia: 'czeka na koniec dnia', czeka_na_raport: 'czeka na raport', zlecenie: 'zlecenie bez pracy' })[s] || s;
+}
+
+/* ---------- Myjnie ---------- */
+function myjnie() {
+  return '<input type="search" placeholder="Szukaj: numer, miasto, ulica" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'ml\').innerHTML=myjnieLista()">' +
+         '<div id="ml">' + myjnieLista() + '</div>';
+}
+function myjnieLista() {
+  const q = pl(Q), ot = D.ogony.filter(open_);
+  const lista = D.myjnie.concat(D.inne.map(x => Object.assign({ inna: 1 }, x))).filter(w => !q || pl(w.nazwa + ' ' + w.miasto + ' ' + w.adres + ' ' + w.klucz).indexOf(q) >= 0);
+  if (!lista.length) return '<div class="empty">Nic nie znaleziono</div>';
+  return '<div class="card">' + lista.map(w => {
+    const n = ot.filter(o => kat(o) === 'naprawy' && sama(o.myjnia, w)).length;
+    const a90 = awarie(w, 90);
+    const info = [n ? I('wrench', 1) + ' ' + n + ' zad.' : '', a90 ? I('alert', 1) + ' ' + a90 + ' ' + (a90 === 1 ? 'awaria' : a90 % 10 >= 2 && a90 % 10 <= 4 && (a90 % 100 < 12 || a90 % 100 > 14) ? 'awarie' : 'awarii') + ' / 90 dni' : ''].filter(Boolean).join(' · ');
+    const nr = (String(w.klucz || w.nazwa).match(/(\d{3,4})/) || [])[1] || pl(w.nazwa).replace(/^(bp|orlen|shell|amic|moya)\s+/, '').slice(0, 2).toUpperCase();
+    return '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="av">' + esc(nr) + '</div><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (w.inna ? ' <span class="pill">zastępstwo</span>' : '') +
+      '<div class="mute">' + esc([w.miasto, w.adres, w.model].filter(Boolean).join(' · ')) + '</div>' + (info ? '<div class="mute">' + info + '</div>' : '') + '</div>' + (w.inna ? '' : pillDni(w.dni)) + '</div>';
+  }).join('') + '</div>';
+}
+const naprawa = p => !p.p && !p.montaz && !/^(montaż|inwent|praca)/i.test(p.nr || '');
+function awarie(w, dniWstecz) { return D.prace.concat(D.obce).filter(p => naprawa(p) && sama(p.firma, w) && dni(p.d) >= -dniWstecz).length; }
+
+function pokazMyjnie(nazwa) {
+  const w = D.myjnie.find(x => x.nazwa === nazwa) || D.inne.find(x => x.nazwa === nazwa);
+  if (!w) return;
+  DW = nazwa;
+  const og = D.ogony.filter(o => sama(o.myjnia, w));
+  const otw = og.filter(open_);
+  const zd = [];
+  D.prace.filter(p => sama(p.firma + ' ' + p.nr, w) && p.status !== 'zlecenie').forEach(p => zd.push({ d: p.d, t: (p.p ? 'Przegląd' : p.montaz ? 'Montaż' : (p.rodzaj || 'Serwis')) + ' · ' + p.nr, o: p.opis }));
+  D.obce.filter(p => sama(p.firma, w)).forEach(p => zd.push({ d: p.d, t: p.kto + (p.p ? ' · przegląd' : '') + ' · ' + p.nr, o: p.opis + (p.zal ? ' — zalecenie: ' + p.zal : '') }));
+  og.filter(o => !open_(o)).forEach(o => zd.push({ d: o.zamkn || o.d, t: o.typ === 'fakt' ? 'Fakt' : o.typ === 'zrobione' ? 'Zrobione (notatka)' : 'Zamknięte zadanie #' + o.id, o: o.opis }));
+  zd.sort((a, b) => b.d.localeCompare(a.d));
+  const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([w.nazwa.replace(/SP\s*/, ''), w.adres, w.miasto].filter(Boolean).join(' '));
+  let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
+          '<a class="btn2" href="' + maps + '" target="_blank">' + I('route', 1) + 'Jedź</a></div></header><main>';
+  h += '<div class="card"><div class="mute">' + esc([w.model, w.segment ? 'segment ' + w.segment : '', w.co ? 'przegląd co ' + w.co + ' mies.' : '', w.klient].filter(Boolean).join(' · ')) + '</div>';
+  if (w.termin !== undefined) h += '<div class="row"><div class="g">Następny przegląd: <b>' + esc(w.termin || '—') + '</b></div>' + pillDni(w.dni) + '</div>';
+  if (w.licznik) {
+    const od = +w.odWymiany, pr = Math.min(100, od / 500);
+    h += '<div class="row"><div class="g">Licznik myć: <b>' + esc(w.licznik) + '</b>' + (w.odWymiany !== '' ? '<div class="mute">szczotki: ' + esc(w.odWymiany) + ' myć od wymiany ' + esc(w.wymiana) + (w.szczotki ? ' · ' + esc(w.szczotki) : '') + '</div>' +
+       '<div class="bar"><div style="width:' + pr + '%;background:var(' + (od >= 50000 ? '--red' : od >= 45000 ? '--yel' : '--grn') + ')"></div></div>' : '') + '</div></div>';
+  }
+  h += '<div class="row"><div class="g">Awarie w ostatnim roku: <b>' + awarie(w, 365) + '</b></div></div>';
+  if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';
+  h += '</div>';
+  h += '<div class="card"><h3>' + I('wrench', 1) + 'Otwarte zadania (' + otw.length + ')</h3>' + (otw.length ? otw.map(o => ogonRow(o)).join('') : '<div class="mute">brak</div>') + '</div>';
+  h += '<div class="card"><h3>' + I('history', 1) + 'Historia (' + zd.length + ')</h3><div class="tl">' +
+       (zd.length ? zd.slice(0, 60).map(z => '<div><i>' + dt(z.d) + ' · ' + esc(z.t) + '</i>' + esc(z.o) + '</div>').join('') : '<div class="mute">na razie pusto</div>') + '</div></div></main>';
+  const det = document.getElementById('det'); det.innerHTML = h; det.classList.remove('on'); void det.offsetWidth; det.classList.add('on'); det.scrollTop = 0;
+}
+function zamknijDet() { document.getElementById('det').classList.remove('on'); DW = null; }
+
+/* ---------- Zadania ---------- */
+function ogony() {
+  const naz = { naprawy: ['wrench', 'Naprawy'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Biuro'], zamkniete: ['check', 'Zamknięte'] };
+  const ot = D.ogony.filter(open_);
+  const cnt = k => k === 'zamkniete' ? '' : ' (' + ot.filter(o => kat(o) === k).length + ')';
+  let h = '<div class="seg">' + Object.keys(naz).map(k => '<button class="' + (OGF === k ? 'on' : '') + '" onclick="OGF=\'' + k + '\';render()">' + I(naz[k][0], 1) + naz[k][1] + cnt(k) + '</button>').join('') + '</div>';
+  if (OGF === 'zamkniete') {
+    const z = D.ogony.filter(o => !open_(o) && o.typ !== 'fakt').sort((a, b) => (b.zamkn || b.d).localeCompare(a.zamkn || a.d)).slice(0, 50);
+    return h + '<div class="card">' + (z.length ? z.map(o => ogonRow(o, true)).join('') : '<div class="empty">pusto</div>') + '</div>';
+  }
+  const l = ot.filter(o => kat(o) === OGF);
+  if (!l.length) return h + '<div class="empty">Nic do zrobienia</div>';
+  if (OGF !== 'naprawy') return h + '<div class="card">' + l.sort((a, b) => (a.termin || '9').localeCompare(b.termin || '9')).map(o => ogonRow(o, true)).join('') + '</div>';
+  const g = {};
+  l.forEach(o => (g[o.myjnia || 'bez myjni'] = g[o.myjnia || 'bez myjni'] || []).push(o));
+  return h + Object.keys(g).sort((a, b) => g[b].length - g[a].length).map(k => '<div class="card"><h3>' + I('pin', 1) + esc(skrot(k)) + ' <span class="mute">(' + g[k].length + ')</span></h3>' + g[k].map(o => ogonRow(o)).join('') + '</div>').join('');
+}
+
+/* ---------- Przeglądy ---------- */
+function przeglady() {
+  const l = D.myjnie.slice().sort((a, b) => (a.dni == null ? 9999 : a.dni) - (b.dni == null ? 9999 : b.dni));
+  return '<div class="card">' + l.map(w => '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+    '<div class="mute">termin ' + esc(w.termin || '—') + (w.co ? ' · co ' + esc(w.co) + ' mies.' : '') + '</div></div>' + pillDni(w.dni) + '</div>').join('') + '</div>';
+}
+
+/* ---------- Więcej ---------- */
+function wiecej() {
+  const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
+  return '<div class="more">' +
+    k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
+    k('druk', 'print', 'Druki', 'formularze i BHP') +
+    k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
+    '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
+    '</div>';
+}
+
+/* ---------- Magazyn ---------- */
+function magazyn() {
+  return naglowek('box', 'Magazyn', D.magazyn.length + ' pozycji') +
+    '<input type="search" placeholder="Nazwa albo numer części" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'mg\').innerHTML=magLista()"><div id="mg">' + magLista() + '</div>';
+}
+function magLista() {
+  if (!D.magazyn.length) return '<div class="empty">Brak arkusza Magazyn — wyślij botowi PDF „Stany magazynowe”</div>';
+  const q = pl(Q).split(/\s+/).filter(Boolean), qn = Q.toLowerCase().replace(/[\s\-.\/]/g, '');
+  const l = D.magazyn.filter(m => !q.length || m.kod.toLowerCase().replace(/[\s\-.\/]/g, '').indexOf(qn) >= 0 || q.every(w => pl(m.nazwa + ' ' + m.kod).indexOf(w.slice(0, 5)) >= 0));
+  return '<div class="card">' + (l.length ? l.slice(0, 150).map(m => {
+    const il = +String(m.ilosc).replace(',', '.'), mn = +String(m.min || 0).replace(',', '.');
+    return '<div class="row"><div class="g">' + esc(m.nazwa) + '<div class="mute">' + esc(m.kod) + (m.min ? ' · min. ' + esc(m.min) : '') + '</div></div><span class="pill ' + (il <= 0 ? 'r' : mn && il < mn ? 'y' : 'ok') + '">' + esc(m.ilosc) + ' szt.</span></div>';
+  }).join('') : '<div class="empty">Brak w magazynie</div>') + '</div>';
+}
+
+/* ---------- Druki ---------- */
+function druk() {
+  let h = naglowek('print', 'Druki', 'folder „Do druku” na Google Drive') +
+          '<div class="card mute">Otwórz plik → ⋮ → Drukuj. Nowe formularze wystarczy wrzucić do folderu.' +
+          (D.drukUrl ? '<br><a href="' + esc(D.drukUrl) + '" target="_blank">' + I('folder', 1) + ' Otwórz folder</a>' : '') + (D.drive ? ' · <a href="' + esc(D.drive) + '" target="_blank">całe archiwum</a>' : '') + '</div>';
+  if (!D.druk.length) return h + '<div class="empty">Na razie pusto</div>';
+  const g = {};
+  D.druk.forEach(f => (g[f.folder || 'Ogólne'] = g[f.folder || 'Ogólne'] || []).push(f));
+  return h + Object.keys(g).map(k => '<div class="card"><h3>' + I('folder', 1) + esc(k) + '</h3>' + g[k].map(f => '<div class="row"><div class="g"><a href="' + esc(f.url) + '" target="_blank">' + I('doc', 1) + ' ' + esc(f.nazwa) + '</a></div></div>').join('') + '</div>').join('');
+}
+
+/* ---------- wykresy: narzędzia ---------- */
+function miesiace(n) {
+  const out = [], t = new Date();
+  for (let i = n - 1; i >= 0; i--) { const d = new Date(t.getFullYear(), t.getMonth() - i, 1); out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); }
+  return out;
+}
+const MSC = ['sty','lut','mar','kwi','maj','cze','lip','sie','wrz','paź','lis','gru'];
+function slupki(etyk, serie, wys) {   // serie: [{nazwa, kolor, dane:[]}] – słupki składane
+  wys = wys || 150;
+  const W = 340, lw = 30, H = wys, n = etyk.length, bw = (W - lw) / n;
+  const max = Math.max(1, ...etyk.map((_, i) => serie.reduce((a, s) => a + (s.dane[i] || 0), 0)));
+  let s = '<svg viewBox="0 0 ' + W + ' ' + (H + 20) + '" width="100%">';
+  [0, 0.5, 1].forEach(f => { const y = H - f * H + 2; s += '<line x1="' + lw + '" x2="' + W + '" y1="' + y + '" y2="' + y + '" stroke="var(--line)"/><text x="0" y="' + (y + 4) + '">' + lic(max * f) + '</text>'; });
+  etyk.forEach((e, i) => {
+    let y = H + 2;
+    serie.forEach(se => { const v = se.dane[i] || 0, h = v / max * H; if (h > 0) { y -= h; s += '<rect x="' + (lw + i * bw + bw * 0.18) + '" y="' + y + '" width="' + bw * 0.64 + '" height="' + h + '" rx="3" fill="' + se.kolor + '"><title>' + se.nazwa + ': ' + lic(v) + '</title></rect>'; } });
+    const tot = serie.reduce((a, se) => a + (se.dane[i] || 0), 0);
+    if (tot) s += '<text x="' + (lw + i * bw + bw / 2) + '" y="' + (y - 3) + '" text-anchor="middle">' + lic(tot) + '</text>';
+    s += '<text x="' + (lw + i * bw + bw / 2) + '" y="' + (H + 16) + '" text-anchor="middle">' + e + '</text>';
+  });
+  return s + '</svg>' + (serie.length > 1 ? '<div class="leg">' + serie.map(se => '<span style="--c:' + se.kolor + '">' + se.nazwa + '</span>').join('') + '</div>' : '');
+}
+function poziome(wiersze, maxv, kolor) {  // [{e, v, t, kolor?}]
+  const max = maxv || Math.max(1, ...wiersze.map(w => w.v));
+  return wiersze.map(w => '<div style="margin-bottom:7px"><div style="display:flex;justify-content:space-between;gap:8px;font-size:13px"><span>' + esc(w.e) + '</span><b>' + w.t + '</b></div>' +
+    '<div class="bar"><div style="width:' + Math.min(100, w.v / max * 100) + '%;background:' + (w.kolor || kolor) + '"></div></div></div>').join('');
+}
+
+/* ---------- PANEL (dla kierownika) ---------- */
+function ring(p, kolor) {
+  const r = 36, c = 2 * Math.PI * r;
+  return '<div class="ring"><svg viewBox="0 0 86 86"><circle cx="43" cy="43" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="9"/>' +
+    '<circle cx="43" cy="43" r="' + r + '" fill="none" stroke="' + kolor + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + (c * p / 100) + ' ' + c + '"/></svg><b>' + p + '%</b></div>';
+}
+const PALIWO = { l100: 9, cena: 6.0 };   // założenia do czasu, aż będzie arkusz Paliwo (tankowania)
+
+function moje() { return D.prace.filter(p => p.status !== 'zlecenie' && p.status !== 'anulowane'); }
+
+// km dziennie z licznika: pierwszy odczyt dnia → pierwszy odczyt następnego dnia pracy (max 7 dni dalej)
+function kmDni() {
+  const dzien = {};
+  moje().forEach(p => { if (p.km > 0) dzien[p.d] = dzien[p.d] ? Math.min(dzien[p.d], p.km) : p.km; });
+  const d = Object.keys(dzien).sort(), out = {};
+  for (let i = 0; i < d.length - 1; i++) {
+    const roz = dzien[d[i + 1]] - dzien[d[i]], odst = (new Date(d[i + 1]) - new Date(d[i])) / 864e5;
+    if (roz > 0 && roz < 1500 && odst <= 7) out[d[i]] = roz;
+  }
+  return out;
+}
+// zadania (ogony) zamknięte przy innej wizycie na tej samej myjni tego samego dnia
+function poDrodze(odDni) {
+  const wiz = moje().filter(p => p.d && dni(p.d) >= -odDni);
+  const zamk = D.ogony.filter(o => !open_(o) && kat(o) === 'naprawy' && o.typ !== 'fakt' && o.zamkn && dni(o.zamkn) >= -odDni);
+  const ogony = zamk.filter(o => {
+    const w = D.myjnie.find(x => sama(o.myjnia, x)) || D.inne.find(x => sama(o.myjnia, x));
+    return w && wiz.some(p => p.d === o.zamkn && sama(p.firma, w));
+  });
+  // kilka zleceń na jednym obiekcie tego samego dnia = jeden wyjazd zamiast kilku
+  const grupy = {};
+  wiz.filter(p => !p.montaz && p.firma && /\d/.test(p.nr || '')).forEach(p => { const k = p.d + '|' + pl(p.firma); (grupy[k] = grupy[k] || new Set()).add(p.nr); });
+  const zlecenia = Object.values(grupy).reduce((a, n) => a + (n.size - 1), 0);
+  return { ogony: ogony, zlecenia: zlecenia, razem: ogony.length + zlecenia };
+}
+
+function panel() {
+  const M = miesiace(6), et = M.map(m => MSC[+m.slice(5) - 1]);
+  const praca = moje();
+  const kd = kmDni();
+  const dniPracy = Object.keys(kd).filter(d => dni(d) >= -90);
+  const kmSuma = dniPracy.reduce((a, d) => a + kd[d], 0);
+  const wyjazdy90 = praca.filter(p => dni(p.d) >= -90 && dniPracy.indexOf(p.d) >= 0).length;
+  const kmNaWyjazd = wyjazdy90 ? kmSuma / wyjazdy90 : 0;
+  const pd = poDrodze(90);
+  const kmOszcz = pd.razem * kmNaWyjazd, lOszcz = kmOszcz * PALIWO.l100 / 100, zlOszcz = lOszcz * PALIWO.cena;
+
+  let h = '<div class="phead"><span style="color:var(--acc)">' + I('panel') + '</span><div><b>Panel serwisu</b><span>' + esc(D.myjnie.length) + ' myjni w opiece · dane z ostatnich 90 dni · stan na ' + esc(D.teraz) + '</span></div></div>';
+
+  /* 1. Paliwo i trasy */
+  const zlM = M.map(m => { const g = {}; praca.filter(p => p.d.slice(0, 7) === m && !p.montaz && p.firma && /\d/.test(p.nr || '')).forEach(p => { const k = p.d + '|' + pl(p.firma); (g[k] = g[k] || new Set()).add(p.nr); }); return Object.values(g).reduce((a, n) => a + n.size - 1, 0); });
+  const ogM = M.map(m => D.ogony.filter(o => !open_(o) && kat(o) === 'naprawy' && o.zamkn && o.zamkn.slice(0, 7) === m && (() => {
+      const w = D.myjnie.find(x => sama(o.myjnia, x)) || D.inne.find(x => sama(o.myjnia, x));
+      return w && praca.some(p => p.d === o.zamkn && sama(p.firma, w)); })()).length);
+  h += '<div class="card"><h3>' + I('fuel', 1) + 'Paliwo i trasy</h3>' +
+       '<div class="kpi"><div><b class="big">' + zl(zlOszcz) + '</b><span>szacowana oszczędność paliwa / 90 dni</span></div>' +
+       '<div><b>' + pd.razem + '</b><span>wyjazdów zaoszczędzonych</span></div>' +
+       '<div><b>' + lic(kmOszcz) + ' km</b><span>mniej przejechanych</span></div></div>' +
+       slupki(et, [{ nazwa: 'zadania zamknięte przy okazji', kolor: 'var(--grn)', dane: ogM }, { nazwa: 'kilka zleceń w jednym wyjeździe', kolor: 'var(--acc)', dane: zlM }]) +
+       '<div class="note">Liczone: zadania zamknięte podczas innej wizyty na tej samej myjni + dodatkowe zlecenia obsłużone w jednym wyjeździe. ' +
+       'Średnio ' + lic(kmNaWyjazd) + ' km na wyjazd (z licznika auta). Założenia: ' + lic(PALIWO.l100) + ' l/100 km, ' + PALIWO.cena.toFixed(2).replace('.', ',') + ' zł/l — po zebraniu tankowań zastąpią je realne dane.</div></div>';
+
+  /* 2. Przeglądy w terminie */
+  const zTer = D.myjnie.filter(w => w.dni != null);
+  const poTer = zTer.filter(w => w.dni < 0).sort((a, b) => a.dni - b.dni);
+  const wkrotce = zTer.filter(w => w.dni >= 0 && w.dni <= 21).sort((a, b) => a.dni - b.dni);
+  const proc = zTer.length ? Math.round((zTer.length - poTer.length) / zTer.length * 100) : 100;
+  const przM = M.map(m => D.prace.concat(D.obce).filter(p => p.p && p.d.slice(0, 7) === m).length);
+  const historia = D.prace.filter(p => p.status !== 'zlecenie').length + D.obce.length;
+  h += '<div class="card"><h3>' + I('shield', 1) + 'Przeglądy w terminie</h3>' +
+       '<div class="kpi">' + ring(proc, proc >= 90 ? 'var(--grn)' : proc >= 75 ? 'var(--org)' : 'var(--red)') + '<div><b>' + (zTer.length - poTer.length) + ' / ' + zTer.length + '</b><span>myjni z ważnym przeglądem</span></div>' +
+       '<div><b>' + poTer.length + '</b><span>po terminie</span></div><div><b>' + wkrotce.length + '</b><span>termin w 3 tygodnie</span></div></div>' +
+       (poTer.length ? poTer.map(w => '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+          (w.uwagi ? '<div class="mute">' + esc(String(w.uwagi).split('\n').pop()).slice(0, 120) + '</div>' : '') + '</div>' + pillDni(w.dni) + '</div>').join('') : '') +
+       (wkrotce.length ? '<div class="mute" style="margin-top:6px">Najbliższe: ' + wkrotce.slice(0, 5).map(w => esc(skrot(w.nazwa)) + ' (' + (w.dni === 0 ? 'dziś' : 'za ' + dniTxt(w.dni)) + ')').join(', ') + '</div>' : '') +
+       '<div style="margin-top:10px" class="mute">Wykonane przeglądy w miesiącu</div>' + slupki(et, [{ nazwa: 'przeglądy', kolor: 'var(--acc)', dane: przM }], 110) +
+       '<div class="note">Pełna historia każdej myjni: ' + historia + ' wpisów (data, serwisant, zakres prac, zalecenia) — udokumentowana opieka na wypadek szkody.</div></div>';
+
+  /* 3. Diagnostyka */
+  const nap = praca.filter(p => naprawa(p) && p.st != null && p.ko != null && p.ko > p.st && dni(p.d) >= -180);
+  const czas = nap.map(p => (p.ko - p.st) / 60);
+  const sr = czas.length ? czas.reduce((a, x) => a + x, 0) / czas.length : 0;
+  const przedz = [['do 1 h', x => x <= 1], ['1–2 h', x => x > 1 && x <= 2], ['2–3 h', x => x > 2 && x <= 3], ['ponad 3 h', x => x > 3]];
+  const rozkl = przedz.map(([e, f], i) => { const v = czas.filter(f).length; return { e: e, v: v, t: v, kolor: i === 3 ? 'var(--org)' : 'var(--acc)' }; });
+  const wszystkie = D.prace.concat(D.obce).filter(p => naprawa(p) && dni(p.d) >= -90);
+  const ranking = D.myjnie.map(w => {
+    const a = wszystkie.filter(p => sama(p.firma, w)).map(p => p.d).sort();
+    let powt = 0; for (let i = 1; i < a.length; i++) if ((new Date(a[i]) - new Date(a[i - 1])) / 864e5 <= 30) powt++;
+    return { w: w, n: a.length, powt: powt };
+  }).filter(x => x.n).sort((a, b) => b.n - a.n);
+  const powtSuma = ranking.reduce((a, x) => a + x.powt, 0);
+  h += '<div class="card"><h3>' + I('pulse', 1) + 'Diagnostyka i awarie</h3>' +
+       '<div class="kpi"><div><b>' + lic(sr) + ' h</b><span>średni czas naprawy (180 dni)</span></div>' +
+       '<div><b>' + wszystkie.length + '</b><span>awarii w 90 dni (wszyscy serwisanci)</span></div>' +
+       '<div><b>' + powtSuma + '</b><span>powrotów w ciągu 30 dni</span></div></div>' +
+       '<div class="mute" style="margin-bottom:6px">Czas na obiekcie przy naprawach</div>' + poziome(rozkl, 0) +
+       (ranking.length ? '<div class="mute" style="margin:10px 0 6px">Myjnie z największą liczbą awarii (90 dni)</div>' +
+         poziome(ranking.slice(0, 6).map(x => ({ e: skrot(x.w.nazwa) + (x.w.miasto ? ' · ' + x.w.miasto : ''), v: x.n, t: x.n + (x.powt ? ' (powroty: ' + x.powt + ')' : ''), kolor: 'var(--red)' })), 0) : '') +
+       '<div class="note">Cel: krótsza diagnostyka i mniej powrotów — historia usterek każdej myjni jest pod ręką na miejscu, także dla młodszego serwisanta.</div></div>';
+
+  /* 4. Czas pracy */
+  const wGodz = (p, a, b) => Math.max(0, Math.min(p.ko, b) - Math.max(p.st, a)) / 60;
+  const godzM = M.map(m => praca.filter(p => p.d.slice(0, 7) === m && p.st != null && p.ko != null && p.ko > p.st));
+  const norm = godzM.map(l => l.reduce((a, p) => a + wGodz(p, 480, 960), 0));
+  const nadg = godzM.map((l, i) => l.reduce((a, p) => a + (p.ko - p.st) / 60, 0) - norm[i]);
+  const wyjM = M.map(m => new Set(praca.filter(p => p.d.slice(0, 7) === m).map(p => p.d)).size);
+  const kmM = M.map(m => Object.keys(kd).filter(d => d.slice(0, 7) === m).reduce((a, d) => a + kd[d], 0));
+  const ost = M.length - 1;
+  h += '<div class="card"><h3>' + I('clock', 1) + 'Czas pracy i przebieg</h3>' +
+       '<div class="kpi"><div><b>' + lic(norm[ost] + nadg[ost]) + ' h</b><span>na obiektach w tym miesiącu</span></div>' +
+       '<div><b>' + wyjM[ost] + '</b><span>dni w trasie</span></div><div><b>' + lic(kmM[ost]) + ' km</b><span>przebieg</span></div></div>' +
+       slupki(et, [{ nazwa: 'godz. 8–16', kolor: 'var(--acc)', dane: norm }, { nazwa: 'poza 8–16', kolor: 'var(--org)', dane: nadg }]) +
+       '<div style="margin-top:10px" class="mute">Przebieg w miesiącu, km</div>' + slupki(et, [{ nazwa: 'km', kolor: 'var(--c2)', dane: kmM }], 100) + '</div>';
+  return h;
+}
+
+/* ---------- Wykresy (dla mnie) ---------- */
+function wykresy() {
+  const M = miesiace(6), et = M.map(m => MSC[+m.slice(5) - 1]);
+  const praca = moje();
+  const wM = (arr, f) => M.map(m => arr.filter(p => p.d.slice(0, 7) === m && f(p)).length);
+  let h = naglowek('chart', 'Wykresy', 'ostatnie 6 miesięcy');
+  h += '<div class="card"><h3>' + I('route', 1) + 'Wyjazdy w miesiącu</h3>' + slupki(et, [
+    { nazwa: 'przeglądy', kolor: 'var(--acc)', dane: wM(praca, p => p.p) },
+    { nazwa: 'awarie / naprawy', kolor: 'var(--org)', dane: wM(praca, p => naprawa(p)) },
+    { nazwa: 'montaże', kolor: 'var(--c2)', dane: wM(praca, p => p.montaz) }]) +
+    '<div class="note">Cel systemu: pomarańczowe w dół, niebieskie zgodnie z harmonogramem.</div></div>';
+  const otwM = M.map(m => D.ogony.filter(o => o.typ !== 'fakt' && o.d && o.d.slice(0, 7) === m).length);
+  const zamM = M.map(m => D.ogony.filter(o => o.typ !== 'fakt' && !open_(o) && o.zamkn && o.zamkn.slice(0, 7) === m).length);
+  h += '<div class="card"><h3>' + I('wrench', 1) + 'Zadania: nowe i zamknięte</h3>' + slupki(et, [{ nazwa: 'nowe', kolor: 'var(--org)', dane: otwM }], 100) +
+       slupki(et, [{ nazwa: 'zamknięte', kolor: 'var(--grn)', dane: zamM }], 100) + '<div class="leg"><span style="--c:var(--org)">nowe</span><span style="--c:var(--grn)">zamknięte</span></div>' +
+       '<div class="note">Teraz otwarte: ' + D.ogony.filter(open_).length + '</div></div>';
+  const sz = D.myjnie.filter(w => w.odWymiany !== '' && w.odWymiany != null).map(w => ({ e: skrot(w.nazwa), v: +w.odWymiany, t: w.odWymiany,
+    kolor: +w.odWymiany >= 50000 ? 'var(--red)' : +w.odWymiany >= 45000 ? 'var(--yel)' : 'var(--grn)' })).sort((a, b) => b.v - a.v);
+  h += '<div class="card"><h3>' + I('brush', 1) + 'Szczotki: myć od wymiany (norma 50 000)</h3>' + (sz.length ? poziome(sz, 50000) : '<div class="mute">brak danych — podyktuj botowi „na 1467 wymieniono szczotki przy 120000”</div>') + '</div>';
+  const zal = M.map(m => Math.round(D.zaliczka.filter(z => z.d.slice(0, 7) === m).reduce((a, z) => a + z.kwota, 0)));
+  h += '<div class="card"><h3>' + I('money', 1) + 'Zaliczka: wydatki w miesiącu, zł</h3>' + slupki(et, [{ nazwa: 'zł', kolor: 'var(--c2)', dane: zal }]) + '<div class="note">limit ' + zl(D.limitZaliczki) + ' miesięcznie</div></div>';
+  return h;
+}
+
+document.getElementById('odsw').innerHTML = I('refresh');
+ustawMotyw(LS.get('motyw') || 'auto');
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+document.addEventListener('visibilitychange', () => { if (!document.hidden && D) load(); });
+document.getElementById('logo').innerHTML = I('pulse');
+window.addEventListener('popstate', zamknijDet);
+nav(); load();
+</script>
+</body>
+</html>
