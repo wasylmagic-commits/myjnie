@@ -134,6 +134,7 @@
 <div id="det"></div>
 <div id="toast"></div>
 
+<script src="asystent.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -192,10 +193,11 @@ const IC = {
   moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
   half: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'
 };
+Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
-const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['panel','panel','Panel'],['wiecej','grid','Więcej']];
-const WIECEJ = { magazyn: 1, druk: 1, wykresy: 1 };
+const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['asystent','spark','Asystent'],['wiecej','grid','Więcej']];
+const WIECEJ = { magazyn: 1, druk: 1, wykresy: 1, panel: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -240,9 +242,10 @@ function nav() {
 function go(t) { TAB = t; Q = ''; ANIM = true; render(); window.scrollTo(0, 0); }
 function render() {
   nav();
-  if (!D) return;
+  const MOD = (window.MODULY || {})[TAB];
+  if (!D && !(MOD && MOD.bezDanych)) return;
   const m = document.getElementById('main');
-  m.classList.remove('anim'); m.innerHTML = ({ dzis, myjnie, ogony, przeglady, panel, wiecej, magazyn, druk, wykresy })[TAB]();
+  m.classList.remove('anim'); m.innerHTML = MOD ? MOD.widok() : ({ dzis, myjnie, ogony, przeglady, panel, wiecej, magazyn, druk, wykresy })[TAB]();
   if (ANIM) { void m.offsetWidth; m.classList.add('anim'); }
   ANIM = false;
 }
@@ -347,6 +350,7 @@ function pokazMyjnie(nazwa) {
   zd.sort((a, b) => b.d.localeCompare(a.d));
   const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([w.nazwa.replace(/SP\s*/, ''), w.adres, w.miasto].filter(Boolean).join(' '));
   let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
+          (window.asNowaDla ? '<button class="btn2" onclick="asNowaDla(\'' + jsq(w.nazwa) + '\')">' + I('spark', 1) + 'Diagnoza</button>' : '') +
           '<a class="btn2" href="' + maps + '" target="_blank">' + I('route', 1) + 'Jedź</a></div></header><main>';
   h += '<div class="card"><div class="mute">' + esc([w.model, w.segment ? 'segment ' + w.segment : '', w.co ? 'przegląd co ' + w.co + ' mies.' : '', w.klient].filter(Boolean).join(' · ')) + '</div>';
   if (w.termin !== undefined) h += '<div class="row"><div class="g">Następny przegląd: <b>' + esc(w.termin || '—') + '</b></div>' + pillDni(w.dni) + '</div>';
@@ -394,6 +398,7 @@ function przeglady() {
 function wiecej() {
   const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
   return '<div class="more">' +
+    k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
     k('druk', 'print', 'Druki', 'formularze i BHP') +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
