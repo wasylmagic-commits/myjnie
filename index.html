@@ -135,6 +135,7 @@
 <div id="toast"></div>
 
 <script src="asystent.js"></script>
+<script src="paliwo.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -197,7 +198,7 @@ Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
 const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['asystent','spark','Asystent'],['wiecej','grid','Więcej']];
-const WIECEJ = { magazyn: 1, druk: 1, wykresy: 1, panel: 1 };
+const WIECEJ = { magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -399,6 +400,7 @@ function wiecej() {
   const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
   return '<div class="more">' +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
+    k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
     k('druk', 'print', 'Druki', 'formularze i BHP') +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
@@ -466,7 +468,12 @@ function ring(p, kolor) {
   return '<div class="ring"><svg viewBox="0 0 86 86"><circle cx="43" cy="43" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="9"/>' +
     '<circle cx="43" cy="43" r="' + r + '" fill="none" stroke="' + kolor + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + (c * p / 100) + ' ' + c + '"/></svg><b>' + p + '%</b></div>';
 }
-const PALIWO = { l100: 9, cena: 6.0 };   // założenia do czasu, aż będzie arkusz Paliwo (tankowania)
+const PALIWO_ZAL = { l100: 9, cena: 6.0 };   // założenia, gdy brak tankowań w arkuszu Paliwo
+// realne dane z tankowań (paliwo.js), a gdy ich brak – założenia
+function paliwoUzyte() {
+  const r = window.paliwoParam ? window.paliwoParam() : null;
+  return { l100: r && r.l100 ? r.l100 : PALIWO_ZAL.l100, cena: r && r.cena ? r.cena : PALIWO_ZAL.cena, realL: !!(r && r.l100), realC: !!(r && r.cena), n: r ? r.n : 0 };
+}
 
 function moje() { return D.prace.filter(p => p.status !== 'zlecenie' && p.status !== 'anulowane'); }
 
@@ -505,6 +512,7 @@ function panel() {
   const wyjazdy90 = praca.filter(p => dni(p.d) >= -90 && dniPracy.indexOf(p.d) >= 0).length;
   const kmNaWyjazd = wyjazdy90 ? kmSuma / wyjazdy90 : 0;
   const pd = poDrodze(90);
+  const PALIWO = paliwoUzyte();
   const kmOszcz = pd.razem * kmNaWyjazd, lOszcz = kmOszcz * PALIWO.l100 / 100, zlOszcz = lOszcz * PALIWO.cena;
 
   let h = '<div class="phead"><span style="color:var(--acc)">' + I('panel') + '</span><div><b>Panel serwisu</b><span>' + esc(D.myjnie.length) + ' myjni w opiece · dane z ostatnich 90 dni · stan na ' + esc(D.teraz) + '</span></div></div>';
@@ -520,7 +528,7 @@ function panel() {
        '<div><b>' + lic(kmOszcz) + ' km</b><span>mniej przejechanych</span></div></div>' +
        slupki(et, [{ nazwa: 'zadania zamknięte przy okazji', kolor: 'var(--grn)', dane: ogM }, { nazwa: 'kilka zleceń w jednym wyjeździe', kolor: 'var(--acc)', dane: zlM }]) +
        '<div class="note">Liczone: zadania zamknięte podczas innej wizyty na tej samej myjni + dodatkowe zlecenia obsłużone w jednym wyjeździe. ' +
-       'Średnio ' + lic(kmNaWyjazd) + ' km na wyjazd (z licznika auta). Założenia: ' + lic(PALIWO.l100) + ' l/100 km, ' + PALIWO.cena.toFixed(2).replace('.', ',') + ' zł/l — po zebraniu tankowań zastąpią je realne dane.</div></div>';
+       'Średnio ' + lic(kmNaWyjazd) + ' km na wyjazd (z licznika auta). Zużycie ' + PALIWO.l100.toFixed(2).replace('.', ',') + ' l/100 km' + (PALIWO.realL ? ' (realne, z tankowań)' : ' (założenie)') + ', cena ' + PALIWO.cena.toFixed(2).replace('.', ',') + ' zł/l' + (PALIWO.realC ? ' (z paragonów)' : ' (założenie)') + (PALIWO.n ? ' · <a onclick="go(\'paliwo\')">tankowania: ' + PALIWO.n + '</a>' : '') + '.</div></div>';
 
   /* 2. Przeglądy w terminie */
   const zTer = D.myjnie.filter(w => w.dni != null);
