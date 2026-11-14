@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Serwis myjni</title>
-<meta name="theme-color" content="#f2f2f7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#eceef1" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
@@ -282,6 +282,56 @@
   @keyframes island{from{opacity:.4;clip-path:inset(0 35% round 999px);transform:translateX(-50%) scale(.6)}to{opacity:1;clip-path:inset(0 0 round 999px);transform:translateX(-50%)}}
   @media (prefers-color-scheme:dark){#toast{box-shadow:0 0 0 .5px rgba(255,255,255,.18),0 12px 34px rgba(0,0,0,.6)}}
   @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
+
+  /* ===== MOTYW „PORTAL” (15.11.2026): antracyt + aluminium + niebieskie LED; bez animacji tła ===== */
+  :root{--bg:#eceef1;--bg2:#dfe2e6;--card:#fbfbfc;--solid:#fff;--ink:#141618;--mute:rgba(30,34,40,.58);--line:rgba(20,24,30,.12);
+    --acc:#0098d4;--acc2:rgba(0,152,212,.12);--accg:linear-gradient(135deg,#19c3ff,#0088c7);--led:#14c4ff;
+    --ant:linear-gradient(160deg,#30343a 0%,#1d2024 55%,#121416 100%);--alu:linear-gradient(180deg,#f7f8f9,#e3e6ea);
+    --glass:rgba(24,26,30,.86);--hl:rgba(255,255,255,.9);--sh:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(20,30,40,.08);
+    --b1:rgba(20,196,255,.10);--b2:rgba(20,196,255,0);--b3:rgba(45,225,194,.10)}
+  @media (prefers-color-scheme:dark){:root:not([data-t=jasny]){--bg:#0a0b0d;--bg2:#15171a;--card:#16181b;--solid:#1d2024;--ink:#f2f4f6;--mute:rgba(225,232,240,.58);--line:rgba(255,255,255,.09);
+    --acc:#19c3ff;--acc2:rgba(25,195,255,.15);--glass:rgba(20,22,25,.9);--hl:rgba(255,255,255,.07);--sh:0 8px 24px rgba(0,0,0,.45);--b1:rgba(20,196,255,.10);--b3:rgba(45,225,194,.07)}}
+  :root[data-t=ciemny]{--bg:#0a0b0d;--bg2:#15171a;--card:#16181b;--solid:#1d2024;--ink:#f2f4f6;--mute:rgba(225,232,240,.58);--line:rgba(255,255,255,.09);
+    --acc:#19c3ff;--acc2:rgba(25,195,255,.15);--glass:rgba(20,22,25,.9);--hl:rgba(255,255,255,.07);--sh:0 8px 24px rgba(0,0,0,.45);--b1:rgba(20,196,255,.10);--b3:rgba(45,225,194,.07)}
+  /* wydajność: tło stoi, karty bez rozmycia */
+  body::before{animation:none;filter:none;inset:0;background:radial-gradient(60% 30% at 50% 105%,var(--b3),transparent 70%),radial-gradient(50% 25% at 90% -5%,var(--b1),transparent 70%)}
+  .card,.tile,.seg,.more button,input[type=search],textarea,main select.as-in,main input.as-in,.btn2{-webkit-backdrop-filter:none;backdrop-filter:none}
+  .card,.tile{box-shadow:inset 0 0 0 1px var(--line),var(--sh)}
+  .card h3,.card h3 svg{color:var(--acc)}
+  .card h3{text-transform:uppercase;font-size:13px;letter-spacing:.6px;font-weight:800}
+  .lt h1,.phead b{font-weight:800;letter-spacing:-.2px}
+  /* karta główna = belka portalu: antracyt, szczotkowane aluminium, niebieska kolumna LED */
+  .hero{background:var(--ant);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 14px 30px rgba(0,0,0,.28);border-radius:26px}
+  .hero::before{animation:none;inset:0;z-index:-1;background:repeating-linear-gradient(90deg,rgba(255,255,255,.025) 0 1px,transparent 1px 3px)}
+  .hero::after{animation:none;transform:none;inset:0 auto 0 0;width:7px;border-radius:26px 0 0 26px;
+    background:linear-gradient(var(--led),#0a9ad8);box-shadow:0 0 14px var(--led),0 0 30px rgba(20,196,255,.6)}
+  .hero small{color:var(--led);opacity:1;letter-spacing:.8px}
+  .hero h2{font-weight:800}
+  .hero .hs div{background:rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),inset 0 0 0 1px rgba(255,255,255,.06);-webkit-backdrop-filter:none;backdrop-filter:none}
+  .hero .hs b{color:#fff}
+  .hero .hs div:first-child b{color:var(--led);text-shadow:0 0 14px rgba(20,196,255,.55)}
+  /* widżety i ikony: antracyt + LED */
+  .tile .ch,.tile .ch.o,.tile .ch.ok,.tile .ch.r,.tile .ch.y{background:var(--ant);color:var(--led);box-shadow:inset 0 1px 0 rgba(255,255,255,.12)}
+  .av{background:var(--ant);color:var(--led);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 2px 6px rgba(0,0,0,.18)}
+  .logo{box-shadow:0 2px 8px rgba(0,0,0,.25)}
+  .btn{background:var(--accg);box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 6px 16px rgba(0,152,212,.35)}
+  /* „Więcej” = kolumny portalu */
+  .more button,.more button:nth-child(n){--g:var(--ant);--gs:rgba(0,0,0,.25);padding-left:20px}
+  .more button::after{background:none;inset:12px auto 12px 0;width:5px;border-radius:0 4px 4px 0;background:var(--led);box-shadow:0 0 12px var(--led)}
+  .more button .ch{background:rgba(20,196,255,.12);color:var(--led)}
+  .more button span{opacity:.6}
+  /* pasek kart = czarna belka z niebieskim światłem */
+  #bnav .in{background:var(--glass);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.3)}
+  #bnav button{color:rgba(255,255,255,.7)}
+  #bnav button.on{color:var(--led)}
+  #bnav .lens{background:rgba(20,196,255,.14);box-shadow:inset 0 0 0 1px rgba(20,196,255,.35),0 0 16px rgba(20,196,255,.25)}
+  .seg button.on{color:var(--acc)}
+  .tl::before{background:linear-gradient(var(--led),transparent)} .tl div::before{background:var(--led)}
+  .ib{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line),0 2px 8px rgba(0,0,0,.08);-webkit-backdrop-filter:none;backdrop-filter:none}
+  /* krople: tylko stojące, lekkie */
+  .mokro .led,.pb{display:none}
+  .kr.sp{animation:none} .kr.sp::after{display:none}
+  .kr{opacity:.75}
 </style>
 </head>
 <body>
@@ -435,13 +485,13 @@ function render() {
 }
 // mokre szkło na kartach „hero”: krople (kilka spływa), pęcherzyki piany w trzech kolorach, światło LED portalu
 function mokro() {
-  let h = '<div class="mokro"><i class="led"></i>';
+  let h = '<div class="mokro">';
   const r = (a, b) => a + Math.random() * (b - a);
-  for (let i = 0; i < 9; i++) { const w = r(6, 15), sp = i < 3;
+  for (let i = 0; i < 7; i++) { const w = r(5, 12), sp = false;
     h += '<i class="kr' + (sp ? ' sp' : '') + '" style="left:' + r(4, 94).toFixed(1) + '%;top:' + r(sp ? 4 : 8, sp ? 40 : 88).toFixed(1) + '%;width:' + w.toFixed(1) + 'px;height:' + (w * 1.15).toFixed(1) + 'px' +
          (sp ? ';--t:' + r(7, 13).toFixed(1) + 's;--d:' + r(0, 6).toFixed(1) + 's;--sl:' + r(25, 60).toFixed(0) + 'px' : '') + '"></i>'; }
   const kol = ['rgba(255,120,200,.22)', 'rgba(100,210,255,.22)', 'rgba(255,214,10,.2)'];
-  for (let i = 0; i < 6; i++) { const w = r(8, 20);
+  for (let i = 0; i < 0; i++) { const w = r(8, 20);
     h += '<i class="pb" style="left:' + r(5, 92).toFixed(1) + '%;width:' + w.toFixed(1) + 'px;height:' + w.toFixed(1) + 'px;--c:' + kol[i % 3] + ';--t:' + r(7, 12).toFixed(1) + 's;--d:' + r(0, 8).toFixed(1) + 's;--x:' + r(-18, 18).toFixed(0) + 'px"></i>'; }
   return h + '</div>';
 }
