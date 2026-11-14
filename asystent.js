@@ -13,50 +13,79 @@
     wyniki: {},                   // id kroku → 'ok' | 'nok' | 'pominiety' (jeszcze niewysłane)
     zdj: [],                      // [{ b64, mime, mini }]
     myjnia: '', objaw: '', kody: '', trudny: false,
-    busy: false, sesje: null, zamykanie: false, q: '',
+    busy: false, sesje: null, zamykanie: false, q: '', potwierdz: null, poziom: LSG('as_poziom') || '',
     mowa: null, jezyk: LSG('as_jezyk') || 'pl-PL'
   };
   const zapiszStan = () => LSS('as_sesja', ST.s);
   const kolejka = () => LSG('as_kolejka') || [];
 
   /* ---------- połączenie ---------- */
+  // 14.11.2026 (audyt): każdy zapis ma rid – serwer rozpoznaje powtórkę i nie płaci drugi raz za tę samą rundę;
+  // powtórki z kolejki z przerwami 5 s → 20 s → 60 s, po 4 próbach stop (przycisk „Wyślij teraz”).
+  const nowyRid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+  const PAUZY = [5000, 20000, 60000];
   function post(akcja, dane) {
     return fetch(API + '?api=asystent', {
       method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify(Object.assign({ k: K, akcja: akcja }, dane || {}))
-    }).then(r => r.json()).then(j => { if (!j.ok) { const e = new Error(j.blad || 'błąd serwera'); e.serwer = true; throw e; } return j.wynik; });
+      body: JSON.stringify(Object.assign({ k: K, akcja: akcja, v: 2 }, dane || {}))
+    }).then(r => r.text()).then(t => {
+      let j;
+      try { j = JSON.parse(t); } catch (e) { const x = new Error('serwer nie odpowiedział poprawnie (przerwa / limit Google)'); x.html = true; throw x; }
+      if (!j.ok) { const e = new Error(j.blad || 'błąd serwera'); e.serwer = !j.trwa; e.trwa = !!j.trwa; throw e; }
+      return j.wynik;
+    });
+  }
+  // „poprzednia runda jeszcze trwa” → czekam 20 s i pytam o ten sam rid (serwer odda gotowy wynik)
+  function postCierpliwie(akcja, dane, ile) {
+    return post(akcja, dane).catch(e => {
+      if (e.trwa && (ile || 0) < 3) return new Promise(r => setTimeout(r, 20000)).then(() => postCierpliwie(akcja, dane, (ile || 0) + 1));
+      throw e;
+    });
   }
   // błąd sieci → kolejka; błąd serwera → komunikat
   function wyslij(akcja, dane) {
+    if (!dane.rid) dane.rid = nowyRid();
     if (!navigator.onLine) return Promise.reject(Object.assign(new Error('offline'), { offline: true }));
-    return post(akcja, dane).catch(e => { if (!e.serwer) e.offline = true; throw e; });
+    return postCierpliwie(akcja, dane).catch(e => { if (!e.serwer) e.offline = true; throw e; });
   }
   function doKolejki(akcja, dane) {
-    const k = kolejka(); k.push({ akcja: akcja, dane: dane, t: Date.now() }); LSS('as_kolejka', k);
+    if (!dane.rid) dane.rid = nowyRid();
+    const k = kolejka(); k.push({ akcja: akcja, dane: dane, t: Date.now(), proby: 0 }); LSS('as_kolejka', k);
     toast('Brak zasięgu — wyślę, gdy wróci');
+    planuj(PAUZY[0]);
   }
-  let wysylam = false;
-  function oprozniaj() {
+  let wysylam = false, zegar = null;
+  function planuj(ms) { clearTimeout(zegar); zegar = setTimeout(() => oprozniaj(false), ms); }
+  function oprozniaj(recznie) {
     const k = kolejka();
     if (wysylam || !k.length || !navigator.onLine) return;
-    wysylam = true; ST.busy = true; odswiez();
     const x = k[0];
+    if (recznie) x.proby = 0;
+    if ((x.proby || 0) >= PAUZY.length + 1) { if (recznie !== false) toast('Nie udało się wysłać — spróbuj ręcznie: „Wyślij teraz”'); return; }
+    wysylam = true; ST.busy = true; odswiez();
     if (x.akcja === 'as_runda' && x.dane.id === '?' && ST.s && ST.s.id !== '?') x.dane.id = ST.s.id;   // runda czekała na start
-    post(x.akcja, x.dane).then(w => {
+    if (!x.dane.rid) x.dane.rid = nowyRid();
+    let dalej = 0;
+    postCierpliwie(x.akcja, x.dane).then(w => {
       LSS('as_kolejka', kolejka().slice(1));
-      przyjmij(w, x.akcja);
-      toast('Wysłane z kolejki');
+      if (w && w.potwierdz) { ST.potwierdz = w; ST.zamknijDane = x.dane; toast('Zamknięcie czeka na decyzję'); }
+      else { przyjmij(w, x.akcja); toast('Wysłane z kolejki'); }
+      dalej = 500;
     }).catch(e => {
-      if (e.serwer) { LSS('as_kolejka', kolejka().slice(1)); toast('Błąd: ' + e.message); }
-    }).then(() => { wysylam = false; ST.busy = false; odswiez(); if (kolejka().length && navigator.onLine) setTimeout(oprozniaj, 500); });
+      if (e.serwer) { LSS('as_kolejka', kolejka().slice(1)); toast('Błąd: ' + e.message); dalej = 500; return; }
+      const l = kolejka(); if (l[0]) { l[0].proby = (l[0].proby || 0) + 1; l[0].dane = x.dane; LSS('as_kolejka', l); }
+      const p = l[0] ? l[0].proby : 0;
+      if (p <= PAUZY.length) dalej = PAUZY[p - 1];
+      else toast('Nie udało się wysłać po ' + p + ' próbach — „Wyślij teraz”, gdy będzie zasięg');
+    }).then(() => { wysylam = false; ST.busy = false; odswiez(); if (dalej && kolejka().length && navigator.onLine) planuj(dalej); });
   }
-  window.addEventListener('online', () => setTimeout(oprozniaj, 1500));
+  window.addEventListener('online', () => planuj(1500));
 
   function przyjmij(w, akcja) {
     if (!w) return;
     const s = ST.s && ST.s.id === w.id ? ST.s : { rozmowa: (ST.s && ST.s.id === '?' ? ST.s.rozmowa : []) || [] };
     Object.assign(s, { id: w.id, myjnia: w.myjnia, status: w.status, odp: w.odp, model: w.model, eskalacja: w.eskalacja, runda: w.runda,
-                       powrot: w.powrot, szkicUrl: w.szkicUrl, szkicStatus: w.szkicStatus, ogon: w.ogon });
+                       powrot: w.powrot, szkicUrl: w.szkicUrl, szkicStatus: w.szkicStatus, ogon: w.ogon, poziom: w.poziom, koszt: w.koszt });
     if (w.rozmowa) s.rozmowa = w.rozmowa;
     else if (w.odp && akcja !== 'as_zamknij') s.rozmowa.push({ rola: 'assistant', tekst: w.odp.podsumowanie });
     ST.s = s; zapiszStan();
@@ -174,6 +203,10 @@
       '<h3 style="margin-top:6px">' + I('pen', 1) + 'Co się dzieje</h3>' +
       '<textarea id="as-objaw" placeholder="Objaw, od kiedy, co już sprawdzone… (możesz dyktować)" oninput="asPole(\'objaw\',this.value)">' + esc(ST.objaw) + '</textarea>' +
       miniatury() + narzedzia('as-objaw') +
+      '<h3 style="margin-top:12px">' + I('star', 1) + 'Poziom serwisanta</h3>' +
+      '<select class="as-in" id="as-poziom" onchange="asPoziom(this.value)"><option value="">domyślny (z Ustawień)</option>' +
+      '<option value="doswiadczony"' + (ST.poziom === 'doswiadczony' ? ' selected' : '') + '>Doświadczony — cały plan, miękka kontrola końca</option>' +
+      '<option value="nowy"' + (ST.poziom === 'nowy' ? ' selected' : '') + '>Początkujący — krok po kroku, twarda kontrola końca</option></select>' +
       '<label class="row" style="border:0;padding:12px 0 4px;cursor:pointer"><input type="checkbox" ' + (ST.trudny ? 'checked' : '') + ' onchange="asPole(\'trudny\',this.checked)" style="width:20px;height:20px"><div class="g">Trudny przypadek <span class="mute">— od razu mocniejszy model (wolniej, drożej)</span></div></label>' +
       '<button class="btn" style="width:100%;justify-content:center;margin-top:8px;height:46px" onclick="asStart()">' + I('spark', 1) + 'Zacznij diagnozę</button></div>';
     h += '<div class="card"><h3>' + I('history', 1) + 'Ostatnie sesje</h3>' + (ST.sesje ? (ST.sesje.length ? ST.sesje.map(x =>
@@ -187,14 +220,15 @@
   function widokSesja() {
     const s = ST.s, o = s.odp || {};
     let h = '<div class="card"><div class="row" style="padding-top:0"><div class="g"><b style="font-size:17px">' + esc(skrot((s.myjnia || {}).nazwa || '')) + '</b>' +
-      '<div class="mute">' + esc([(s.myjnia || {}).model, 'runda ' + (s.runda || 1), (s.model || '').replace('claude-', '')].filter(Boolean).join(' · ')) + '</div>' +
+      '<div class="mute">' + esc([(s.myjnia || {}).model, 'runda ' + (s.runda || 1), (s.model || '').replace('claude-', ''), s.poziom === 'nowy' ? 'początkujący' : '', s.koszt ? '≈ ' + (+s.koszt).toFixed(2) + ' USD' : ''].filter(Boolean).join(' · ')) + '</div>' +
       (s.eskalacja ? '<div class="mute">↑ mocniejszy model: ' + esc(s.eskalacja) + '</div>' : '') + '</div>' +
       (o.pewnosc != null ? '<div style="text-align:right"><b style="font-size:20px;color:var(' + (o.pewnosc >= 70 ? '--grn' : o.pewnosc >= 40 ? '--org' : '--red') + ')">' + o.pewnosc + '%</b><div class="mute">pewność</div></div>' : '') + '</div>' +
       (s.powrot ? '<span class="as-tag op">możliwy powrót usterki</span>' : '') + (o.faza ? '<span class="as-tag">' + esc(({ dane: 'zbieram dane', plan: 'plan', petla: 'sprawdzamy', bramka: 'dlaczego się zepsuło?', weryfikacja: 'weryfikacja', zamkniecie: 'do zamknięcia' })[o.faza] || o.faza) + '</span>' : '') +
       (s.id === '?' ? '<span class="as-tag op">czeka na wysłanie</span>' : '') +
       (o.podsumowanie ? '<div style="margin-top:10px">' + esc(o.podsumowanie) + '</div>' : '') +
       (o.przyczyna ? '<div class="mute" style="margin-top:6px"><b>Przyczyna:</b> ' + esc(o.przyczyna) + '</div>' : '') +
-      (o.pytanie ? '<div class="as-q">' + esc(o.pytanie) + '</div>' : '') + '</div>';
+      ((o.pytania && o.pytania.length) ? o.pytania.map(q => '<div class="as-q">' + esc(q) + '</div>').join('') : (o.pytanie ? '<div class="as-q">' + esc(o.pytanie) + '</div>' : '')) +
+      (o.bramka && o.bramka.brak && s.status !== 'zamknieta' ? '<div class="note" style="margin-top:10px"><b>Do zamknięcia brakuje:</b> ' + esc(o.bramka.brak) + '</div>' : '') + '</div>';
     if (o.ostrzezenie) h += '<div class="as-warn">' + I('alert', 1) + '<span>' + esc(o.ostrzezenie) + '</span></div>';
     if (o.prosba_o_zdjecie) h += '<div class="card"><div class="row" style="padding:0"><div class="g">' + I('camera', 1) + ' <b>Zdjęcie:</b> ' + esc(o.prosba_o_zdjecie) + '</div></div></div>';
     if ((o.hipotezy || []).length) h += '<div class="card"><h3>' + I('pulse', 1) + 'Hipotezy</h3>' + o.hipotezy.map(x =>
@@ -218,6 +252,16 @@
         (s.szkicUrl ? '<div class="row"><div class="g">Szkic przypadku' + (s.szkicStatus ? ' · ' + esc(s.szkicStatus) : '') + ' — w „Do przeglądu”</div><a class="btn2" href="' + esc(s.szkicUrl) + '" target="_blank">' + I('doc', 1) + 'Otwórz</a></div>' : '') +
         (s.ogon ? '<div class="row"><div class="g">Zadanie kontroli: ' + esc(s.ogon) + '</div></div>' : '') +
         '<button class="btn" style="width:100%;justify-content:center;margin-top:10px" onclick="asNowa()">' + I('spark', 1) + 'Nowa diagnoza</button></div>';
+    } else if (ST.potwierdz) {
+      const p = ST.potwierdz;
+      h += '<div class="card"><h3>' + I('shield', 1) + 'Na pewno naprawione?</h3>' +
+        '<div class="as-warn">' + I('alert', 1) + '<span>Brakuje: ' + esc((p.braki || []).join('; ')) + '</span></div>' +
+        '<div class="mute" style="margin-bottom:10px">' + (p.poziom === 'nowy'
+          ? 'Poziom początkujący: bez tego nie zamkniesz jako „naprawione”. Uzupełnij albo zamknij jako tymczasowo (z kontrolą za kilka dni).'
+          : 'Bez tego usterka może wrócić. Zamknąć jako TYMCZASOWO z kontrolą za kilka dni?') + '</div>' +
+        '<div class="as-bar"><button class="btn2" onclick="asPotwierdz(\'wroc\')">Wróć</button><span style="flex:1"></span>' +
+        (p.poziom !== 'nowy' ? '<button class="btn2" onclick="asPotwierdz(\'wymus\')">Mimo to naprawione</button>' : '') +
+        '<button class="btn" onclick="asPotwierdz(\'tymczasowo\')">' + I('check', 1) + 'Tymczasowo</button></div></div>';
     } else if (ST.zamykanie) {
       const dni = o.sprawdzic_za_dni || (s.powrot ? 7 : 0);
       h += '<div class="card"><h3>' + I('shield', 1) + 'Zamknięcie</h3>' +
@@ -225,7 +269,7 @@
         '<textarea id="as-przyczyna" placeholder="np. wężyk zraszania kół strzelał w wprowadzenie kablowe">' + esc(o.przyczyna || '') + '</textarea>' +
         '<div class="mute" style="margin-bottom:6px">Co zrobione</div><textarea id="as-naprawa" placeholder="np. wymieniony wężyk, szyna wysuszona"></textarea>' +
         narzedzia('as-naprawa') +
-        '<select class="as-in" id="as-wynik" style="margin-top:10px"><option value="naprawione">Naprawione</option><option value="tymczasowo">Tymczasowo / do dokończenia</option><option value="nie">Nie rozwiązane</option></select>' +
+        '<select class="as-in" id="as-wynik" style="margin-top:10px"><option value="">— wybierz wynik —</option><option value="naprawione">Naprawione</option><option value="tymczasowo">Tymczasowo / do dokończenia</option><option value="nie">Nie rozwiązane</option></select>' +
         '<label class="row" style="border:0;cursor:pointer"><input type="checkbox" id="as-cykl" style="width:20px;height:20px"><div class="g">Pełny cykl / kontrola końcowa OK</div></label>' +
         '<div class="row" style="border:0"><div class="g">Kontrola za (dni, 0 = bez)</div><input class="as-in" id="as-dni" type="number" min="0" max="90" value="' + dni + '" style="width:90px;margin:0"></div>' +
         (!o.przyczyna ? '<div class="note">Bez przyczyny źródłowej przypadek trafi do bazy jako niepewny — i jest ryzyko powrotu usterki.</div>' : '') +
@@ -251,11 +295,12 @@
 
   /* ---------- akcje ---------- */
   window.asPole = (k, v) => { ST[k] = v; if (k === 'myjnia') odswiez(); };
+  window.asPoziom = v => { ST.poziom = v; LSS('as_poziom', v || null); };
   window.asKrok = (id, stan) => { ST.wyniki[id] = ST.wyniki[id] === stan ? undefined : stan; if (!ST.wyniki[id]) delete ST.wyniki[id]; odswiez(); };
   window.asSesje = () => { post('as_sesje', {}).then(l => { ST.sesje = l; odswiez(); }).catch(e => toast(e.message)); };
-  window.asKolejka = () => oprozniaj();
+  window.asKolejka = () => oprozniaj(true);
   window.asZamykanie = on => { ST.zamykanie = on; odswiez(); window.scrollTo(0, document.body.scrollHeight); };
-  window.asNowa = () => { ST.s = null; ST.wyniki = {}; ST.zdj = []; ST.objaw = ''; ST.kody = ''; ST.tekst = ''; ST.trudny = false; ST.zamykanie = false; ST.sesje = null; zapiszStan(); odswiez(); window.scrollTo(0, 0); };
+  window.asNowa = () => { ST.s = null; ST.wyniki = {}; ST.zdj = []; ST.objaw = ''; ST.kody = ''; ST.tekst = ''; ST.trudny = false; ST.zamykanie = false; ST.potwierdz = null; ST.zamknijDane = null; ST.sesje = null; zapiszStan(); odswiez(); window.scrollTo(0, 0); };
   window.asNowaDla = nazwa => { asNowa(); ST.myjnia = nazwa; if (typeof zamknijDet === 'function') zamknijDet(); go('asystent'); };
 
   window.asStart = () => {
@@ -263,7 +308,7 @@
     if (!myj) { toast('Wybierz myjnię'); return; }
     if (!ST.objaw.trim() && !ST.kody.trim() && !ST.zdj.length) { toast('Opisz objaw, kody albo dodaj zdjęcie'); return; }
     const ost = (LSG('as_ost_myjnie') || []).filter(n => n !== myj); ost.unshift(myj); LSS('as_ost_myjnie', ost.slice(0, 5));
-    const dane = { myjnia: myj, objaw: ST.objaw, kody: ST.kody, trudny: ST.trudny, zdjecia: ST.zdj.map(z => ({ b64: z.b64, mime: z.mime })) };
+    const dane = { myjnia: myj, objaw: ST.objaw, kody: ST.kody, trudny: ST.trudny, poziom: ST.poziom || undefined, zdjecia: ST.zdj.map(z => ({ b64: z.b64, mime: z.mime })) };
     const lok = { id: '?', myjnia: { nazwa: myj }, odp: { podsumowanie: 'Zgłoszenie zapisane — czeka na zasięg.' }, runda: 1,
                   rozmowa: [{ rola: 'user', tekst: (ST.kody ? '[' + ST.kody + '] ' : '') + ST.objaw, zdjec: ST.zdj.length }] };
     ST.busy = true; odswiez();
@@ -300,10 +345,27 @@
     const dane = { id: s.id, przyczyna: v('as-przyczyna'), naprawa: v('as-naprawa'), wynik: v('as-wynik'),
                    pelnyCykl: !!(document.getElementById('as-cykl') || {}).checked, sprawdzZaDni: +v('as-dni') || 0 };
     if (s.id === '?') { toast('Najpierw musi wyjść zgłoszenie (brak zasięgu)'); return; }
-    ST.zamykanie = false; ST.busy = true; odswiez();
-    wyslij('as_zamknij', dane).then(w => { przyjmij(w, 'as_zamknij'); toast('Zamknięte — szkic w „Do przeglądu”'); })
-      .catch(e => { if (e.offline) doKolejki('as_zamknij', dane); else { ST.zamykanie = true; toast('Błąd: ' + e.message); } })
-      .then(() => { ST.busy = false; odswiez(); });
+    if (!dane.wynik) { toast('Wybierz wynik: naprawione / tymczasowo / nie rozwiązane'); return; }
+    zamknijWyslij(dane);
+  };
+  function zamknijWyslij(dane) {
+    ST.zamknijDane = dane;
+    ST.zamykanie = false; ST.potwierdz = null; ST.busy = true; odswiez();
+    wyslij('as_zamknij', dane).then(w => {
+      if (w && w.potwierdz) { ST.potwierdz = w; return; }
+      przyjmij(w, 'as_zamknij'); ST.zamknijDane = null; toast('Zamknięte — szkic w „Do przeglądu”');
+    }).catch(e => { if (e.offline) doKolejki('as_zamknij', dane); else { ST.zamykanie = true; toast('Błąd: ' + e.message); } })
+      .then(() => { ST.busy = false; odswiez(); window.scrollTo(0, document.body.scrollHeight); });
+  }
+  // decyzja po „brakuje…”: wróć do formularza / zamknij jako tymczasowo / mimo to naprawione (tylko doświadczony)
+  window.asPotwierdz = co => {
+    const d = Object.assign({}, ST.zamknijDane || { id: ST.s.id });
+    delete d.rid;
+    ST.potwierdz = null;
+    if (co === 'wroc') { ST.zamykanie = true; odswiez(); return; }
+    if (co === 'tymczasowo') { d.wynik = 'tymczasowo'; if (!(+d.sprawdzZaDni > 0)) d.sprawdzZaDni = 7; }
+    if (co === 'wymus') d.wymus = true;
+    zamknijWyslij(d);
   };
 
   window.asOtworz = id => {
@@ -320,5 +382,5 @@
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
     camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>'
   });
-  setTimeout(oprozniaj, 3000);
+  setTimeout(() => oprozniaj(), 3000);
 })();
