@@ -188,7 +188,7 @@
   window.asOdkryj = () => { LSS('as_ukryte', null); odswiez(); };
   window.asWszystkie = v => { ST.wszystkie = v; odswiez(); };
 
-  function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = widok(); odswiezMik(); } } }
+  function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = widok(); if (window.zmocz) zmocz(m); odswiezMik(); } } }
 
   function narzedzia(pole) {
     return '<div class="as-bar">' +

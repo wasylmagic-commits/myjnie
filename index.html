@@ -136,6 +136,24 @@
   .hero::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.22) 45%,transparent 60%);
         transform:translateX(-100%);animation:shine 6s var(--ease) 1s infinite}
   @keyframes shine{0%,70%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+  /* „mokre szkło”: krople, piana, lista LED portalu */
+  .hero>*:not(.mokro){position:relative;z-index:1}
+  .mokro{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;border-radius:inherit}
+  .mokro .led{position:absolute;left:22px;right:22px;top:0;height:3px;border-radius:0 0 4px 4px;
+    background:linear-gradient(90deg,#64d2ff,#bf5af2,#ff6ad5,#ffd60a,#64d2ff);background-size:300% 100%;animation:led 5s linear infinite;
+    box-shadow:0 0 10px rgba(100,210,255,.9),0 0 22px rgba(191,90,242,.6)}
+  @keyframes led{to{background-position:300% 0}}
+  .kr{position:absolute;border-radius:50% 50% 50% 50%/58% 58% 42% 42%;
+    background:radial-gradient(circle at 34% 30%,rgba(255,255,255,.95) 0 7%,rgba(255,255,255,.28) 18%,rgba(255,255,255,.06) 55%,rgba(255,255,255,0) 70%);
+    box-shadow:inset -1px -2px 3px rgba(10,10,60,.25),inset 1px 1px 1px rgba(255,255,255,.55),0 2px 3px rgba(10,10,60,.22)}
+  .kr.sp{animation:splyw var(--t,9s) cubic-bezier(.55,0,.8,.4) var(--d,0s) infinite}
+  .kr.sp::after{content:"";position:absolute;left:35%;width:30%;bottom:100%;height:var(--sl,40px);border-radius:3px;
+    background:linear-gradient(transparent,rgba(255,255,255,.18))}
+  @keyframes splyw{0%,35%{transform:translateY(0)}100%{transform:translateY(240px)}}
+  .pb{position:absolute;bottom:-30px;border-radius:50%;border:1px solid rgba(255,255,255,.55);
+    background:radial-gradient(circle at 30% 28%,rgba(255,255,255,.75) 0 10%,var(--c,rgba(255,255,255,.12)) 45%,rgba(255,255,255,.04) 70%);
+    box-shadow:inset 0 0 6px rgba(255,255,255,.35);animation:babel var(--t,8s) ease-in var(--d,0s) infinite}
+  @keyframes babel{0%{transform:translate(0,0) scale(.6);opacity:0}15%{opacity:.9}50%{transform:translate(var(--x,10px),-120px) scale(1)}100%{transform:translate(0,-260px) scale(1.1);opacity:0}}
   .hero small{opacity:.82;font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.3px}
   .hero h2{margin:2px 0 16px;font-size:28px;font-weight:700;letter-spacing:.2px;line-height:1.15}
   .hero .hs{display:flex;gap:10px;flex-wrap:wrap;position:relative;z-index:1}
@@ -411,9 +429,23 @@ function render() {
   document.getElementById('ct').textContent = tab ? tab[2] : '';
   const lt = tab ? '<div class="lt"><small' + (TAB === 'dzis' ? '' : ' id="upd"') + '>' + esc(TAB === 'dzis' ? new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) : UPD) + '</small><h1>' + tab[2] + '</h1></div>' : '';
   m.classList.remove('anim'); m.innerHTML = lt + (MOD ? MOD.widok() : ({ dzis, myjnie, ogony, przeglady, panel, wiecej, magazyn, druk, wykresy })[TAB]());
+  zmocz(m);
   if (ANIM) { void m.offsetWidth; m.classList.add('anim'); }
   ANIM = false;
 }
+// mokre szkło na kartach „hero”: krople (kilka spływa), pęcherzyki piany w trzech kolorach, światło LED portalu
+function mokro() {
+  let h = '<div class="mokro"><i class="led"></i>';
+  const r = (a, b) => a + Math.random() * (b - a);
+  for (let i = 0; i < 9; i++) { const w = r(6, 15), sp = i < 3;
+    h += '<i class="kr' + (sp ? ' sp' : '') + '" style="left:' + r(4, 94).toFixed(1) + '%;top:' + r(sp ? 4 : 8, sp ? 40 : 88).toFixed(1) + '%;width:' + w.toFixed(1) + 'px;height:' + (w * 1.15).toFixed(1) + 'px' +
+         (sp ? ';--t:' + r(7, 13).toFixed(1) + 's;--d:' + r(0, 6).toFixed(1) + 's;--sl:' + r(25, 60).toFixed(0) + 'px' : '') + '"></i>'; }
+  const kol = ['rgba(255,120,200,.22)', 'rgba(100,210,255,.22)', 'rgba(255,214,10,.2)'];
+  for (let i = 0; i < 6; i++) { const w = r(8, 20);
+    h += '<i class="pb" style="left:' + r(5, 92).toFixed(1) + '%;width:' + w.toFixed(1) + 'px;height:' + w.toFixed(1) + 'px;--c:' + kol[i % 3] + ';--t:' + r(7, 12).toFixed(1) + 's;--d:' + r(0, 8).toFixed(1) + 's;--x:' + r(-18, 18).toFixed(0) + 'px"></i>'; }
+  return h + '</div>';
+}
+function zmocz(el) { (el || document).querySelectorAll('.hero').forEach(x => { if (!x.querySelector('.mokro')) x.insertAdjacentHTML('afterbegin', mokro()); }); }
 function naglowek(ic, t, sub) {
   return '<div class="phead"><button class="ib" onclick="go(\'wiecej\')">' + I('back') + '</button><div><b>' + t + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div></div>';
 }
