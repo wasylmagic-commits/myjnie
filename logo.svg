@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#2fa8ff"/><stop offset=".5" stop-color="#3d5af1"/><stop offset="1" stop-color="#8b3fe8"/>
+    </linearGradient>
+    <radialGradient id="glow" cx=".3" cy=".18" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".45"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff"/><stop offset="1" stop-color="#dfe8ff"/></linearGradient>
+    <linearGradient id="brush" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7fd4ff"/><stop offset=".5" stop-color="#e9f8ff"/><stop offset="1" stop-color="#7fd4ff"/></linearGradient>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="140%"><feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#1a1060" flood-opacity=".35"/></filter>
+    <clipPath id="bl"><rect x="318" y="372" width="96" height="330" rx="48"/></clipPath>
+    <clipPath id="br"><rect x="610" y="372" width="96" height="330" rx="48"/></clipPath>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
+  <g filter="url(#sh)">
+    <!-- portal -->
+    <path d="M228 790 V330 a90 90 0 0 1 90 -90 H706 a90 90 0 0 1 90 90 V790 h-78 V338 a20 20 0 0 0 -20 -20 H326 a20 20 0 0 0 -20 20 V790 z" fill="url(#glass)"/>
+    <!-- szczotki -->
+    <g clip-path="url(#bl)"><rect x="318" y="372" width="96" height="330" fill="url(#brush)"/>
+      <g stroke="#3d8bff" stroke-width="14" stroke-linecap="round" opacity=".55"><path d="M318 420 L414 400M318 470 L414 450M318 520 L414 500M318 570 L414 550M318 620 L414 600M318 670 L414 650"/></g></g>
+    <g clip-path="url(#br)"><rect x="610" y="372" width="96" height="330" fill="url(#brush)"/>
+      <g stroke="#3d8bff" stroke-width="14" stroke-linecap="round" opacity=".55"><path d="M610 400 L706 420M610 450 L706 470M610 500 L706 520M610 550 L706 570M610 600 L706 620M610 650 L706 670"/></g></g>
+    <!-- belka szczotki dachowej / dysze -->
+    <rect x="452" y="360" width="120" height="40" rx="20" fill="#fff" opacity=".95"/>
+    <!-- krople -->
+    <path d="M512 430 c0 0 -34 44 -34 70 a34 34 0 0 0 68 0 c0 -26 -34 -70 -34 -70z" fill="#fff"/>
+    <path d="M512 540 c0 0 -22 28 -22 45 a22 22 0 0 0 44 0 c0 -17 -22 -45 -22 -45z" fill="#fff" opacity=".7"/>
+    <!-- szyna -->
+    <rect x="180" y="790" width="664" height="34" rx="17" fill="#fff" opacity=".9"/>
+  </g>
+  <!-- blik szkła -->
+  <path d="M0 0 H1024 V300 C700 380 330 250 0 360 Z" fill="#fff" opacity=".07"/>
+</svg>

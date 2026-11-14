@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-180.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -70,6 +70,21 @@
   .logo{width:36px;height:36px;border-radius:10px;background:var(--accg);color:#fff;display:flex;align-items:center;justify-content:center;
         box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 4px 14px rgba(10,132,255,.35)}
   .logo svg{width:20px;height:20px;stroke-width:2.4}
+  .logo img{width:100%;height:100%;border-radius:inherit;display:block}
+  /* arkusz od dołu (jak w iOS) */
+  #ark{position:fixed;inset:0;z-index:25;display:none}
+  #ark.on{display:block}
+  #ark .tlo{position:absolute;inset:0;background:rgba(0,0,0,.32);animation:fade .3s both}
+  #ark .ar{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;padding:8px 18px 18px;border-radius:32px;
+           background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);
+           box-shadow:inset 0 1px 0 var(--hl),inset 0 0 0 .5px var(--line),0 20px 60px rgba(0,0,0,.3);animation:sheet .5s var(--spring) both}
+  #ark .ar::before{content:"";display:block;width:36px;height:5px;border-radius:3px;background:var(--mute);opacity:.5;margin:0 auto 12px}
+  #ark h4{margin:0 0 2px;font-size:20px;font-weight:700;letter-spacing:.2px}
+  #ark .duza{font:700 40px/1.1 var(--fr);text-align:center;margin:14px 0 4px;padding:12px;letter-spacing:1px}
+  #ark .ab{display:flex;gap:10px;margin-top:6px} #ark .ab button{flex:1}
+  #ark .btn2{min-height:46px;justify-content:center;font-size:17px}
+  @keyframes sheet{from{transform:translateY(110%)}to{transform:none}}
+  @keyframes fade{from{opacity:0}}
   .ib{border:0;background:var(--glass);color:var(--ink);border-radius:50%;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;
       box-shadow:inset 0 1px 0 var(--hl),inset 0 0 0 .5px var(--line),0 4px 14px rgba(0,0,0,.08)}
   .ib.spin svg{animation:spin .8s linear infinite;color:var(--acc)}
@@ -155,7 +170,7 @@
   .r{background:var(--redbg);color:var(--red)} .o{background:var(--orgbg);color:var(--org)} .y{background:var(--yelbg);color:var(--yel)} .ok{background:var(--grnbg);color:var(--grn)}
 
   /* pola */
-  input[type=search],textarea,main select.as-in,main input.as-in{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--fill);border:0;border-radius:14px;padding:11px 14px;margin-bottom:12px;outline:none;
+  input[type=search],textarea,main select.as-in,main input.as-in,#ark input{width:100%;font:inherit;font-size:17px;color:var(--ink);background:var(--fill);border:0;border-radius:14px;padding:11px 14px;margin-bottom:12px;outline:none;
       transition:box-shadow .2s;-webkit-appearance:none;appearance:none}
   input[type=search]{padding-left:38px;border-radius:999px;height:42px;
       background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.4' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='M20 20l-4-4'/%3E%3C/svg%3E") no-repeat 13px 50%/17px}
@@ -260,6 +275,7 @@
 <nav id="bnav"><div class="in" id="nav"></div></nav>
 <div id="det"></div>
 <div id="toast"></div>
+<div id="ark"></div>
 
 <script src="asystent.js"></script>
 <script src="paliwo.js"></script>
@@ -410,7 +426,7 @@ function zamknij(id, b) {
   api('zamknij', { id: id }).then(j => { const ok = j.wynik;
       const o = D.ogony.find(x => String(x.id) === String(id));
       if (o && ok) { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
-      toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW); })
+      toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW, 1); })
     .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
 }
 function notatka() {
@@ -481,7 +497,7 @@ function myjnieLista() {
 const naprawa = p => !p.p && !p.montaz && !/^(montaż|inwent|praca)/i.test(p.nr || '');
 function awarie(w, dniWstecz) { return D.prace.concat(D.obce).filter(p => naprawa(p) && sama(p.firma, w) && dni(p.d) >= -dniWstecz).length; }
 
-function pokazMyjnie(nazwa) {
+function pokazMyjnie(nazwa, bezAnim) {
   const w = D.myjnie.find(x => x.nazwa === nazwa) || D.inne.find(x => x.nazwa === nazwa);
   if (!w) return;
   DW = nazwa;
@@ -498,10 +514,11 @@ function pokazMyjnie(nazwa) {
           '<a class="btn2" href="' + maps + '" target="_blank">' + I('route', 1) + 'Jedź</a></div></header><main>';
   h += '<div class="card"><div class="mute">' + esc([w.model, w.segment ? 'segment ' + w.segment : '', w.co ? 'przegląd co ' + w.co + ' mies.' : '', w.klient].filter(Boolean).join(' · ')) + '</div>';
   if (w.termin !== undefined) h += '<div class="row"><div class="g">Następny przegląd: <b>' + esc(w.termin || '—') + '</b></div>' + pillDni(w.dni) + '</div>';
-  if (w.licznik) {
+  {
     const od = +w.odWymiany, pr = Math.min(100, od / 500);
-    h += '<div class="row"><div class="g">Licznik myć: <b>' + esc(w.licznik) + '</b>' + (w.odWymiany !== '' ? '<div class="mute">szczotki: ' + esc(w.odWymiany) + ' myć od wymiany ' + esc(w.wymiana) + (w.szczotki ? ' · ' + esc(w.szczotki) : '') + '</div>' +
-       '<div class="bar"><div style="width:' + pr + '%;background:var(' + (od >= 50000 ? '--red' : od >= 45000 ? '--yel' : '--grn') + ')"></div></div>' : '') + '</div></div>';
+    h += '<div class="row"><div class="g">Licznik myć: <b>' + esc(w.licznik || '—') + '</b>' + (w.licznik && w.odWymiany !== '' ? '<div class="mute">szczotki: ' + esc(w.odWymiany) + ' myć od wymiany ' + esc(w.wymiana) + (w.szczotki ? ' · ' + esc(w.szczotki) : '') + '</div>' +
+       '<div class="bar"><div style="width:' + pr + '%;background:var(' + (od >= 50000 ? '--red' : od >= 45000 ? '--yel' : '--grn') + ')"></div></div>' : '') + '</div>' +
+       '<button class="btn2" onclick="licznikArkusz(\'' + jsq(w.nazwa) + '\')">' + I('pen', 1) + 'Wpisz</button></div>';
   }
   h += '<div class="row"><div class="g">Awarie w ostatnim roku: <b>' + awarie(w, 365) + '</b></div></div>';
   if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';
@@ -509,8 +526,38 @@ function pokazMyjnie(nazwa) {
   h += '<div class="card"><h3>' + I('wrench', 1) + 'Otwarte zadania (' + otw.length + ')</h3>' + (otw.length ? otw.map(o => ogonRow(o)).join('') : '<div class="mute">brak</div>') + '</div>';
   h += '<div class="card"><h3>' + I('history', 1) + 'Historia (' + zd.length + ')</h3><div class="tl">' +
        (zd.length ? zd.slice(0, 60).map(z => '<div><i>' + dt(z.d) + ' · ' + esc(z.t) + '</i>' + esc(z.o) + '</div>').join('') : '<div class="mute">na razie pusto</div>') + '</div></div></main>';
-  const det = document.getElementById('det'); det.innerHTML = h; det.classList.remove('on', 'out'); det.style.transform = ''; void det.offsetWidth; det.classList.add('on'); det.scrollTop = 0;
+  const det = document.getElementById('det'); if (bezAnim && det.classList.contains('on')) { det.innerHTML = h; return; } det.innerHTML = h; det.classList.remove('on', 'out'); det.style.transform = ''; void det.offsetWidth; det.classList.add('on'); det.scrollTop = 0;
 }
+/* ---------- licznik myć: wpis ręczny (do czasu odczytu ze zdjęcia) ---------- */
+// idzie tą samą drogą co notatka: bot rozpoznaje fakt „licznik” → arkusz Liczniki + Myjnie, potwierdzenie w Telegramie
+function licznikArkusz(nazwa) {
+  const w = D.myjnie.find(x => x.nazwa === nazwa) || D.inne.find(x => x.nazwa === nazwa);
+  if (!w) return;
+  const a = document.getElementById('ark');
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Licznik myć</h4><div class="mute">' + esc(skrot(w.nazwa)) + (w.miasto ? ' · ' + esc(w.miasto) : '') +
+    (w.licznik ? ' · ostatnio ' + esc(w.licznik) : '') + '</div>' +
+    '<input id="lcz" class="duza" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" placeholder="0">' +
+    '<input id="lcd" type="date" value="' + dzisIso() + '">' +
+    '<div class="ab"><button class="btn2" onclick="arkZamknij()">Anuluj</button><button class="btn" id="lcb" onclick="licznikZapisz(\'' + jsq(w.nazwa) + '\')">Zapisz</button></div></div>';
+  a.classList.add('on');
+  setTimeout(() => { const i = document.getElementById('lcz'); if (i) i.focus(); }, 350);
+}
+function arkZamknij() { const a = document.getElementById('ark'); a.classList.remove('on'); a.innerHTML = ''; }
+function licznikZapisz(nazwa) {
+  const w = D.myjnie.find(x => x.nazwa === nazwa) || D.inne.find(x => x.nazwa === nazwa);
+  const n = +String(document.getElementById('lcz').value).replace(/\D/g, ''), d = document.getElementById('lcd').value || dzisIso();
+  if (!n) return toast('Wpisz liczbę myć');
+  const stary = +String(w.licznik || '').replace(/\D/g, '');
+  if (stary && n < stary && !document.getElementById('lcb').dataset.ok) {
+    document.getElementById('lcb').dataset.ok = 1; document.getElementById('lcb').textContent = 'Mimo to zapisz';
+    return toast('Mniej niż ostatnio (' + stary + ') — sprawdź');
+  }
+  document.getElementById('lcb').disabled = true;
+  api('notatka', { t: 'Fakt: licznik myć na myjni ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ' = ' + n + ', stan na ' + dt(d) })
+    .then(() => { w.licznik = n.toLocaleString('pl-PL'); if (w.odWymiany !== '' && stary) w.odWymiany = Math.max(0, +w.odWymiany + n - stary); arkZamknij(); toast('Licznik ' + n + ' wysłany — potwierdź w Telegramie'); if (DW) pokazMyjnie(DW, 1); })
+    .catch(e => { document.getElementById('lcb').disabled = false; toast('Błąd: ' + e.message); });
+}
+
 function zamknijDet() {
   const d = document.getElementById('det'); DW = null;
   if (!d.classList.contains('on')) return;
@@ -760,7 +807,7 @@ document.getElementById('odsw').innerHTML = I('refresh');
 ustawMotyw(LS.get('motyw') || 'auto');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (!document.hidden && D) load(); });
-document.getElementById('logo').innerHTML = I('pulse');
+document.getElementById('logo').innerHTML = '<img src="icon-192.png" alt="">';
 window.addEventListener('popstate', zamknijDet);
 // pasek u góry: duży tytuł chowa się, mały pojawia się przy przewijaniu
 window.addEventListener('scroll', () => document.getElementById('hd').classList.toggle('sc', window.scrollY > 34), { passive: true });
