@@ -164,6 +164,10 @@
   .row.w::after{content:"";flex:0 0 auto;width:8px;height:8px;border-right:2.2px solid var(--mute);border-top:2.2px solid var(--mute);transform:rotate(45deg);opacity:.55;margin:0 2px 0 -2px;border-radius:1px}
   .av{width:40px;height:40px;border-radius:12px;background:var(--accg);color:#fff;display:flex;align-items:center;justify-content:center;font:700 13px var(--fr);flex:0 0 auto;
       box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px rgba(10,132,255,.25)}
+  .av.k-orlen{background:linear-gradient(150deg,#ff4d4d,#d1001c);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px rgba(209,0,28,.3)}
+  .av.k-bp{background:linear-gradient(150deg,#8fd14f,#00914c);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px rgba(0,145,76,.3)}
+  .av.k-shell{background:linear-gradient(150deg,#ffd84d,#f2a900);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 3px 10px rgba(242,169,0,.3)}
+  .av svg{width:21px;height:21px;stroke-width:2.1}
   .mute{color:var(--mute);font-size:15px}
   .row .mute{font-size:14px;margin-top:1px}
   .pill{display:inline-block;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;white-space:nowrap;background:var(--fill);color:var(--mute)}
@@ -477,6 +481,14 @@ function statusPl(s) {
 }
 
 /* ---------- Myjnie ---------- */
+// znaczek klienta w liście: kolor sieci + ikona dystrybutora (bez numeru – numer jest w nazwie obok)
+function klientAv(w) {
+  const t = pl([w.nazwa, w.klient].filter(Boolean).join(' '));
+  const k = /orlen|^sp\s*\d/.test(t) ? 'orlen' : /^bp\b|\bbp\b/.test(t) ? 'bp' : /shell/.test(t) ? 'shell' : '';
+  if (k) return '<div class="av k-' + k + '" title="' + k.toUpperCase() + '">' + I('fuel') + '</div>';
+  const nr = (String(w.klucz || w.nazwa).match(/(\d{3,4})/) || [])[1] || pl(w.nazwa).replace(/^(bp|orlen|shell|amic|moya)\s+/, '').slice(0, 2).toUpperCase();
+  return '<div class="av">' + esc(nr) + '</div>';
+}
 function myjnie() {
   return '<input type="search" placeholder="Szukaj: numer, miasto, ulica" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'ml\').innerHTML=myjnieLista()">' +
          '<div id="ml">' + myjnieLista() + '</div>';
@@ -489,8 +501,7 @@ function myjnieLista() {
     const n = ot.filter(o => kat(o) === 'naprawy' && sama(o.myjnia, w)).length;
     const a90 = awarie(w, 90);
     const info = [n ? I('wrench', 1) + ' ' + n + ' zad.' : '', a90 ? I('alert', 1) + ' ' + a90 + ' ' + (a90 === 1 ? 'awaria' : a90 % 10 >= 2 && a90 % 10 <= 4 && (a90 % 100 < 12 || a90 % 100 > 14) ? 'awarie' : 'awarii') + ' / 90 dni' : ''].filter(Boolean).join(' · ');
-    const nr = (String(w.klucz || w.nazwa).match(/(\d{3,4})/) || [])[1] || pl(w.nazwa).replace(/^(bp|orlen|shell|amic|moya)\s+/, '').slice(0, 2).toUpperCase();
-    return '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="av">' + esc(nr) + '</div><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (w.inna ? ' <span class="pill">zastępstwo</span>' : '') +
+    return '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')">' + klientAv(w) + '<div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (w.inna ? ' <span class="pill">zastępstwo</span>' : '') +
       '<div class="mute">' + esc([w.miasto, w.adres, w.model].filter(Boolean).join(' · ')) + '</div>' + (info ? '<div class="mute">' + info + '</div>' : '') + '</div>' + (w.inna ? '' : pillDni(w.dni)) + '</div>';
   }).join('') + '</div>';
 }
