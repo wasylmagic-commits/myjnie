@@ -168,6 +168,26 @@
     .as-tag.op{background:var(--orgbg);color:var(--org)}
   </style>`;
 
+  /* ---------- lista sesji: testowe i ukryte znikają z listy (w arkuszu zostają) ---------- */
+  const testowa = x => /^\s*\[?\s*test\b/i.test(String(x.objaw || '')) || /^test/i.test(String(x.myjnia || ''));
+  function listaSesji() {
+    const ukr = LSG('as_ukryte') || [];
+    const wid = ST.sesje.filter(x => !ukr.includes(x.id) && !testowa(x));
+    const schow = ST.sesje.length - wid.length;
+    const ile = ST.wszystkie ? wid.length : 5;
+    if (!ST.sesje.length) return '<div class="mute">jeszcze nie było</div>';
+    return (wid.length ? wid.slice(0, ile).map(x =>
+      '<div class="row"><div class="g w" onclick="asOtworz(\'' + jsq(x.id) + '\')"><b>' + esc(skrot(x.myjnia)) + '</b> <span class="mute">' + esc(x.start) + '</span>' +
+      '<div class="mute">' + esc(String(x.objaw || '').slice(0, 90)) + '</div>' + (x.przyczyna ? '<div class="mute">→ ' + esc(x.przyczyna.slice(0, 90)) + '</div>' : '') +
+      '<span class="pill ' + (x.status === 'otwarta' ? 'o' : 'ok') + '" style="margin-top:6px">' + (x.status === 'otwarta' ? 'otwarta' : 'zamknięta') + '</span></div>' +
+      '<button class="ib" aria-label="Ukryj" onclick="asUkryj(\'' + jsq(x.id) + '\')">' + I('eyeoff', 1) + '</button></div>').join('') : '<div class="mute">brak sesji do pokazania</div>') +
+      (wid.length > 5 && !ST.wszystkie ? '<div style="text-align:center;margin-top:8px"><button class="btn2" onclick="asWszystkie(1)">Pokaż wszystkie (' + wid.length + ')</button></div>' : '') +
+      (schow ? '<div class="mute" style="margin-top:10px;font-size:13px">Ukryte (testowe i schowane): ' + schow + (ukr.length ? ' · <a onclick="asOdkryj()">pokaż z powrotem</a>' : '') + '</div>' : '');
+  }
+  window.asUkryj = id => { const u = LSG('as_ukryte') || []; if (!u.includes(id)) u.push(id); LSS('as_ukryte', u); odswiez(); toast('Sesja schowana — w arkuszu zostaje'); };
+  window.asOdkryj = () => { LSS('as_ukryte', null); odswiez(); };
+  window.asWszystkie = v => { ST.wszystkie = v; odswiez(); };
+
   function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = widok(); odswiezMik(); } } }
 
   function narzedzia(pole) {
@@ -209,11 +229,7 @@
       '<option value="nowy"' + (ST.poziom === 'nowy' ? ' selected' : '') + '>Początkujący — krok po kroku, twarda kontrola końca</option></select>' +
       '<label class="row" style="border:0;padding:12px 0 4px;cursor:pointer"><input type="checkbox" ' + (ST.trudny ? 'checked' : '') + ' onchange="asPole(\'trudny\',this.checked)" style="width:20px;height:20px"><div class="g">Trudny przypadek <span class="mute">— od razu mocniejszy model (wolniej, drożej)</span></div></label>' +
       '<button class="btn" style="width:100%;justify-content:center;margin-top:8px;height:46px" onclick="asStart()">' + I('spark', 1) + 'Zacznij diagnozę</button></div>';
-    h += '<div class="card"><h3>' + I('history', 1) + 'Ostatnie sesje</h3>' + (ST.sesje ? (ST.sesje.length ? ST.sesje.map(x =>
-      '<div class="row w" onclick="asOtworz(\'' + jsq(x.id) + '\')"><div class="g"><b>' + esc(skrot(x.myjnia)) + '</b> <span class="mute">' + esc(x.start) + '</span>' +
-      '<div class="mute">' + esc(String(x.objaw || '').slice(0, 90)) + '</div>' + (x.przyczyna ? '<div class="mute">→ ' + esc(x.przyczyna.slice(0, 90)) + '</div>' : '') + '</div>' +
-      '<span class="pill ' + (x.status === 'otwarta' ? 'o' : 'ok') + '">' + (x.status === 'otwarta' ? 'otwarta' : 'zamknięta') + '</span></div>').join('') : '<div class="mute">jeszcze nie było</div>')
-      : '<button class="btn2" onclick="asSesje()">Pokaż</button>') + '</div>';
+    h += '<div class="card"><h3>' + I('history', 1) + 'Ostatnie sesje</h3>' + (ST.sesje ? listaSesji() : '<button class="btn2" onclick="asSesje()">Pokaż</button>') + '</div>';
     return h;
   }
 
@@ -380,6 +396,7 @@
   window.IKONY_DODATKOWE = Object.assign(window.IKONY_DODATKOWE || {}, {
     spark: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
+    eyeoff: '<path d="M3 3l18 18"/><path d="M10.6 6.1A10 10 0 0 1 12 6c5 0 9 6 9 6a17 17 0 0 1-3.1 3.6M6.6 6.6C4.3 8.1 3 12 3 12s4 6 9 6c1.6 0 3-.4 4.3-1"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
     camera: '<path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.5"/>'
   });
   setTimeout(() => oprozniaj(), 3000);
