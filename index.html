@@ -423,14 +423,26 @@ function ogonRow(o, zNazwa) {
   return '<div class="row"><div class="g">' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
     (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
     '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + '</div></div>' +
-    (open_(o) ? '<button class="chk" aria-label="Zamknij" onclick="zamknij(\'' + jsq(o.id) + '\',this)">' + I('check') + '</button>' : '<span class="mute">' + dt(o.zamkn) + '</span>') + '</div>';
+    (open_(o) ? '<button class="chk" aria-label="Zamknij" onclick="zamknijPytaj(\'' + jsq(o.id) + '\')">' + I('check') + '</button>' : '<span class="mute">' + dt(o.zamkn) + '</span>') + '</div>';
+}
+// galka nie zamyka od razu – najpierw pytanie (łatwo trafić palcem przypadkiem)
+function zamknijPytaj(id) {
+  const o = D.ogony.find(x => String(x.id) === String(id));
+  if (!o) return;
+  const a = document.getElementById('ark');
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Zamknąć zadanie #' + esc(o.id) + '?</h4>' +
+    '<div class="mute" style="margin:6px 0 4px">' + (o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + esc(o.opis) + '</div>' +
+    (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
+    '<div class="ab" style="margin-top:16px"><button class="btn2" onclick="arkZamknij()">Anuluj</button>' +
+    '<button class="btn" style="background:var(--grn)" onclick="zamknij(\'' + jsq(o.id) + '\',this)">' + I('check', 1) + 'Zamknij</button></div></div>';
+  a.classList.add('on');
 }
 function zamknij(id, b) {
   b.disabled = true;
   api('zamknij', { id: id }).then(j => { const ok = j.wynik;
       const o = D.ogony.find(x => String(x.id) === String(id));
       if (o && ok) { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
-      toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW, 1); })
+      arkZamknij(); toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW, 1); })
     .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
 }
 function notatka() {
