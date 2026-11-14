@@ -141,7 +141,8 @@ const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e)
 (function () {
   const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('k')) LS.set('k', h.get('k'));
-  if (h.get('u')) LS.set('u', h.get('u'));
+  // adres serwera tylko z Google Apps Script (audyt 14.11.2026, №16)
+  if (h.get('u') && /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(h.get('u'))) LS.set('u', h.get('u'));
   if (location.hash) history.replaceState(null, '', location.pathname);
 })();
 const K = LS.get('k'), API = LS.get('u');
