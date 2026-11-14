@@ -407,6 +407,7 @@ const IC = {
   pulse: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
   history: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 7v5l3 2"/>',
+  trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
@@ -505,7 +506,27 @@ function ogonRow(o, zNazwa) {
   return '<div class="row"><div class="g">' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
     (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
     '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + '</div></div>' +
-    (open_(o) ? '<button class="chk" aria-label="Zamknij" onclick="zamknijPytaj(\'' + jsq(o.id) + '\')">' + I('check') + '</button>' : '<span class="mute">' + dt(o.zamkn) + '</span>') + '</div>';
+    (open_(o) ? '<button class="chk" aria-label="Zamknij" onclick="zamknijPytaj(\'' + jsq(o.id) + '\')">' + I('check') + '</button>'
+              : '<span class="mute">' + dt(o.zamkn) + '</span>' + (OGF === 'zamkniete' && TAB === 'ogony' ? '<button class="ib" style="margin-left:6px;color:var(--red)" aria-label="Usuń" onclick="usunPytaj(\'' + jsq(o.id) + '\')">' + I('trash', 1) + '</button>' : '')) + '</div>';
+}
+// 15.11.2026: usunięcie zamkniętego zadania (np. czego nie pokazywać szefowi) – serwer przenosi wiersz do ukrytego arkusza „Ogony — usunięte”
+function usunPytaj(id) {
+  const o = D.ogony.find(x => String(x.id) === String(id));
+  if (!o) return;
+  const a = document.getElementById('ark');
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Usunąć zadanie #' + esc(o.id) + '?</h4>' +
+    '<div class="mute" style="margin:6px 0 4px">' + (o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + esc(o.opis) + '</div>' +
+    '<div class="mute" style="font-size:13px">Zniknie z aplikacji, historii myjni i arkusza „Ogony”. Kopia zostaje w ukrytym arkuszu „Ogony — usunięte”.</div>' +
+    '<div class="ab" style="margin-top:16px"><button class="btn2" onclick="arkZamknij()">Anuluj</button>' +
+    '<button class="btn" style="background:var(--red)" onclick="usun(\'' + jsq(o.id) + '\',this)">' + I('trash', 1) + 'Usuń</button></div></div>';
+  a.classList.add('on');
+}
+function usun(id, b) {
+  b.disabled = true;
+  api('usun', { id: id }).then(j => {
+      if (j.wynik) D.ogony = D.ogony.filter(x => String(x.id) !== String(id));
+      arkZamknij(); toast(j.wynik ? 'Zadanie #' + id + ' usunięte' : 'Nie znalazłem zadania #' + id); render(); if (DW) pokazMyjnie(DW, 1); })
+    .catch(e => { b.disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
 }
 // galka nie zamyka od razu – najpierw pytanie (łatwo trafić palcem przypadkiem)
 function zamknijPytaj(id) {
