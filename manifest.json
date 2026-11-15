@@ -20,5 +20,28 @@
       "type": "image/png",
       "purpose": "any maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "./udostepnij",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "files": [
+        {
+          "name": "plik",
+          "accept": [
+            "application/pdf",
+            ".pdf",
+            "image/jpeg",
+            "image/png",
+            ".jpg",
+            ".jpeg",
+            ".png"
+          ]
+        }
+      ]
+    }
+  }
 }

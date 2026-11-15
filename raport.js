@@ -7,12 +7,28 @@
 (function () {
   const SERWISANT = 'TOMCZAKOWSKI WASYL';
   const USLUGI = ['Gwarancyjna', 'Płatna', 'Ryczałtowa', 'Inna', 'Do decyzji serwisanta'];
-  const RODZAJE = ['', 'PSE', 'AWP', 'AWK', 'USZ', 'Mycie myjni'];
+  // Rodzaj zgłoszenia – pełna lista z WebCon (15.11.2026); pierwsze 4 jako przyciski, reszta w „więcej”
+  const RODZAJE_GL = ['AWP', 'AWK', 'PSE', 'USZ'];
+  const RODZAJE_RESZTA = ['Myjnia nieczynna', 'Awaria częściowa', 'Awaria drobna', 'Awaria programu', 'Awaria', 'ANU', 'PRV', 'CHE', 'GWA', 'Mycie myjni'];
+  // pola przepisywane do karty myjni (arkusz Myjnie) – api=myjnia
+  const POLA_MYJNI = { model: 'Nazwa (model)', nrSeryjny: 'Nr seryjny', nastawy: 'Nastawy chemiczne', linkNastaw: 'Link do nastaw' };
   // przyciski czasu: serwisant tylko klika, godziny Dojazd/Serwis/Powrót liczą się same
   const CZASY = [['wyjazd', 'Wyjazd'], ['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy'], ['odjazd', 'Odjazd z myjni'], ['dom', 'Powrót']];
   // pola obowiązkowe (* w WebCon) – kolejność = kolejność na ekranie
   const OBOW = [['nrSeryjny', 'Nr seryjny'], ['iloscMyc', 'Ilość myć'], ['nastawyZgodne', 'Nastawy zgodne?'], ['usluga', 'Usługa serwisowa'],
-    ['dataRaportu', 'Data do raportu'], ['opisPrac', 'Opis wykonanych prac'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail']];
+    ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail']];
+  const orlen = r => /orlen/i.test(r.myjnia || '');
+  // nr zlecenia skrótem: „11/600” → SZL/2026/11/00600; „600” → bieżący miesiąc; miesiąc „z przyszłości” = zeszły rok (w styczniu wpisujesz grudzień)
+  function pelnyNr(typ, s) {
+    s = String(s || '').trim().toUpperCase().replace(/\s+/g, '');
+    let m = s.match(/^(SZ[LP])\/(\d{4})\/(\d{1,2})\/(\d{1,5})$/);
+    if (m) return m[1] + '/' + m[2] + '/' + m[3].padStart(2, '0') + '/' + m[4].padStart(5, '0');
+    const t = new Date(); let mies = t.getMonth() + 1, rok = t.getFullYear(), nr;
+    m = s.match(/^(\d{1,2})[\/.\-](\d{1,5})$/);
+    if (m) { const mm = +m[1]; if (mm < 1 || mm > 12) return ''; if (mm > mies) rok--; mies = mm; nr = m[2]; }
+    else if (/^\d{1,5}$/.test(s)) nr = s; else return '';
+    return (typ || 'SZL') + '/' + rok + '/' + String(mies).padStart(2, '0') + '/' + nr.padStart(5, '0');
+  }
 
   const ST = { id: null, foto: [] };
   // jedna kopia w pamięci – wszystkie zmiany idą na ten sam obiekt (bez wyścigów między polami)
@@ -37,22 +53,59 @@
     return { dojazd: roz(c.wyjazd, c.przyjazd), serwis: roz(c.przyjazd, c.koniec), powrot: roz(c.odjazd, c.dom), kmD: +c.kmD || 0, kmP: +c.kmP || 0 };
   }
   function braki(r) {
-    return OBOW.filter(([k]) => {
+    const ob = OBOW.slice();
+    if (orlen(r)) ob.splice(3, 0, ['fotoPompy', 'Zdjęcie pomp dozujących (Orlen)']);
+    return ob.filter(([k]) => {
       if (k === 'czas') { const c = czasy(r); return !(c.serwis > 0); }
       return !String(r[k] || '').trim();
     });
   }
 
-  window.rapNowy = function (nazwa) {
+  function pusty(nazwa) {
     const w = myjnia(nazwa) || {};
-    const r = { id: 'r' + Date.now(), myjnia: nazwa || '', szl: '', model: w.model || '', nrSeryjny: w.nrSeryjny || w.serial || '', kodBledu: '',
-      iloscMyc: String(w.licznik || '').replace(/\D/g, ''), nastawy: '', nastawyZgodne: '', usluga: '', rodzaj: '', dataRaportu: dzisIso(), terminNaprawy: '',
-      opisPrac: '', opisTestow: '', uwagi: '', mat: [], czas: {}, zal: [], komentarz: '', odbImie: '', odbEmail: '', odbUwagi: '', potw: false, podpis: '' };
+    return { id: 'r' + Date.now(), myjnia: nazwa || '', szlTyp: 'SZL', szlWpis: '', szl: '', model: w.model || '', nrSeryjny: w.nrSeryjny || w.serial || '', kodBledu: '',
+      iloscMyc: String(w.licznik || '').replace(/\D/g, ''), nastawy: w.nastawy || '', linkNastaw: w.linkNastaw || '', nastawyZgodne: '', fotoPompy: '', usluga: '', rodzaj: '',
+      dataRaportu: dzisIso(), terminNaprawy: '', opisPrac: '', opisTestow: '', uwagi: '', mat: [], czas: {}, zal: [], komentarz: '',
+      odbImie: '', odbEmail: '', odbUwagi: '', potw: false, podpis: '', kontynuacja: '', zamknieteU: '' };
+  }
+  window.rapNowy = function (nazwa) {
+    const r = pusty(nazwa);
     zapisz(r, 1); ST.id = r.id;
     if (typeof zamknijDet === 'function') zamknijDet();
     go('raport');
   };
   window.rapOtworz = id => { ST.id = id; render(); window.scrollTo(0, 0); };
+  // kontynuacja (jak „Kontynuuj akcję serwisową” w WebCon): nowy szkic na kolejny wyjazd – to samo zlecenie i myjnia, pusty czas/opis/materiały
+  window.rapKontynuacja = function () {
+    const s = R(), r = pusty(s.myjnia);
+    ['szlTyp', 'szlWpis', 'szl', 'model', 'nrSeryjny', 'iloscMyc', 'nastawy', 'linkNastaw', 'usluga', 'rodzaj', 'terminNaprawy', 'odbImie', 'odbEmail'].forEach(k => { if (s[k]) r[k] = s[k]; });
+    r.id = 'r' + (Date.now() + 1); r.kontOd = s.id; r.opisPrac = 'Kontynuacja z dnia ' + dt(s.dataRaportu) + '. ';
+    s.kontynuacja = 'Tak'; zapisz(s, 1);
+    zapisz(r, 1); ST.id = r.id; render(); window.scrollTo(0, 0); toast('Nowy raport – kontynuacja');
+  };
+  window.rapNr = function (el) {
+    const r = R(); r.szlWpis = el.value; r.szl = pelnyNr(r.szlTyp, el.value); zapisz(r);
+    const p = document.getElementById('rpNrP'); if (p) p.innerHTML = nrPodglad(r);
+  };
+  window.rapNrTyp = function (t) { const r = R(); r.szlTyp = t; r.szl = pelnyNr(t, r.szlWpis != null ? r.szlWpis : r.szl); zapisz(r); render(); };
+  function nrPodglad(r) {
+    if (!String(r.szlWpis || '').trim()) return '<span class="mute">np. 11/600 albo 600 (ten miesiąc)</span>';
+    return r.szl ? '→ <b>' + esc(r.szl) + '</b>' : '<span style="color:var(--red)">nie rozumiem numeru – wpisz miesiąc/numer, np. 11/600</span>';
+  }
+  // dane myjni z raportu → karta myjni (arkusz). Puste w karcie – zapis od razu; inne – pytam.
+  window.rapDoMyjni = function (el) {
+    const r = R(), k = el.dataset.k, v = String(el.value || '').trim(), w = myjnia(r.myjnia);
+    if (!v || !w || !POLA_MYJNI[k]) return;
+    const stare = String(w[k] || '').trim();
+    if (stare === v) return;
+    if (stare && !confirm('Zaktualizować dane myjni ' + skrot(r.myjnia) + '?\n' + POLA_MYJNI[k] + ':\n' + stare + '  →  ' + v)) return;
+    const pola = {}; pola[k] = v;
+    api('myjnia', { n: w.nazwa, pola: JSON.stringify(pola), nadpisz: stare ? '1' : '0' }).then(j => {
+      const x = j.wynik || {};
+      if ((x.zapisane || []).indexOf(k) >= 0) { w[k] = v; toast('Zapisane w karcie myjni'); }
+      else if (x.konflikt && x.konflikt[k] != null) toast('W arkuszu jest inna wartość – odśwież dane');
+    }).catch(e => toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Karta myjni: ' + e.message));
+  };
   window.rapLista = () => { ST.id = null; render(); window.scrollTo(0, 0); };
   window.rapUsun = id => { if (!confirm('Usunąć ten szkic raportu?')) return; const o = wszystkie(); delete o[id]; zapiszWsz(o); ST.id = null; render(); };
 
@@ -61,7 +114,7 @@
     const r = R(); if (!r) return;
     const k = el.dataset.k, v = el.type === 'checkbox' ? el.checked : el.value;
     if (k.indexOf('czas.') === 0) { r.czas = r.czas || {}; r.czas[k.slice(5)] = v; zapisz(r); sumyCzasu(r); return; }
-    r[k] = v; if (k === 'myjnia') { const w = myjnia(v) || {}; if (!r.model) r.model = w.model || ''; if (!r.iloscMyc) r.iloscMyc = String(w.licznik || '').replace(/\D/g, ''); zapisz(r); render(); return; }
+    r[k] = v; if (k === 'myjnia') { const w = myjnia(v) || {}; ['model', 'nrSeryjny', 'nastawy', 'linkNastaw'].forEach(x => { if (!r[x] && w[x]) r[x] = w[x]; }); if (!r.iloscMyc) r.iloscMyc = String(w.licznik || '').replace(/\D/g, ''); zapisz(r); render(); return; }
     clearTimeout(tz); tz = setTimeout(() => zapisz(r), 250);
   };
   window.rapWybor = function (k, v) { const r = R(); r[k] = r[k] === v ? '' : v; zapisz(r); render(); };
@@ -109,6 +162,17 @@
     });
   };
   window.rapFotoUsun = i => { const r = R(); r.zal.splice(i, 1); zapisz(r); render(); };
+  // jedno wspólne zdjęcie pomp dozujących (wymagane tylko na Orlenie)
+  window.rapFotoPompy = function (inp) {
+    const f = inp.files && inp.files[0]; if (!f) return;
+    const fr = new FileReader();
+    fr.onload = () => { const im = new Image(); im.onload = () => {
+      const s = Math.min(1, 1200 / Math.max(im.width, im.height)), c = document.createElement('canvas');
+      c.width = im.width * s; c.height = im.height * s; c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+      const rr = R(); rr.fotoPompy = c.toDataURL('image/jpeg', .72); zapisz(rr); render(); }; im.src = fr.result; };
+    fr.readAsDataURL(f);
+  };
+  window.rapFotoPompyUsun = () => { const r = R(); r.fotoPompy = ''; zapisz(r); render(); };
 
   // dyktowanie (Chrome na Androidzie, po polsku)
   window.rapMow = function (k, b) {
@@ -156,11 +220,12 @@
   function tekst(r) {
     const c = czasy(r);
     return ['Myjnia: ' + r.myjnia + (r.szl ? ' · ' + r.szl : ''), 'Urządzenie: ' + r.model + ' · nr seryjny ' + r.nrSeryjny + (r.kodBledu ? ' · kod błędu ' + r.kodBledu : '') + ' · ilość myć ' + r.iloscMyc,
-      'Nastawy chemiczne zgodne: ' + (r.nastawyZgodne || '—') + (r.nastawy ? ' · ' + r.nastawy : ''), 'Usługa: ' + (r.usluga || '—') + (r.rodzaj ? ' · ' + r.rodzaj : '') + ' · data do raportu ' + r.dataRaportu,
+      'Nastawy chemiczne zgodne: ' + (r.nastawyZgodne || '—') + (r.nastawy ? ' · ' + r.nastawy : '') + (r.linkNastaw ? ' · ' + r.linkNastaw : ''), 'Usługa: ' + (r.usluga || '—') + (r.rodzaj ? ' · ' + r.rodzaj : '') + ' · data do raportu ' + r.dataRaportu,
       '', 'Opis wykonanych prac:', r.opisPrac, r.opisTestow ? '\nOpis przeprowadzonych testów:\n' + r.opisTestow : '', r.uwagi ? '\nUwagi: ' + r.uwagi : '',
       '', 'Materiały:', ...(r.mat.length ? r.mat.map(m => '- ' + (m.kod ? m.kod + ' ' : '') + m.nazwa + ' – ' + m.ilosc + ' ' + m.jm + (m.mag ? '' : ' (poza magazynem)')) : ['- brak']),
       '', 'Czas (' + SERWISANT + '): Dojazd ' + godz(c.dojazd) + ' / ' + c.kmD + ' km · Serwis ' + godz(c.serwis) + ' · Powrót ' + godz(c.powrot) + ' / ' + c.kmP + ' km',
-      'Odbierający: ' + r.odbImie + ' · ' + r.odbEmail + (r.odbUwagi ? ' · ' + r.odbUwagi : ''), r.komentarz ? 'Komentarz: ' + r.komentarz : ''].filter(x => x !== '').join('\n');
+      'Odbierający: ' + r.odbImie + ' · ' + r.odbEmail + (r.odbUwagi ? ' · ' + r.odbUwagi : ''), r.komentarz ? 'Komentarz: ' + r.komentarz : '',
+      'Czy serwis wymaga kontynuacji? ' + (r.kontynuacja || '—') + ' · Zlecenie zamknięte u zleceniodawcy? ' + (r.zamknieteU || '—')].filter(x => x !== '').join('\n');
   }
   window.rapKopiuj = function () {
     const t = tekst(R());
@@ -195,10 +260,18 @@
     '.rp canvas{width:100%;height:170px;background:#fff;border-radius:16px;touch-action:none;display:block;box-shadow:inset 0 0 0 1px var(--line)}' +
     '.rp .chkl{display:flex;gap:10px;align-items:flex-start;font-size:15px;margin:4px 0 12px} .rp .chkl input{width:22px;height:22px;flex:0 0 auto;margin-top:1px}' +
     '.rp .dol{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px} .rp .dol .btn{flex:1}' +
+    '.rp .nrw{display:flex;gap:8px;align-items:center} .rp .nrw .wyb{margin:0;flex:0 0 auto;flex-wrap:nowrap} .rp .nrw input{flex:1;min-width:0;margin:0}' +
+    '.rp .nrp{font-size:14px;margin:6px 2px 12px;min-height:18px}' +
+    '.rp .wyb select{border:0;border-radius:999px;padding:10px 14px;font:inherit;font-size:15px;font-weight:600;background:var(--fill);color:var(--ink);max-width:100%;width:auto;margin:0}' +
+    '.rp .wyb select.on{background:var(--acc);color:#fff}' +
+    '.rp .pomp{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px} .rp .pomp img{width:120px;height:90px;object-fit:cover;border-radius:14px}' +
+    '.rp .kont{background:color-mix(in srgb,var(--acc) 12%,var(--card));border-radius:16px;padding:12px;margin:0 0 12px}' +
     '</style>';
 
   const pole = (k, et, typ, ob, extra) => '<div class="pole' + (extra && extra.cala ? ' cala' : '') + '"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label>' +
     '<input class="as-in" data-k="' + k + '" type="' + (typ || 'text') + '"' + (extra && extra.im ? ' inputmode="' + extra.im + '"' : '') + (extra && extra.ph ? ' placeholder="' + esc(extra.ph) + '"' : '') + ' value="' + esc(R()[k] || '') + '" oninput="rapPole(this)"></div>';
+  const polem = (k, et, ob, cala) => '<div class="pole' + (cala ? ' cala' : '') + '"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label>' +
+    '<input class="as-in" data-k="' + k + '" value="' + esc(R()[k] || '') + '" oninput="rapPole(this)" onchange="rapDoMyjni(this)"></div>';
   const tx = (k, et, ob, ph) => '<div class="pole cala"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label><div class="tx">' +
     '<textarea data-k="' + k + '" placeholder="' + esc(ph || '') + '" oninput="rapPole(this)">' + esc(R()[k] || '') + '</textarea>' +
     '<button class="ib mic" aria-label="Dyktuj" onclick="rapMow(\'' + k + '\',this)">' + MIC + '</button></div></div>';
@@ -214,7 +287,7 @@
       '<div class="note">Raport możesz też zacząć z karty myjni (przycisk „Raport”).</div></div>';
     h += '<div class="card"><h3>' + I('doc', 1) + 'Szkice (' + l.length + ')</h3>' + (l.length ? l.map(r => { const b = braki(r).length;
       return '<div class="row w" onclick="rapOtworz(\'' + r.id + '\')"><div class="g"><b>' + esc(skrot(r.myjnia || 'bez myjni')) + '</b>' + (r.szl ? ' <span class="mute">' + esc(r.szl) + '</span>' : '') +
-        '<div class="mute">' + dt(r.dataRaportu) + (r.opisPrac ? ' · ' + esc(r.opisPrac.slice(0, 60)) : '') + '</div></div><span class="pill ' + (b ? 'o' : 'ok') + '">' + (b ? 'brak ' + b : 'gotowy') + '</span></div>'; }).join('')
+        '<div class="mute">' + dt(r.dataRaportu) + (r.kontOd ? ' · kontynuacja' : '') + (r.opisPrac ? ' · ' + esc(r.opisPrac.slice(0, 60)) : '') + '</div></div><span class="pill ' + (b ? 'o' : 'ok') + '">' + (b ? 'brak ' + b : 'gotowy') + '</span></div>'; }).join('')
       : '<div class="mute">brak szkiców</div>') + '</div>';
     return h;
   }
@@ -227,17 +300,28 @@
 
     h += '<div class="card"><h3>' + I('wrench', 1) + 'Urządzenie <span class="nr">1</span></h3><div class="siatka">' +
       '<div class="pole"><label>Myjnia</label><select class="as-in" data-k="myjnia" onchange="rapPole(this)">' + lst.map(x => '<option' + (x.nazwa === r.myjnia ? ' selected' : '') + '>' + esc(x.nazwa) + '</option>').join('') + '</select></div>' +
-      pole('szl', 'Nr zlecenia (SZL)', 'text', 0, { ph: 'SZL/2026/11/…' }) + pole('model', 'Nazwa (model)', 'text', 0) + pole('nrSeryjny', 'Nr seryjny', 'text', 1) +
+      '<div class="pole"><label>Nr zlecenia</label><div class="nrw"><div class="wyb">' +
+        ['SZL', 'SZP'].map(t => '<button class="' + ((r.szlTyp || 'SZL') === t ? 'on' : '') + '" onclick="rapNrTyp(\'' + t + '\')">' + t + '</button>').join('') + '</div>' +
+        '<input class="as-in" inputmode="numeric" placeholder="11/600" value="' + esc(r.szlWpis != null ? r.szlWpis : (r.szl || '')) + '" oninput="rapNr(this)"></div>' +
+        '<div class="nrp" id="rpNrP">' + nrPodglad(Object.assign({}, r, { szlWpis: r.szlWpis != null ? r.szlWpis : r.szl })) + '</div></div>' +
+      '<div class="pole"><label>Rodzaj zgłoszenia</label><div class="wyb">' +
+        RODZAJE_GL.map(v => '<button class="' + (r.rodzaj === v ? 'on' : '') + '" onclick="rapWybor(\'rodzaj\',\'' + v + '\')">' + v + '</button>').join('') +
+        '<select class="' + (RODZAJE_RESZTA.indexOf(r.rodzaj) >= 0 ? 'on' : '') + '" data-k="rodzaj" onchange="rapPole(this);render()"><option value="">więcej…</option>' +
+        RODZAJE_RESZTA.map(v => '<option' + (v === r.rodzaj ? ' selected' : '') + '>' + v + '</option>').join('') + '</select></div></div>' +
+      polem('model', 'Nazwa (model)', 0) + polem('nrSeryjny', 'Nr seryjny', 1) +
       pole('iloscMyc', 'Ilość myć', 'text', 1, { im: 'numeric' }) + pole('kodBledu', 'Kod błędu', 'text', 0) +
       '<div class="pole cala" data-ob="nastawyZgodne"><label>Nastawy chemiczne zgodne z ustaleniami? <i>*</i></label><div class="wyb">' +
       ['Tak', 'Nie'].map(v => '<button class="' + (r.nastawyZgodne === v ? 'on' : '') + '" onclick="rapWybor(\'nastawyZgodne\',\'' + v + '\')">' + v + '</button>').join('') + '</div></div>' +
-      pole('nastawy', 'Nastawy chemiczne', 'text', 0, { cala: 1 }) + '</div></div>';
+      (orlen(r) ? '<div class="pole cala" data-ob="fotoPompy"><label>Zdjęcie pomp dozujących (wszystkie na jednym) <i>*</i></label><div class="pomp">' +
+        (r.fotoPompy ? '<img src="' + r.fotoPompy + '"><button class="btn2" onclick="rapFotoPompyUsun()">Usuń</button>' : '') +
+        '<label class="btn2" style="display:inline-flex">' + CAM + (r.fotoPompy ? ' Zrób ponownie' : ' Zrób zdjęcie pomp') + '<input type="file" accept="image/*" capture="environment" hidden onchange="rapFotoPompy(this)"></label></div></div>' : '') +
+      polem('nastawy', 'Nastawy chemiczne', 0, 1) + polem('linkNastaw', 'Link do nastaw', 0, 1) +
+      '<div class="note cala">Model, nr seryjny i nastawy zapisują się też w karcie myjni – następnym razem wpiszą się same.</div></div></div>';
 
     h += '<div class="card"><h3>' + I('pen', 1) + 'Co zrobione <span class="nr">2</span></h3><div class="siatka">' +
       '<div class="pole cala" data-ob="usluga"><label>Usługa serwisowa <i>*</i></label><div class="wyb">' +
       USLUGI.map(v => '<button class="' + (r.usluga === v ? 'on' : '') + '" onclick="rapWybor(\'usluga\',\'' + jsq(v) + '\')">' + v + '</button>').join('') + '</div></div>' +
-      '<div class="pole"><label>Rodzaj zgłoszenia</label><select class="as-in" data-k="rodzaj" onchange="rapPole(this)">' + RODZAJE.map(v => '<option' + (v === r.rodzaj ? ' selected' : '') + ' value="' + v + '">' + (v || '—') + '</option>').join('') + '</select></div>' +
-      pole('dataRaportu', 'Data do raportu', 'date', 1) + pole('terminNaprawy', 'Termin naprawy', 'date', 0) +
+      pole('terminNaprawy', 'Termin naprawy', 'date', 0) +
       tx('opisPrac', 'Opis wykonanych prac', 1, 'Co było, co zrobione, co wymienione') + tx('opisTestow', 'Opis przeprowadzonych testów', 0, 'Np. 3 mycia testowe, wszystkie programy OK') +
       tx('uwagi', 'Uwagi', 0, '') + '</div></div>';
 
@@ -248,7 +332,9 @@
       '<input type="search" placeholder="Dodaj z magazynu: nazwa albo kod" oninput="rapMatSzukaj(this.value)" style="margin-top:10px"><div id="rpMs"></div>' +
       '<button class="btn2" onclick="rapMatDodaj()">+ Część spoza magazynu</button></div>';
 
-    h += '<div class="card" data-ob="czas"><h3>' + I('clock', 1) + 'Rejestracja czasu <span class="nr">4</span></h3><div class="czasy">' +
+    h += '<div class="card" data-ob="czas"><h3>' + I('clock', 1) + 'Rejestracja czasu <span class="nr">4</span></h3>' +
+      '<div class="siatka"><div class="pole" data-ob="dataRaportu"><label>Dzień wyjazdu (data do raportu) <i>*</i></label><input class="as-in" type="date" data-k="dataRaportu" value="' + esc(r.dataRaportu || '') + '" onchange="rapPole(this)"></div></div>' +
+      '<div class="czasy">' +
       CZASY.map(([k, t]) => '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" onclick="rapTeraz(\'' + k + '\')">' + t + '</button>' +
         '<input class="as-in" type="time" data-k="czas.' + k + '" value="' + esc(c[k] || '') + '" onchange="rapPole(this)"></div>').join('') + '</div>' +
       '<div class="siatka"><div class="pole"><label>Km dojazd</label><input class="as-in" inputmode="numeric" data-k="czas.kmD" value="' + esc(c.kmD || '') + '" oninput="rapPole(this)"></div>' +
@@ -265,6 +351,13 @@
       '<label class="chkl"><input type="checkbox" data-k="potw"' + (r.potw ? ' checked' : '') + ' onchange="rapPole(this)"> Usterki usunięte, urządzenie sprawne</label>' +
       '<label>Podpis odbierającego</label><canvas id="rpPod"></canvas><button class="btn2" style="margin-top:8px" onclick="rapPodpisCzysc()">Wyczyść podpis</button></div>';
 
+    const tn = (k, t) => '<div class="pole cala"><label>' + t + '</label><div class="wyb">' +
+      ['Tak', 'Nie'].map(v => '<button class="' + (r[k] === v ? 'on' : '') + '" onclick="rapWybor(\'' + k + '\',\'' + v + '\')">' + v + '</button>').join('') + '</div></div>';
+    h += '<div class="card"><h3>' + I('check', 1) + 'Podsumowanie <span class="nr">7</span></h3>' +
+      (r.kontOd ? '<div class="note" style="margin-bottom:10px;border:0">To jest kontynuacja wcześniejszego raportu.</div>' : '') +
+      tn('kontynuacja', 'Czy serwis wymaga kontynuacji?') +
+      (r.kontynuacja === 'Tak' ? '<div class="kont">Kolejny wyjazd = nowy raport (w WebCon: „Kontynuuj akcję serwisową”).<button class="btn" style="margin-top:10px" onclick="rapKontynuacja()">+ Nowy raport – kontynuacja</button></div>' : '') +
+      tn('zamknieteU', 'Czy zlecenie zostało zamknięte u zleceniodawcy?') + '</div>';
     h += '<div class="dol"><button class="btn" onclick="rapKopiuj()">' + I('doc', 1) + 'Kopiuj do WebCon</button><button class="btn2" style="color:var(--red)" onclick="rapUsun(\'' + r.id + '\')">' + I('trash', 1) + 'Usuń szkic</button></div>' +
       '<div class="note" style="border:0">Wysyłka prosto do WebCon – gdy będzie API. Na razie: „Kopiuj” i wklej opis w WebCon.</div></div>';
     setTimeout(() => { licznik(); podpisStart(); }, 0);
