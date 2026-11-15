@@ -82,7 +82,7 @@
   #ark h4{margin:0 0 2px;font-size:20px;font-weight:700;letter-spacing:.2px}
   #ark .duza{font:700 40px/1.1 var(--fr);text-align:center;margin:14px 0 4px;padding:12px;letter-spacing:1px}
   #ark .ab{display:flex;gap:10px;margin-top:6px} #ark .ab button{flex:1}
-  #ark .btn2{min-height:46px;justify-content:center;font-size:17px}
+  #ark .btn2{min-height:46px;justify-content:center;font-size:17px;text-align:center;line-height:1.15}
   @keyframes sheet{from{transform:translateY(110%)}to{transform:none}}
   @keyframes fade{from{opacity:0}}
   .ib{border:0;background:var(--glass);color:var(--ink);border-radius:50%;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;
@@ -799,9 +799,9 @@ function przedWyjazdem(nazwa) {
   if (braki.length) h += '<div class="mute" style="color:var(--org);margin-top:6px">' + I('cart', 1) + ' Do wzięcia/kupienia przed wyjazdem: ' + esc(braki.map(c => c.tekst + ' ×' + c.ile).join('; ')) + '</div>';
   h += '<div class="row"><div class="g">Licznik myć: <b>' + esc(w.licznik || '—') + '</b>' + (w.odWymiany !== undefined && w.odWymiany !== '' ? '<div class="mute">szczotki: ' + esc(w.odWymiany) + ' myć od wymiany</div>' : '') + '</div></div>';
   if (ost) h += '<div class="row"><div class="g"><div class="mute">Ostatni wpis · ' + dt(ost.d) + '</div>' + esc(ost.opis) + '</div></div>';
-  h += '<div class="ab" style="margin-top:14px"><a class="btn" style="width:100%;text-align:center;display:block" href="' + maps + '" target="_blank">' + I('route', 1) + ' Nawiguj</a></div>' +
+  h += '<div class="ab" style="margin-top:14px"><a class="btn" style="flex:1;text-decoration:none" href="' + maps + '" target="_blank">' + I('route', 1) + ' Nawiguj</a></div>' +
        '<div class="ab" style="margin-top:8px"><button class="btn2" style="flex:1" onclick="arkZamknij()">Zamknij</button>' +
-       (formularz ? '<button class="btn2" style="flex:1" onclick="przNowy(\'' + jsq(w.nazwa) + '\')">' + I('shield', 1) + ' Przegląd w aplikacji</button>' : '') + '</div></div>';
+       (formularz ? '<button class="btn2" style="flex:1" onclick="przNowy(\'' + jsq(w.nazwa) + '\')">' + I('shield', 1) + ' Przegląd</button>' : '') + '</div></div>';
   const a = document.getElementById('ark'); a.innerHTML = h; a.classList.add('on');
 }
 /* ---------- licznik myć: wpis ręczny (do czasu odczytu ze zdjęcia) ---------- */
