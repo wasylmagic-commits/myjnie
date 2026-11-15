@@ -99,6 +99,12 @@
   .btn{border:0;background:var(--acc);color:#fff;border-radius:999px;min-height:46px;padding:0 22px;font-size:17px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:7px;
        box-shadow:inset 0 1px 0 rgba(255,255,255,.35),inset 0 -1px 0 rgba(0,0,0,.08),0 6px 18px color-mix(in srgb,var(--acc) 38%,transparent)}
   .btn2{border:0;background:var(--acc2);color:var(--acc);border-radius:999px;min-height:36px;padding:0 14px;display:inline-flex;align-items:center;gap:5px;font-size:15px;font-weight:600;box-shadow:inset 0 1px 0 var(--hl)}
+  .sw{border:0;position:relative;width:51px;height:31px;border-radius:999px;background:var(--fill,rgba(120,120,128,.32));flex:0 0 auto;padding:0;transition:background .25s;-webkit-tap-highlight-color:transparent}
+  .sw i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.3);transition:transform .25s var(--spring,ease)}
+  .sw[aria-checked=true]{background:var(--grn)}
+  .sw[aria-checked=true] i{transform:translateX(20px)}
+  .swl{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--mute,#8e8e93);font-weight:600}
+  #toast button{border:0;background:none;color:#ffd60a;font:inherit;margin-left:14px;padding:0}
   .chk{border:0;background:var(--grnbg);color:var(--grn);border-radius:50%;width:40px;height:40px;display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto}
   .chk svg{stroke-width:2.6}
 
@@ -450,6 +456,9 @@ const dniTxt = n => n + ' ' + (n === 1 ? 'dzień' : 'dni');
 const zl = x => Math.round(x).toLocaleString('pl-PL') + ' zł';
 const lic = x => (Math.round(x * 10) / 10).toLocaleString('pl-PL');
 let TT = 0;
+// toast z przyciskiem (np. „Cofnij”) – wisi dłużej (5 s)
+const toastAkcja = (t, nazwa, fn) => { const e = document.getElementById('toast'); e.textContent = t + ' '; const b = document.createElement('button'); b.textContent = nazwa;
+  b.onclick = () => { e.classList.remove('on'); clearTimeout(TT); fn(); }; e.appendChild(b); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 5000); };
 const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 2600); };
 const open_ = o => o.status === 'otwarty';
 const kat = o => o.typ === 'do kupienia' ? 'kupic' : o.typ === 'do biura' ? 'biuro' : 'naprawy';
@@ -526,8 +535,8 @@ function ogonRow(o, zNazwa) {
   return '<div class="row"><div class="g">' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
     (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
     '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + '</div></div>' +
-    (open_(o) ? '<button class="chk" aria-label="Zamknij" onclick="zamknijPytaj(\'' + jsq(o.id) + '\')">' + I('check') + '</button>'
-              : '<span class="mute">' + dt(o.zamkn) + '</span>' + (OGF === 'zamkniete' && TAB === 'ogony' ? '<button class="ib" style="margin-left:6px;color:var(--red)" aria-label="Usuń" onclick="usunPytaj(\'' + jsq(o.id) + '\')">' + I('trash', 1) + '</button>' : '')) + '</div>';
+    (open_(o) ? '<div class="swl"><button class="sw" role="switch" aria-checked="false" aria-label="Wykonane" onclick="wykonane(\'' + jsq(o.id) + '\')"><i></i></button>Wykonane</div>'
+              : '<span class="mute">' + dt(o.zamkn) + '</span>' + (OGF === 'zamkniete' && TAB === 'ogony' ? '<div class="swl" style="margin-left:8px"><button class="sw" role="switch" aria-checked="true" aria-label="Wykonane – otwórz ponownie" onclick="otworz(\'' + jsq(o.id) + '\')"><i></i></button>Wykonane</div><button class="ib" style="margin-left:6px;color:var(--red)" aria-label="Usuń" onclick="usunPytaj(\'' + jsq(o.id) + '\')">' + I('trash', 1) + '</button>' : '')) + '</div>';
 }
 // 15.11.2026: usunięcie zamkniętego zadania (np. czego nie pokazywać szefowi) – serwer przenosi wiersz do ukrytego arkusza „Ogony — usunięte”
 function usunPytaj(id) {
@@ -548,6 +557,19 @@ function usun(id, b) {
       arkZamknij(); toast(j.wynik ? 'Zadanie #' + id + ' usunięte' : 'Nie znalazłem zadania #' + id); render(); if (DW) pokazMyjnie(DW, 1); })
     .catch(e => { b.disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
 }
+// 15.11.2026: przełącznik „Wykonane” – zadanie od razu idzie do Zamkniętych; 5 s na „Cofnij”, w Zamkniętych można otworzyć ponownie (api=otworz)
+function ustawStatus(id, otwarte) {
+  const o = D.ogony.find(x => String(x.id) === String(id)); if (!o) return Promise.resolve();
+  const stary = { status: o.status, zamkn: o.zamkn };
+  if (otwarte) { o.status = 'otwarty'; o.zamkn = ''; } else { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
+  render(); if (DW) pokazMyjnie(DW, 1);
+  return api(otwarte ? 'otworz' : 'zamknij', { id: id }).catch(e => {
+    o.status = stary.status; o.zamkn = stary.zamkn; render(); if (DW) pokazMyjnie(DW, 1);
+    toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+  });
+}
+function wykonane(id) { ustawStatus(id, false).then(() => { const o = D.ogony.find(x => String(x.id) === String(id)); if (o && !open_(o)) toastAkcja('Zadanie #' + id + ' wykonane', 'Cofnij', () => ustawStatus(id, true)); }); }
+function otworz(id) { ustawStatus(id, true).then(() => { const o = D.ogony.find(x => String(x.id) === String(id)); if (o && open_(o)) toast('Zadanie #' + id + ' otwarte ponownie'); }); }
 // galka nie zamyka od razu – najpierw pytanie (łatwo trafić palcem przypadkiem)
 function zamknijPytaj(id) {
   const o = D.ogony.find(x => String(x.id) === String(id));
@@ -566,6 +588,18 @@ function zamknij(id, b) {
       const o = D.ogony.find(x => String(x.id) === String(id));
       if (o && ok) { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
       arkZamknij(); toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW, 1); })
+    .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
+}
+// 15.11.2026: notatka z karty myjni – nazwa myjni dopisywana automatycznie (ta sama droga: api=notatka → bot rozbija na wpisy)
+const NTM = {};
+function notatkaMyjni() {
+  const w = D.myjnie.find(x => x.nazwa === DW) || D.inne.find(x => x.nazwa === DW);
+  const el = document.getElementById('ntm'); if (!w || !el) return;
+  const t = el.value.trim();
+  if (t.length < 5) return toast('Napisz trochę więcej');
+  const b = document.getElementById('ntmb'); b.disabled = true;
+  api('notatka', { t: 'Myjnia ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ': ' + t })
+    .then(() => { NTM[w.nazwa] = ''; el.value = ''; b.disabled = false; toast('Wysłane — potwierdź w Telegramie'); })
     .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
 }
 function notatka() {
@@ -678,6 +712,8 @@ function pokazMyjnie(nazwa, bezAnim) {
   h += '<div class="row"><div class="g">Awarie w ostatnim roku: <b>' + awarie(w, 365) + '</b></div></div>';
   if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';
   h += '</div>';
+  h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka – ' + esc(skrot(w.nazwa)) + '</h3><textarea id="ntm" placeholder="Co tu zrobić, co kupić, co zrobione – myjnia jest już wpisana" oninput="NTM[DW]=this.value">' + esc(NTM[w.nazwa] || '') + '</textarea>' +
+       '<button class="btn" id="ntmb" onclick="notatkaMyjni()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
   h += '<div class="card"><h3>' + I('wrench', 1) + 'Otwarte zadania (' + otw.length + ')</h3>' + (otw.length ? otw.map(o => ogonRow(o)).join('') : '<div class="mute">brak</div>') + '</div>';
   h += '<div class="card"><h3>' + I('history', 1) + 'Historia (' + zd.length + ')</h3><div class="tl">' +
        (zd.length ? zd.slice(0, 60).map(z => '<div><i>' + dt(z.d) + ' · ' + esc(z.t) + '</i>' + esc(z.o) + '</div>').join('') : '<div class="mute">na razie pusto</div>') + '</div></div></main>';

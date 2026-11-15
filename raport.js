@@ -56,10 +56,14 @@
   function braki(r) {
     const ob = OBOW.slice();
     if (orlen(r)) ob.splice(3, 0, ['fotoPompy', 'Zdjęcie pomp dozujących (Orlen)']);
-    return ob.filter(([k]) => {
-      if (k === 'czas') { const c = czasy(r); return !(c.serwis > 0); }
-      return !String(r[k] || '').trim();
-    });
+    return ob.map(([k, n]) => {
+      if (k === 'czas') { // brak, jeśli nie ma godzin serwisu LUB oba pola km są puste (wystarczy jeden km)
+        const c = czasy(r), kmPuste = !String((r.czas || {}).kmD || '').trim() && !String((r.czas || {}).kmP || '').trim();
+        const co = c.serwis > 0 ? (kmPuste ? 'km' : '') : (kmPuste ? 'godziny serwisu i km' : 'godziny serwisu');
+        return co ? [k, n + ' – brak: ' + co] : null;
+      }
+      return String(r[k] || '').trim() ? null : [k, n];
+    }).filter(Boolean);
   }
 
   function pusty(nazwa) {
