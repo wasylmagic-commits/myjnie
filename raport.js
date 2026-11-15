@@ -197,12 +197,15 @@
       const s = new SR(), t0 = Date.now(); MOW.s = s;
       let baza = el.value ? el.value.replace(/\s*$/, ' ') : '', gotowe = '';
       s.lang = JEZYKI[jezI()][1]; s.continuous = true; s.interimResults = true;
+      // Chrome na Androidzie potrafi oddawać tę samą frazę po kawałku jako kolejne „finalne” wyniki ("ktoś", "ktoś wjechał", …).
+      // Dlatego pole składamy od nowa z całej listy wyników i wyrzucamy te, które są tylko początkiem następnego.
       s.onresult = e => {
-        let tymcz = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          if (e.results[i].isFinal) gotowe += e.results[i][0].transcript + ' '; else tymcz += e.results[i][0].transcript;
-        }
-        el.value = baza + gotowe + tymcz; rapPole(el);
+        const seg = [];
+        for (let i = 0; i < e.results.length; i++) { const t = String(e.results[i][0].transcript || '').trim(); if (t) seg.push(t); }
+        const norm = x => x.toLowerCase();
+        const out = seg.filter((t, i) => !seg.slice(i + 1).some(n => norm(n).startsWith(norm(t))));
+        gotowe = out.join(' ');
+        el.value = baza + gotowe; rapPole(el);
       };
       s.onerror = e => {
         if (e.error === 'no-speech' || e.error === 'aborted') return;
