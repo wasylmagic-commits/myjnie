@@ -183,15 +183,42 @@
     document.querySelectorAll('.rp .jez').forEach(b => { b.textContent = JEZYKI[JEZ.i][0]; b.classList.toggle('inny', JEZ.i > 0); });
     toast('Dyktowanie: ' + ({ PL: 'po polsku', RU: 'po rosyjsku', UA: 'po ukraińsku', GR: 'po grecku' })[JEZYKI[JEZ.i][0]] + (JEZ.i ? ' · potem „Popraw” przetłumaczy na polski' : ''));
   };
+  // Mikrofon nagrywa, dopóki go sam nie wyłączysz (drugie dotknięcie). Chrome sam kończy sesję po ciszy – wtedy zaczynamy od nowa.
+  const MOW = { s: null, k: null, stop: false };
+  const mowaOff = () => { document.querySelectorAll('.rp .mic.nag').forEach(x => x.classList.remove('nag')); MOW.s = null; MOW.k = null; };
   window.rapMow = function (k, b) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return toast('Dyktowanie: użyj mikrofonu na klawiaturze');
-    const s = new SR(), el = document.querySelector('[data-k="' + k + '"]');
-    s.lang = JEZYKI[jezI()][1]; s.interimResults = false; b.classList.add('nag');
-    s.onresult = e => { const t = [...e.results].map(x => x[0].transcript).join(' '); el.value = (el.value ? el.value.trim() + ' ' : '') + t; rapPole(el); };
-    s.onend = () => b.classList.remove('nag'); s.onerror = () => { b.classList.remove('nag'); toast('Nie usłyszałem – spróbuj jeszcze raz'); };
-    s.start();
+    if (MOW.s) { const same = MOW.k === k; MOW.stop = true; try { MOW.s.stop(); } catch (e) {} mowaOff(); if (same) return; }
+    const el = document.querySelector('[data-k="' + k + '"]'); if (!el) return;
+    MOW.stop = false; MOW.k = k; b.classList.add('nag');
+    let krotkie = 0;
+    const start = () => {
+      const s = new SR(), t0 = Date.now(); MOW.s = s;
+      let baza = el.value ? el.value.replace(/\s*$/, ' ') : '', gotowe = '';
+      s.lang = JEZYKI[jezI()][1]; s.continuous = true; s.interimResults = true;
+      s.onresult = e => {
+        let tymcz = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          if (e.results[i].isFinal) gotowe += e.results[i][0].transcript + ' '; else tymcz += e.results[i][0].transcript;
+        }
+        el.value = baza + gotowe + tymcz; rapPole(el);
+      };
+      s.onerror = e => {
+        if (e.error === 'no-speech' || e.error === 'aborted') return;
+        MOW.stop = true; toast(e.error === 'not-allowed' ? 'Brak zgody na mikrofon' : 'Mikrofon: ' + e.error);
+      };
+      s.onend = () => {
+        if (MOW.s !== s) return;
+        krotkie = Date.now() - t0 < 700 ? krotkie + 1 : 0;
+        if (MOW.stop || krotkie >= 3 || !el.isConnected || document.hidden) { mowaOff(); return; }
+        setTimeout(() => { if (!MOW.stop && MOW.s === s) start(); }, 150);
+      };
+      try { s.start(); } catch (e) { mowaOff(); }
+    };
+    start();
   };
+  document.addEventListener('visibilitychange', () => { if (document.hidden && MOW.s) { MOW.stop = true; try { MOW.s.stop(); } catch (e) {} } });
 
   // ===== POPRAWA OPISU NA JĘZYK TECHNICZNY (Claude przez bota: POST ?api=popraw) =====
   // Serwisant dyktuje jak mówi, system przepisuje na zwięzły polski tekst do raportu. Nic nie dopisuje od siebie.
