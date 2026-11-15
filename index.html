@@ -436,6 +436,8 @@ const IC = {
   chart: '<path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/>',
   history: '<path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5M12 7v5l3 2"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
+  send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
@@ -669,6 +671,7 @@ function dzis() {
     '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
     (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +
     (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') + '</div></div>';
+  h += terminyRozliczen();
   h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
        '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
@@ -688,6 +691,33 @@ function dzis() {
   if (sz.length) h += '<div class="card"><h3>' + I('brush', 1) + 'Szczotki</h3>' + sz.map(w => '<div class="row"><div class="g">' + esc(skrot(w.nazwa)) + '</div><span class="pill ' + (+w.odWymiany >= 50000 || /łys|lys/i.test(w.szczotki) ? 'r' : 'y') + '">' + (w.odWymiany ? esc(w.odWymiany) + ' myć' : esc(w.szczotki)) + '</span></div>').join('') + '</div>';
   if (D.dyzury.length) h += '<div class="card"><h3>' + I('phone', 1) + 'Dyżury</h3>' + D.dyzury.map(x => '<div class="row"><div class="g">Tydzień ' + x.tydz + (x.swieto ? ' <span class="pill o">święto</span>' : '') + '</div><span class="mute">' + x.od + '–' + x.do + '</span></div>').join('') + '</div>';
   return h;
+}
+// 15.11.2026: terminy rozliczeń za poprzedni miesiąc – premia do 4., zaliczka i faktury do 7.
+// Wisi od 1. dnia miesiąca aż do „wysłane” (premia – przełącznik, zaliczka – sama po „Wyślij rozliczenie” w Wydatkach).
+const ROZ_OD = 202611;   // wcześniejszych miesięcy nie przypominamy
+function terminyRozliczen() {
+  const t = new Date(), d = t.getDate(), y = t.getFullYear(), m = t.getMonth() + 1;
+  const pm = m === 1 ? (y - 1) * 100 + 12 : y * 100 + m - 1;
+  if (pm < ROZ_OD) return '';
+  const w = D.wyslano || {};
+  const nm = new Date(Math.floor(pm / 100), pm % 100 - 1, 1).toLocaleDateString('pl-PL', { month: 'long' });
+  const stan = termin => d > termin ? '<span class="pill r">po terminie ' + dniTxt(d - termin) + '</span>'
+    : d === termin ? '<span class="pill o">dziś termin</span>' : d === termin - 1 ? '<span class="pill o">jutro termin</span>' : '';
+  const dok = (n, mm) => 'do ' + n + '.' + String(mm).padStart(2, '0');
+  let h = '';
+  if (!(w.premia || {})[pm]) h += '<div class="row"><div class="g"><b>Premia</b> <span class="mute">· ' + dok(4, m) + '</span><div>' + stan(4) + '</div></div>' +
+    '<div class="swl"><button class="sw" role="switch" aria-checked="false" aria-label="Premia wysłana" onclick="premiaWyslana(' + pm + ',this)"><i></i></button>Wysłane</div></div>';
+  const zal = (D.zaliczka || []).filter(z => z.mies === pm);
+  if (zal.length && !(w.zaliczka || {})[pm]) h += '<div class="row"><div class="g"><b>Zaliczka i faktury</b> <span class="mute">· ' + dok(7, m) + ' · ' + zal.length + '&nbsp;dok.</span><div>' + stan(7) + '</div></div>' +
+    '<button class="btn2" onclick="wydPokazMies(' + pm + ')">' + I('send', 1) + 'Wyślij</button></div>';
+  return h ? '<div class="card roz"><h3>' + I('alert', 1) + 'Rozliczenia za ' + nm + '</h3>' + h + '</div>' : '';
+}
+function premiaWyslana(pm, el) {
+  const blad = e => toast(/Nieznan|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+  animSw(el).then(() => api('wyslano', { typ: 'premia', mies: pm, tak: 1 })).then(() => {
+    D.wyslano = D.wyslano || {}; D.wyslano.premia = D.wyslano.premia || {}; D.wyslano.premia[pm] = dzisIso(); render();
+    toastAkcja('Premia oznaczona jako wysłana', 'Cofnij', () => api('wyslano', { typ: 'premia', mies: pm, tak: 0 }).then(() => { delete D.wyslano.premia[pm]; render(); }).catch(blad));
+  }).catch(e => { blad(e); render(); });
 }
 function statusPl(s) {
   return ({ czeka_na_czas: 'czeka na godziny', pytania: 'pytania w bocie', czeka_koniec_dnia: 'czeka na koniec dnia', czeka_na_raport: 'czeka na raport', zlecenie: 'zlecenie bez pracy' })[s] || s;
