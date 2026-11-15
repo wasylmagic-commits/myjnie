@@ -16,7 +16,7 @@
   const CZASY = [['wyjazd', 'Wyjazd'], ['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy'], ['odjazd', 'Odjazd z myjni'], ['dom', 'Powrót']];
   // pola obowiązkowe (* w WebCon) – kolejność = kolejność na ekranie
   const OBOW = [['nrSeryjny', 'Nr seryjny'], ['iloscMyc', 'Ilość myć'], ['nastawyZgodne', 'Nastawy zgodne?'], ['usluga', 'Usługa serwisowa'],
-    ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail']];
+    ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail'], ['podpisSerw', 'Podpis serwisanta']];
   const orlen = r => /orlen/i.test(r.myjnia || '');
   // nr zlecenia skrótem: „11/600” → SZL/2026/11/00600; „600” → bieżący miesiąc; miesiąc „z przyszłości” = zeszły rok (w styczniu wpisujesz grudzień)
   function pelnyNr(typ, s) {
@@ -57,6 +57,7 @@
     if (orlen(r)) ob.splice(3, 0, ['fotoPompy', 'Zdjęcie pomp dozujących (Orlen)']);
     return ob.filter(([k]) => {
       if (k === 'czas') { const c = czasy(r); return !(c.serwis > 0); }
+      if (k === 'podpisSerw') return !(r.podpisSerw || LS.get(PODPIS_SERW));
       return !String(r[k] || '').trim();
     });
   }
@@ -185,21 +186,27 @@
     s.start();
   };
 
-  // podpis odbierającego palcem
-  function podpisStart() {
-    const c = document.getElementById('rpPod'); if (!c) return;
-    const r = R(), x = c.getContext('2d'), sk = window.devicePixelRatio || 1;
+  // podpisy palcem: odbierający (w szkicu) i serwisant (zapisany raz w pamięci urządzenia, wstawia się sam)
+  const PODPIS_SERW = 'podpisSerwisanta';
+  function podpisStart(id, wczytaj, zapiszP) {
+    const c = document.getElementById(id); if (!c) return;
+    const x = c.getContext('2d'), sk = window.devicePixelRatio || 1;
     c.width = c.offsetWidth * sk; c.height = c.offsetHeight * sk; x.scale(sk, sk);
     x.lineWidth = 2.4; x.lineCap = 'round'; x.strokeStyle = '#111';
-    if (r.podpis) { const im = new Image(); im.onload = () => x.drawImage(im, 0, 0, c.offsetWidth, c.offsetHeight); im.src = r.podpis; }
+    const st0 = wczytaj(); if (st0) { const im = new Image(); im.onload = () => x.drawImage(im, 0, 0, c.offsetWidth, c.offsetHeight); im.src = st0; }
     let on = false;
     const p = e => { const b = c.getBoundingClientRect(), t = e.touches ? e.touches[0] : e; return [t.clientX - b.left, t.clientY - b.top]; };
     const st = e => { on = true; const [a, b] = p(e); x.beginPath(); x.moveTo(a, b); e.preventDefault(); };
     const mv = e => { if (!on) return; const [a, b] = p(e); x.lineTo(a, b); x.stroke(); e.preventDefault(); };
-    const en = () => { if (!on) return; on = false; const rr = R(); rr.podpis = c.toDataURL('image/png'); zapisz(rr); };
+    const en = () => { if (!on) return; on = false; zapiszP(c.toDataURL('image/png')); };
     c.addEventListener('touchstart', st, { passive: false }); c.addEventListener('touchmove', mv, { passive: false }); c.addEventListener('touchend', en);
     c.addEventListener('mousedown', st); c.addEventListener('mousemove', mv); window.addEventListener('mouseup', en);
   }
+  function podpisy() {
+    podpisStart('rpPod', () => R().podpis, d => { const rr = R(); rr.podpis = d; zapisz(rr); });
+    podpisStart('rpPodS', () => R().podpisSerw || LS.get(PODPIS_SERW), d => { const rr = R(); rr.podpisSerw = d; if (!rr.demo) try { localStorage.setItem(PODPIS_SERW, d); } catch (e) {} zapisz(rr); });
+  }
+  window.rapPodpisSCzysc = () => { const r = R(); r.podpisSerw = ''; if (!r.demo) try { localStorage.removeItem(PODPIS_SERW); } catch (e) {} zapisz(r); render(); };
   window.rapPodpisCzysc = () => { const r = R(); r.podpis = ''; zapisz(r); render(); };
 
   // licznik brakujących pól u góry; klik = przewiń do pierwszego brakującego
@@ -230,7 +237,7 @@
       ['Rejestracja czasu', [t('Serwis', c.serwis ? godz(c.serwis) : ''), t('Dojazd', c.kmD ? c.kmD + ' km' : ''), t('Powrót', c.kmP ? c.kmP + ' km' : ''), t('Pracownik', SERWISANT)]],
       ['Materiały', r.mat.length ? r.mat.map(m => t((m.mag ? 'Magazyn ' + SERWISANT : 'Poza magazynem'), (m.kod ? m.kod + ' · ' : '') + m.nazwa + ' – ' + String(m.ilosc).replace('.', ',') + ' ' + m.jm)) : [t('Materiały', 'brak')]],
       ['Załączniki', [t('Dokumentacja fotograficzna', (r.zal.length + (r.fotoPompy ? 1 : 0)) + ' zdj.' + (r.fotoPompy ? ' (w tym pompy dozujące)' : '')), t('Komentarz', r.komentarz),
-        t('Podpis odbierającego', r.podpis ? 'tak' : ''), t('Raport serwisowy (PDF)', 'generuje WebCon')]],
+        t('Podpis odbierającego', r.podpis ? 'tak' : ''), t('Podpis serwisanta', (r.podpisSerw || LS.get(PODPIS_SERW)) ? 'tak' : ''), t('Raport serwisowy (PDF)', 'generuje WebCon')]],
       ['Podsumowanie', [t('Czy serwis wymaga kontynuacji?', r.kontynuacja), t('Czy zlecenie zostało zamknięte u zleceniodawcy?', r.zamknieteU)]]
     ];
   }
@@ -273,9 +280,9 @@
 
   // raport pokazowy: wypełniony jednym kliknięciem (do prezentacji – nic nie trafia do karty myjni ani do arkusza)
   function rysunek(w, h, f) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); f(x); return c; }
-  function podpisDemo() {
+  function podpisDemo(v) {
     return rysunek(600, 170, x => { x.strokeStyle = '#123'; x.lineWidth = 3; x.lineCap = 'round'; x.beginPath(); x.moveTo(60, 110);
-      for (let i = 0; i <= 60; i++) { const t = i / 60; x.lineTo(60 + t * 420, 105 - Math.sin(t * 18) * 28 * (1 - t * .5) - t * 20); }
+      for (let i = 0; i <= 60; i++) { const t = i / 60; x.lineTo(60 + t * 420, 105 - Math.sin(t * (v ? 11 : 18)) * (v ? 34 : 28) * (1 - t * .5) - t * 20); }
       x.stroke(); x.beginPath(); x.moveTo(420, 120); x.quadraticCurveTo(480, 140, 540, 112); x.stroke(); }).toDataURL('image/png');
   }
   function fotoDemo(tytul, kol) {
@@ -291,7 +298,7 @@
       opisPrac: 'Zgłoszenie: portal staje w połowie programu, błąd E 412 (krańcówka jazdy). Wymieniono czujnik indukcyjny jazdy portalu, wyregulowano odległość od blachy (4 mm), sprawdzono przewód w łańcuchu kablowym.',
       opisTestow: '3 mycia testowe na programie Premium i 1 na Standard – bez błędów, jazda płynna.', uwagi: 'Szczotki boczne do wymiany przy najbliższym przeglądzie.',
       czas: { wyjazd: '07:30', przyjazd: '08:45', koniec: '11:15', odjazd: '11:20', dom: '12:35', kmD: '62', kmP: '62' },
-      odbImie: 'Kierownik stacji (przykład)', odbEmail: 'stacja@przyklad.pl', potw: true, podpis: podpisDemo(), kontynuacja: 'Nie', zamknieteU: 'Tak',
+      odbImie: 'Kierownik stacji (przykład)', odbEmail: 'stacja@przyklad.pl', potw: true, podpis: podpisDemo(), podpisSerw: podpisDemo(1), kontynuacja: 'Nie', zamknieteU: 'Tak',
       komentarz: 'Po pracy stanowisko posprzątane, zdjęcia przed i po w załącznikach.', zal: [fotoDemo('Czujnik jazdy – przed', '#5b6b7a'), fotoDemo('Czujnik jazdy – po', '#2f7d5b')] });
     r.szl = pelnyNr('SZL', r.szlWpis);
     r.mat = (D.magazyn || []).slice(0, 1).map(m => ({ mag: 1, kod: m.kod, nazwa: m.nazwa, jm: 'szt.', ilosc: 1, stan: m.ilosc }));
@@ -306,11 +313,8 @@
     ['Zakładki i przełączanie', '7 zakładek w zleceniu + 6 w raporcie, skakanie tam i z powrotem', 'jeden ekran, 7 bloków pod sobą'],
     ['Czego brakuje', 'widać dopiero przy zapisie', 'licznik „Brakuje N pól” na górze, klik = przejście do pola'],
     ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Wyjazd / Na myjni / Koniec / Powrót – liczy się samo'],
-    ['Dane myjni', 'model, nr seryjny, nastawy – za każdym razem od nowa', 'wpisują się same z karty myjni'],
-    ['Opis prac', 'pisanie na klawiaturze', 'dyktowanie po polsku'],
-    ['Numer zlecenia', 'pełny SZL/2026/11/00600', 'skrót „11/600”'],
+    ['Opis prac', 'pisanie na klawiaturze', 'dyktowanie po polsku; w planie: system poprawia opis na język techniczny'],
     ['Kolejny wyjazd', '„Kontynuuj akcję serwisową” i wszystko od nowa', 'jeden klik, dane zlecenia przechodzą same'],
-    ['Zdjęcia pomp (Orlen)', 'łatwo zapomnieć', 'pole obowiązkowe tylko na Orlenie'],
     ['Na tablecie', 'wąski formularz', 'dwie kolumny w poziomie']
   ];
   window.rapPorownanie = function () {
@@ -444,10 +448,13 @@
       '<label class="btn2" style="display:inline-flex;margin-bottom:12px">' + CAM + ' Zrób zdjęcie<input type="file" accept="image/*" capture="environment" multiple hidden onchange="rapFoto(this)"></label>' +
       tx('komentarz', 'Komentarz', 0, '') + '</div>';
 
-    h += '<div class="card"><h3>' + I('user', 1) + 'Odbiór na myjni <span class="nr">6</span></h3><div class="siatka">' +
+    h += '<div class="card"><h3>' + I('user', 1) + 'Odbiór i podpisy <span class="nr">6</span></h3><div class="siatka">' +
       pole('odbImie', 'Imię i nazwisko', 'text', 1) + pole('odbEmail', 'Adres e-mail', 'email', 1, { im: 'email' }) + pole('odbUwagi', 'Uwagi odbierającego', 'text', 0, { cala: 1 }) + '</div>' +
       '<label class="chkl"><input type="checkbox" data-k="potw"' + (r.potw ? ' checked' : '') + ' onchange="rapPole(this)"> Usterki usunięte, urządzenie sprawne</label>' +
-      '<label>Podpis odbierającego</label><canvas id="rpPod"></canvas><button class="btn2" style="margin-top:8px" onclick="rapPodpisCzysc()">Wyczyść podpis</button></div>';
+      '<label>Podpis odbierającego</label><canvas id="rpPod"></canvas><button class="btn2" style="margin-top:8px" onclick="rapPodpisCzysc()">Wyczyść podpis</button>' +
+      '<div class="pole" data-ob="podpisSerw" style="margin-top:16px"><label>Podpis serwisanta (' + esc(SERWISANT) + ') <i>*</i></label><canvas id="rpPodS"></canvas></div>' +
+      '<button class="btn2" style="margin-top:8px" onclick="rapPodpisSCzysc()">Podpisz od nowa</button>' +
+      '<div class="note">Twój podpis zapisuje się raz na tym urządzeniu i w następnych raportach wstawia się sam.</div></div>';
 
     const tn = (k, t) => '<div class="pole cala"><label>' + t + '</label><div class="wyb">' +
       ['Tak', 'Nie'].map(v => '<button class="' + (r[k] === v ? 'on' : '') + '" onclick="rapWybor(\'' + k + '\',\'' + v + '\')">' + v + '</button>').join('') + '</div></div>';
@@ -460,7 +467,7 @@
       (r.demoSrl ? '<div class="note" style="border:0;margin-top:0">Pokaz: „wysłany” ' + dt(r.demoKiedy.slice(0, 10)) + ' jako ' + esc(r.demoSrl) + ' (numer przykładowy).</div>' : '') +
       '<div class="dol"><button class="btn2" onclick="rapPorownanie()">WebCon dziś → aplikacja</button><button class="btn2" style="color:var(--red)" onclick="rapUsun(\'' + r.id + '\')">' + I('trash', 1) + 'Usuń szkic</button></div>' +
       '<div class="note" style="border:0">Wzór raportu na czas, gdy będzie API WebCon. Teraz „Wyślij” działa w trybie pokazowym – nic nie jest zapisywane w WebCon.</div></div>';
-    setTimeout(() => { licznik(); podpisStart(); }, 0);
+    setTimeout(() => { licznik(); podpisy(); }, 0);
     return h;
   }
 
