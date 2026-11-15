@@ -377,6 +377,7 @@
 <script src="paliwo.js"></script>
 <script src="wydatki.js"></script>
 <script src="raport.js"></script>
+<script src="przeglad.js"></script>
 <script src="udostepnij.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
@@ -486,7 +487,7 @@ function load() {
       if (!D) document.getElementById('main').innerHTML = '<div class="card">' + I('alert') + ' ' + esc(e.message) + '<div class="mute">Sprawdź internet i odśwież.</div></div>'; else toast('Nie udało się odświeżyć'); });
 }
 function nav() {
-  const akt = WIECEJ[TAB] ? 'wiecej' : TAB;
+  const akt = WIECEJ[TAB] ? 'wiecej' : TAB === 'przeglad' ? 'przeglady' : TAB;
   const n = document.getElementById('nav');
   if (!n.children.length) n.innerHTML = '<i class="lens"></i>' + TABS.map(([id, ic, t]) =>
     '<button data-t="' + id + '" onclick="go(\'' + id + '\')">' + I(ic) + '<span>' + t + '</span></button>').join('');
@@ -735,7 +736,8 @@ function pokazMyjnie(nazwa, bezAnim) {
   let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
           (window.asNowaDla ? '<button class="btn2" onclick="asNowaDla(\'' + jsq(w.nazwa) + '\')">' + I('spark', 1) + 'Diagnoza</button>' : '') +
           '<button class="btn2" onclick="przedWyjazdem(\'' + jsq(w.nazwa) + '\')">' + I('route', 1) + 'Jedź</button></div></header><main>' +
-          (window.rapNowy ? '<button class="btn" style="width:100%;margin-bottom:14px" onclick="rapNowy(\'' + jsq(w.nazwa) + '\')">' + I('doc', 1) + 'Raport z tej myjni</button>' : '');
+          (window.rapNowy ? '<div style="display:flex;gap:10px;margin-bottom:14px"><button class="btn" style="flex:1" onclick="rapNowy(\'' + jsq(w.nazwa) + '\')">' + I('doc', 1) + 'Raport</button>' +
+            (window.przNowy && w.termin !== undefined ? '<button class="btn" style="flex:1" onclick="przNowy(\'' + jsq(w.nazwa) + '\')">' + I('shield', 1) + 'Przegląd</button>' : '') + '</div>' : '');
   h += '<div class="card"><div class="mute">' + esc([w.model, w.segment ? 'segment ' + w.segment : '', w.co ? 'przegląd co ' + w.co + ' mies.' : '', w.klient].filter(Boolean).join(' · ')) + '</div>';
   if (w.termin !== undefined) h += '<div class="row"><div class="g">Następny przegląd: <b>' + esc(w.termin || '—') + '</b></div>' + pillDni(w.dni) + '</div>';
   {
@@ -784,7 +786,7 @@ function przedWyjazdem(nazwa) {
   const formularz = w.dni != null && w.dni <= 14;
   let h = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:86vh;overflow:auto"><h4>' + I('route', 1) + ' Przed wyjazdem · ' + esc(skrot(w.nazwa)) + '</h4>' +
     '<div class="mute">' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</div>';
-  if (formularz) h += '<div class="row"><div class="g" style="color:var(--org)">' + I('alert', 1) + ' <b>Weź formularz przeglądu</b> – ' + (w.dni < 0 ? 'przegląd po terminie o ' + (-w.dni) + ' dn.' : 'przegląd za ' + dniTxt(w.dni)) + (w.termin ? ' (' + esc(w.termin) + ')' : '') + '</div></div>';
+  if (formularz) h += '<div class="row"><div class="g" style="color:var(--org)">' + I('alert', 1) + ' <b>Przegląd do zrobienia</b> – ' + (w.dni < 0 ? 'przegląd po terminie o ' + (-w.dni) + ' dn.' : 'przegląd za ' + dniTxt(w.dni)) + (w.termin ? ' (' + esc(w.termin) + ')' : '') + '</div></div>';
   h += '<h4 style="margin:14px 0 4px;font-size:15px">' + I('wrench', 1) + ' Otwarte zadania (' + otw.length + ')</h4>';
   if (!otw.length) h += '<div class="mute">brak – nic nie wisi na tej myjni</div>';
   const braki = [];
@@ -799,7 +801,7 @@ function przedWyjazdem(nazwa) {
   if (ost) h += '<div class="row"><div class="g"><div class="mute">Ostatni wpis · ' + dt(ost.d) + '</div>' + esc(ost.opis) + '</div></div>';
   h += '<div class="ab" style="margin-top:14px"><a class="btn" style="width:100%;text-align:center;display:block" href="' + maps + '" target="_blank">' + I('route', 1) + ' Nawiguj</a></div>' +
        '<div class="ab" style="margin-top:8px"><button class="btn2" style="flex:1" onclick="arkZamknij()">Zamknij</button>' +
-       (formularz ? '<button class="btn2" style="flex:1" onclick="arkZamknij();zamknijDet();go(\'druk\')">' + I('doc', 1) + ' Druki</button>' : '') + '</div></div>';
+       (formularz ? '<button class="btn2" style="flex:1" onclick="przNowy(\'' + jsq(w.nazwa) + '\')">' + I('shield', 1) + ' Przegląd w aplikacji</button>' : '') + '</div></div>';
   const a = document.getElementById('ark'); a.innerHTML = h; a.classList.add('on');
 }
 /* ---------- licznik myć: wpis ręczny (do czasu odczytu ze zdjęcia) ---------- */
@@ -865,7 +867,7 @@ function ogony() {
 /* ---------- Przeglądy ---------- */
 function przeglady() {
   const l = D.myjnie.slice().sort((a, b) => (a.dni == null ? 9999 : a.dni) - (b.dni == null ? 9999 : b.dni));
-  return '<div class="card">' + l.map(w => '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+  return (window.przKarta ? przKarta() : '') + '<div class="card">' + l.map(w => '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
     '<div class="mute">termin ' + esc(w.termin || '—') + (w.co ? ' · co ' + esc(w.co) + ' mies.' : '') + '</div></div>' + pillDni(w.dni) + '</div>').join('') + '</div>';
 }
 
