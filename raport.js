@@ -57,7 +57,6 @@
     if (orlen(r)) ob.splice(3, 0, ['fotoPompy', 'Zdjęcie pomp dozujących (Orlen)']);
     return ob.filter(([k]) => {
       if (k === 'czas') { const c = czasy(r); return !(c.serwis > 0); }
-      if (k === 'podpisSerw') return !(r.podpisSerw || LS.get(PODPIS_SERW));
       return !String(r[k] || '').trim();
     });
   }
@@ -186,8 +185,43 @@
     s.start();
   };
 
-  // podpisy palcem: odbierający (w szkicu) i serwisant (zapisany raz w pamięci urządzenia, wstawia się sam)
-  const PODPIS_SERW = 'podpisSerwisanta';
+  // ===== POPRAWA OPISU NA JĘZYK TECHNICZNY (Claude przez bota: POST ?api=popraw) =====
+  // Serwisant dyktuje jak mówi, system przepisuje na zwięzły polski tekst do raportu. Nic nie dopisuje od siebie.
+  const POPR = {};
+  window.rapPopraw = async function (k) {
+    const r = R(), el = document.querySelector('[data-k="' + k + '"]'), t = String((el && el.value) || r[k] || '').trim();
+    if (t.length < 8) return toast('Najpierw podyktuj albo wpisz, co było zrobione');
+    const a = document.getElementById('ark');
+    a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>' + I('spark', 1) + ' Poprawiam opis…</h4><div class="mute">przepisuję na język techniczny raportu, nic nie dopisuję od siebie</div>' +
+      '<div class="rp-pop"><div class="pp"><span>Podyktowane</span>' + esc(t) + '</div></div></div>';
+    a.classList.add('on');
+    try {
+      const w = myjnia(r.myjnia) || {};
+      const res = await fetch(API + '?api=popraw', { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ k: K, t: t, pole: k, myjnia: r.myjnia || '', model: r.model || w.model || '' }) });
+      const txt = await res.text(); let j; try { j = JSON.parse(txt); } catch (e) { throw new Error('serwer nie odpowiedział poprawnie'); }
+      if (!j.ok) throw new Error(j.blad || 'błąd serwera');
+      const x = j.wynik || {}; if (!x.tekst) throw new Error('pusta odpowiedź');
+      POPR[k] = { przed: t, po: x.tekst };
+      a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:84vh;overflow:auto"><h4>' + I('spark', 1) + ' Opis do raportu</h4>' +
+        '<div class="rp-pop"><div class="pp"><span>Podyktowane</span>' + esc(t) + '</div><div class="pn"><span>Do raportu</span>' + esc(x.tekst).replace(/\n/g, '<br>') + '</div></div>' +
+        (x.niejasne ? '<div class="note" style="color:var(--org)">' + I('alert', 1) + ' ' + esc(x.niejasne) + '</div>' : '') +
+        '<div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zostaw moje</button><button class="btn" onclick="rapPoprawWstaw(\'' + k + '\')">Wstaw do raportu</button></div></div>';
+    } catch (e) {
+      arkZamknij();
+      toast(/Nieznana|akcja|poprawnie|Unknown/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Poprawa: ' + e.message);
+    }
+  };
+  window.rapPoprawWstaw = function (k) {
+    const r = R(), p = POPR[k]; if (!p) return;
+    r[k + 'Dyktowane'] = p.przed; r[k] = p.po; zapisz(r); arkZamknij(); render(); toast('Wstawione – oryginał zapamiętany');
+  };
+  window.rapPoprawCofnij = function (k) {
+    const r = R(); if (!r[k + 'Dyktowane']) return;
+    r[k] = r[k + 'Dyktowane']; delete r[k + 'Dyktowane']; zapisz(r); render(); toast('Przywrócony tekst podyktowany');
+  };
+
+  // podpisy palcem: odbierający i serwisant – oba przy każdym raporcie (tak jak w WebCon)
   function podpisStart(id, wczytaj, zapiszP) {
     const c = document.getElementById(id); if (!c) return;
     const x = c.getContext('2d'), sk = window.devicePixelRatio || 1;
@@ -204,9 +238,9 @@
   }
   function podpisy() {
     podpisStart('rpPod', () => R().podpis, d => { const rr = R(); rr.podpis = d; zapisz(rr); });
-    podpisStart('rpPodS', () => R().podpisSerw || LS.get(PODPIS_SERW), d => { const rr = R(); rr.podpisSerw = d; if (!rr.demo) try { localStorage.setItem(PODPIS_SERW, d); } catch (e) {} zapisz(rr); });
+    podpisStart('rpPodS', () => R().podpisSerw, d => { const rr = R(); rr.podpisSerw = d; zapisz(rr); });
   }
-  window.rapPodpisSCzysc = () => { const r = R(); r.podpisSerw = ''; if (!r.demo) try { localStorage.removeItem(PODPIS_SERW); } catch (e) {} zapisz(r); render(); };
+  window.rapPodpisSCzysc = () => { const r = R(); r.podpisSerw = ''; zapisz(r); render(); };
   window.rapPodpisCzysc = () => { const r = R(); r.podpis = ''; zapisz(r); render(); };
 
   // licznik brakujących pól u góry; klik = przewiń do pierwszego brakującego
@@ -237,7 +271,7 @@
       ['Rejestracja czasu', [t('Serwis', c.serwis ? godz(c.serwis) : ''), t('Dojazd', c.kmD ? c.kmD + ' km' : ''), t('Powrót', c.kmP ? c.kmP + ' km' : ''), t('Pracownik', SERWISANT)]],
       ['Materiały', r.mat.length ? r.mat.map(m => t((m.mag ? 'Magazyn ' + SERWISANT : 'Poza magazynem'), (m.kod ? m.kod + ' · ' : '') + m.nazwa + ' – ' + String(m.ilosc).replace('.', ',') + ' ' + m.jm)) : [t('Materiały', 'brak')]],
       ['Załączniki', [t('Dokumentacja fotograficzna', (r.zal.length + (r.fotoPompy ? 1 : 0)) + ' zdj.' + (r.fotoPompy ? ' (w tym pompy dozujące)' : '')), t('Komentarz', r.komentarz),
-        t('Podpis odbierającego', r.podpis ? 'tak' : ''), t('Podpis serwisanta', (r.podpisSerw || LS.get(PODPIS_SERW)) ? 'tak' : ''), t('Raport serwisowy (PDF)', 'generuje WebCon')]],
+        t('Podpis odbierającego', r.podpis ? 'tak' : ''), t('Podpis serwisanta', r.podpisSerw ? 'tak' : ''), t('Raport serwisowy (PDF)', 'generuje WebCon')]],
       ['Podsumowanie', [t('Czy serwis wymaga kontynuacji?', r.kontynuacja), t('Czy zlecenie zostało zamknięte u zleceniodawcy?', r.zamknieteU)]]
     ];
   }
@@ -295,7 +329,7 @@
     const r = pusty(w.nazwa), d = new Date();
     Object.assign(r, { demo: 1, szlTyp: 'SZL', szlWpis: (d.getMonth() + 1) + '/600', rodzaj: 'AWP', usluga: 'Gwarancyjna', model: r.model || 'Myjnia Christ C-160 Genius',
       nrSeryjny: r.nrSeryjny || '160-0000 (przykład)', iloscMyc: r.iloscMyc || '48210', kodBledu: 'E 412', nastawyZgodne: 'Tak', nastawy: r.nastawy || 'piana 2,5 % · wosk 1,2 % · osuszacz 0,8 %',
-      opisPrac: 'Zgłoszenie: portal staje w połowie programu, błąd E 412 (krańcówka jazdy). Wymieniono czujnik indukcyjny jazdy portalu, wyregulowano odległość od blachy (4 mm), sprawdzono przewód w łańcuchu kablowym.',
+      opisPrac: 'no więc przyjechałem, portal stawał w połowie mycia i wywalało E 412, no to patrzę ten czujnik od jazdy, ten indukcyjny, był cały rozwalony, chyba ktoś przywalił, wymieniłem na nowy, ustawiłem tak z cztery milimetry od blachy, a jeszcze ten kabel w łańcuchu był przetarty to go zaizolowałem',
       opisTestow: '3 mycia testowe na programie Premium i 1 na Standard – bez błędów, jazda płynna.', uwagi: 'Szczotki boczne do wymiany przy najbliższym przeglądzie.',
       czas: { wyjazd: '07:30', przyjazd: '08:45', koniec: '11:15', odjazd: '11:20', dom: '12:35', kmD: '62', kmP: '62' },
       odbImie: 'Kierownik stacji (przykład)', odbEmail: 'stacja@przyklad.pl', potw: true, podpis: podpisDemo(), podpisSerw: podpisDemo(1), kontynuacja: 'Nie', zamknieteU: 'Tak',
@@ -313,7 +347,7 @@
     ['Zakładki i przełączanie', '7 zakładek w zleceniu + 6 w raporcie, skakanie tam i z powrotem', 'jeden ekran, 7 bloków pod sobą'],
     ['Czego brakuje', 'widać dopiero przy zapisie', 'licznik „Brakuje N pól” na górze, klik = przejście do pola'],
     ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Wyjazd / Na myjni / Koniec / Powrót – liczy się samo'],
-    ['Opis prac', 'pisanie na klawiaturze', 'dyktowanie po polsku; w planie: system poprawia opis na język techniczny'],
+    ['Opis prac', 'pisanie na klawiaturze', 'dyktujesz jak mówisz – system przepisuje na poprawny język techniczny raportu'],
     ['Kolejny wyjazd', '„Kontynuuj akcję serwisową” i wszystko od nowa', 'jeden klik, dane zlecenia przechodzą same'],
     ['Na tablecie', 'wąski formularz', 'dwie kolumny w poziomie']
   ];
@@ -365,6 +399,11 @@
     '.rp-por span{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-right:6px;padding:2px 7px;border-radius:999px}' +
     '.rp-por .pw span{background:var(--orgbg);color:var(--org)} .rp-por .pa span{background:var(--grnbg);color:var(--grn)}' +
     '.rp .demo{background:var(--acc2);color:var(--acc);border-radius:16px;padding:10px 14px;margin-bottom:14px;font-size:14px;font-weight:600}' +
+    '.rp .popr{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 12px}' +
+    '.rp-pop{display:grid;gap:10px;margin-top:12px} @media (min-width:700px){.rp-pop{grid-template-columns:1fr 1fr}}' +
+    '.rp-pop>div{border-radius:16px;padding:12px;font-size:15px;line-height:1.45;white-space:pre-wrap} .rp-pop .pp{background:var(--fill);color:var(--mute)} .rp-pop .pn{background:var(--grnbg)}' +
+    '.rp-pop span{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}' +
+    '.rp-pop .pn span{color:var(--grn)}' +
     '</style>';
 
   const pole = (k, et, typ, ob, extra) => '<div class="pole' + (extra && extra.cala ? ' cala' : '') + '"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label>' +
@@ -373,7 +412,9 @@
     '<input class="as-in" data-k="' + k + '" value="' + esc(R()[k] || '') + '" oninput="rapPole(this)" onchange="rapDoMyjni(this)"></div>';
   const tx = (k, et, ob, ph) => '<div class="pole cala"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label><div class="tx">' +
     '<textarea data-k="' + k + '" placeholder="' + esc(ph || '') + '" oninput="rapPole(this)">' + esc(R()[k] || '') + '</textarea>' +
-    '<button class="ib mic" aria-label="Dyktuj" onclick="rapMow(\'' + k + '\',this)">' + MIC + '</button></div></div>';
+    '<button class="ib mic" aria-label="Dyktuj" onclick="rapMow(\'' + k + '\',this)">' + MIC + '</button></div>' +
+    (k === 'opisPrac' || k === 'opisTestow' ? '<div class="popr"><button class="btn2" onclick="rapPopraw(\'' + k + '\')">' + I('spark', 1) + 'Popraw na język techniczny</button>' +
+      (R()[k + 'Dyktowane'] ? '<button class="btn2" onclick="rapPoprawCofnij(\'' + k + '\')">Cofnij</button>' : '') + '</div>' : '') + '</div>';
   const MIC = '<svg class="i s" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   const CAM = '<svg class="i s" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 
@@ -453,8 +494,7 @@
       '<label class="chkl"><input type="checkbox" data-k="potw"' + (r.potw ? ' checked' : '') + ' onchange="rapPole(this)"> Usterki usunięte, urządzenie sprawne</label>' +
       '<label>Podpis odbierającego</label><canvas id="rpPod"></canvas><button class="btn2" style="margin-top:8px" onclick="rapPodpisCzysc()">Wyczyść podpis</button>' +
       '<div class="pole" data-ob="podpisSerw" style="margin-top:16px"><label>Podpis serwisanta (' + esc(SERWISANT) + ') <i>*</i></label><canvas id="rpPodS"></canvas></div>' +
-      '<button class="btn2" style="margin-top:8px" onclick="rapPodpisSCzysc()">Podpisz od nowa</button>' +
-      '<div class="note">Twój podpis zapisuje się raz na tym urządzeniu i w następnych raportach wstawia się sam.</div></div>';
+      '<button class="btn2" style="margin-top:8px" onclick="rapPodpisSCzysc()">Wyczyść podpis</button></div>';
 
     const tn = (k, t) => '<div class="pole cala"><label>' + t + '</label><div class="wyb">' +
       ['Tak', 'Nie'].map(v => '<button class="' + (r[k] === v ? 'on' : '') + '" onclick="rapWybor(\'' + k + '\',\'' + v + '\')">' + v + '</button>').join('') + '</div></div>';
