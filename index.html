@@ -590,17 +590,38 @@ function zamknij(id, b) {
       arkZamknij(); toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW, 1); })
     .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
 }
-// 15.11.2026: notatka z karty myjni – nazwa myjni dopisywana automatycznie (ta sama droga: api=notatka → bot rozbija na wpisy)
+// 15.11.2026: notatka z karty myjni – api=notatkaMyjni: bot rozbija na wpisy i zapisuje OD RAZU, aplikacja pokazuje co zapisano.
+// Bez patcha bota (Nieznana akcja) – stara droga api=notatka z potwierdzeniem w Telegramie.
 const NTM = {};
 function notatkaMyjni() {
   const w = D.myjnie.find(x => x.nazwa === DW) || D.inne.find(x => x.nazwa === DW);
   const el = document.getElementById('ntm'); if (!w || !el) return;
   const t = el.value.trim();
   if (t.length < 5) return toast('Napisz trochę więcej');
-  const b = document.getElementById('ntmb'); b.disabled = true;
-  api('notatka', { t: 'Myjnia ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ': ' + t })
-    .then(() => { NTM[w.nazwa] = ''; el.value = ''; b.disabled = false; toast('Wysłane — potwierdź w Telegramie'); })
-    .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
+  const b = document.getElementById('ntmb'); b.disabled = true; b.textContent = 'Analizuję…';
+  const koniec = () => { b.disabled = false; b.textContent = 'Wyślij'; };
+  api('notatkaMyjni', { m: w.nazwa, t: t }).then(j => {
+    NTM[w.nazwa] = ''; el.value = ''; koniec();
+    const r = j.wynik || {};
+    pokazZapisane(r);
+    load();
+  }).catch(e => {
+    if (/Nieznana akcja/.test(e.message)) {
+      api('notatka', { t: 'Myjnia ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ': ' + t })
+        .then(() => { NTM[w.nazwa] = ''; el.value = ''; koniec(); toast('Wysłane — potwierdź w Telegramie'); })
+        .catch(e2 => { koniec(); toast('Błąd: ' + e2.message); });
+    } else { koniec(); toast('Błąd: ' + e.message); }
+  });
+}
+function pokazZapisane(r) {
+  const a = document.getElementById('ark'), l = r.wpisy || [];
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + (l.length ? 'Zapisane (' + l.length + ')' : 'Nic nie zapisałem') + '</h4>' +
+    (l.length ? '<div style="margin:8px 0">' + l.map(x => '<div class="row"><div class="g"><b>' + esc(x.ikona || '') + '</b> ' + esc(x.opis) +
+      (x.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(x.czesci) + '</div>' : '') + (x.termin ? '<div class="mute">termin ' + esc(x.termin) + '</div>' : '') + '</div></div>').join('') + '</div>' : '') +
+    ((r.zamkniete || []).length ? '<div class="mute">Zamknięte zadania: #' + r.zamkniete.map(esc).join(', #') + '</div>' : '') +
+    (r.niejasne ? '<div class="mute" style="color:var(--org);margin-top:8px">' + I('alert', 1) + ' ' + esc(r.niejasne) + '</div>' : '') +
+    '<div class="ab" style="margin-top:16px"><button class="btn" onclick="arkZamknij()">OK</button></div></div>';
+  a.classList.add('on');
 }
 function notatka() {
   const t = document.getElementById('nt').value.trim();
@@ -691,7 +712,7 @@ function pokazMyjnie(nazwa, bezAnim) {
   const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([w.nazwa.replace(/SP\s*/, ''), w.adres, w.miasto].filter(Boolean).join(' '));
   let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
           (window.asNowaDla ? '<button class="btn2" onclick="asNowaDla(\'' + jsq(w.nazwa) + '\')">' + I('spark', 1) + 'Diagnoza</button>' : '') +
-          '<a class="btn2" href="' + maps + '" target="_blank">' + I('route', 1) + 'Jedź</a></div></header><main>' +
+          '<button class="btn2" onclick="przedWyjazdem(\'' + jsq(w.nazwa) + '\')">' + I('route', 1) + 'Jedź</button></div></header><main>' +
           (window.rapNowy ? '<button class="btn" style="width:100%;margin-bottom:14px" onclick="rapNowy(\'' + jsq(w.nazwa) + '\')">' + I('doc', 1) + 'Raport z tej myjni</button>' : '');
   h += '<div class="card"><div class="mute">' + esc([w.model, w.segment ? 'segment ' + w.segment : '', w.co ? 'przegląd co ' + w.co + ' mies.' : '', w.klient].filter(Boolean).join(' · ')) + '</div>';
   if (w.termin !== undefined) h += '<div class="row"><div class="g">Następny przegląd: <b>' + esc(w.termin || '—') + '</b></div>' + pillDni(w.dni) + '</div>';
@@ -713,11 +734,51 @@ function pokazMyjnie(nazwa, bezAnim) {
   if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';
   h += '</div>';
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka – ' + esc(skrot(w.nazwa)) + '</h3><textarea id="ntm" placeholder="Co tu zrobić, co kupić, co zrobione – myjnia jest już wpisana" oninput="NTM[DW]=this.value">' + esc(NTM[w.nazwa] || '') + '</textarea>' +
-       '<button class="btn" id="ntmb" onclick="notatkaMyjni()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
+       '<button class="btn" id="ntmb" onclick="notatkaMyjni()">Wyślij</button> <span class="mute">zapisze się od razu</span></div>';
   h += '<div class="card"><h3>' + I('wrench', 1) + 'Otwarte zadania (' + otw.length + ')</h3>' + (otw.length ? otw.map(o => ogonRow(o)).join('') : '<div class="mute">brak</div>') + '</div>';
   h += '<div class="card"><h3>' + I('history', 1) + 'Historia (' + zd.length + ')</h3><div class="tl">' +
        (zd.length ? zd.slice(0, 60).map(z => '<div><i>' + dt(z.d) + ' · ' + esc(z.t) + '</i>' + esc(z.o) + '</div>').join('') : '<div class="mute">na razie pusto</div>') + '</div></div></main>';
   const det = document.getElementById('det'); if (bezAnim && det.classList.contains('on')) { det.innerHTML = h; return; } det.innerHTML = h; det.classList.remove('on', 'out'); det.style.transform = ''; void det.offsetWidth; det.classList.add('on'); det.scrollTop = 0; zaznacz();
+}
+/* ---------- „Jedź” → Przed wyjazdem (15.11.2026) ---------- */
+// części z kolumny „Części” zadania („KOD nazwa ×2; nazwa ×1”) porównane z Magazynem w aucie – to PODPOWIEDŹ (po nazwie), nie pewnik
+function czesciZadania(o) {
+  return String(o.czesci || '').split(';').map(x => x.trim()).filter(x => x && !/^⏱/.test(x)).map(x => {
+    const m = x.match(/^(.*?)\s*×\s*(\d+)\s*$/), tekst = m ? m[1].trim() : x, ile = m ? +m[2] : 1;
+    const nk = v => pl(v).replace(/[\s\-.\/]/g, '');
+    let mag = (D.magazyn || []).find(g => g.kod && nk(tekst).indexOf(nk(g.kod)) >= 0);
+    if (!mag) { const sl = pl(tekst).split(/[^a-z0-9]+/).filter(w => w.length >= 4).map(w => w.slice(0, 5));
+      if (sl.length) mag = (D.magazyn || []).find(g => sl.every(w => pl(g.nazwa + ' ' + g.kod).indexOf(w) >= 0)); }
+    const stan = mag ? +String(mag.ilosc).replace(',', '.') || 0 : null;
+    return { tekst: tekst, ile: ile, mag: mag, stan: stan, ok: mag ? stan >= ile : false };
+  });
+}
+function przedWyjazdem(nazwa) {
+  const w = D.myjnie.find(x => x.nazwa === nazwa) || D.inne.find(x => x.nazwa === nazwa); if (!w) return;
+  const og = D.ogony.filter(o => sama(o.myjnia, w));
+  const otw = og.filter(o => open_(o) && o.typ !== 'fakt');
+  const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([w.nazwa.replace(/SP\s*/, ''), w.adres, w.miasto].filter(Boolean).join(' '));
+  const ost = og.slice().sort((a, b) => (b.d || '').localeCompare(a.d || ''))[0];
+  const formularz = w.dni != null && w.dni <= 14;
+  let h = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:86vh;overflow:auto"><h4>' + I('route', 1) + ' Przed wyjazdem · ' + esc(skrot(w.nazwa)) + '</h4>' +
+    '<div class="mute">' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</div>';
+  if (formularz) h += '<div class="row"><div class="g" style="color:var(--org)">' + I('alert', 1) + ' <b>Weź formularz przeglądu</b> – ' + (w.dni < 0 ? 'przegląd po terminie o ' + (-w.dni) + ' dn.' : 'przegląd za ' + dniTxt(w.dni)) + (w.termin ? ' (' + esc(w.termin) + ')' : '') + '</div></div>';
+  h += '<h4 style="margin:14px 0 4px;font-size:15px">' + I('wrench', 1) + ' Otwarte zadania (' + otw.length + ')</h4>';
+  if (!otw.length) h += '<div class="mute">brak – nic nie wisi na tej myjni</div>';
+  const braki = [];
+  otw.forEach(o => {
+    const cz = czesciZadania(o);
+    h += '<div class="row"><div class="g"><span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
+      cz.map(c => { if (!c.ok) braki.push(c); return '<div class="mute" style="color:var(--' + (c.mag ? (c.ok ? 'grn' : 'red') : 'org') + ')">' + I('box', 1) + ' ' + esc(c.tekst) + ' ×' + c.ile + ' — ' +
+        (c.mag ? (c.ok ? 'jest w aucie (' + c.stan + ')' : 'za mało w aucie (' + c.stan + ')') : 'nie widzę w Magazynie – sprawdź') + '</div>'; }).join('') + '</div></div>';
+  });
+  if (braki.length) h += '<div class="mute" style="color:var(--org);margin-top:6px">' + I('cart', 1) + ' Do wzięcia/kupienia przed wyjazdem: ' + esc(braki.map(c => c.tekst + ' ×' + c.ile).join('; ')) + '</div>';
+  h += '<div class="row"><div class="g">Licznik myć: <b>' + esc(w.licznik || '—') + '</b>' + (w.odWymiany !== undefined && w.odWymiany !== '' ? '<div class="mute">szczotki: ' + esc(w.odWymiany) + ' myć od wymiany</div>' : '') + '</div></div>';
+  if (ost) h += '<div class="row"><div class="g"><div class="mute">Ostatni wpis · ' + dt(ost.d) + '</div>' + esc(ost.opis) + '</div></div>';
+  h += '<div class="ab" style="margin-top:14px"><a class="btn" style="width:100%;text-align:center;display:block" href="' + maps + '" target="_blank">' + I('route', 1) + ' Nawiguj</a></div>' +
+       '<div class="ab" style="margin-top:8px"><button class="btn2" style="flex:1" onclick="arkZamknij()">Zamknij</button>' +
+       (formularz ? '<button class="btn2" style="flex:1" onclick="arkZamknij();zamknijDet();go(\'druk\')">' + I('doc', 1) + ' Druki</button>' : '') + '</div></div>';
+  const a = document.getElementById('ark'); a.innerHTML = h; a.classList.add('on');
 }
 /* ---------- licznik myć: wpis ręczny (do czasu odczytu ze zdjęcia) ---------- */
 // idzie tą samą drogą co notatka: bot rozpoznaje fakt „licznik” → arkusz Liczniki + Myjnie, potwierdzenie w Telegramie
