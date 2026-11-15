@@ -55,7 +55,7 @@
       (lista.length ? (() => { const wys = ((D_.wyslano || {}).zaliczka || {})[m];
         return '<button class="btn wy-roz' + (wys ? ' wys' : '') + '" onclick="wydRozliczenie(' + m + ')">' + I(wys ? 'check' : 'send', 1) +
           (wys ? 'Wysłane ' + dt(wys) + ' · wyślij ponownie' : 'Wyślij rozliczenie · ' + nazwaMies(m)) + '</button>' +
-          (wys ? '' : '<div class="note" style="text-align:center;margin-top:6px">druk zaliczki + ' + lista.length + ' ' + (lista.length === 1 ? 'skan' : 'skany') + ' PDF · termin do 7. następnego miesiąca</div>'); })() : '') + '</div>';
+          (wys ? '' : '<div class="note" style="text-align:center;margin-top:6px">mail z drukiem zaliczki + ' + lista.length + ' ' + (lista.length === 1 ? 'skanem' : 'skanami') + ' · termin do 7. następnego miesiąca</div>'); })() : '') + '</div>';
 
     // paliwo tego miesiąca – szczegóły w module Paliwo
     const mk = Math.floor(m / 100) + '-' + String(m % 100).padStart(2, '0');
@@ -181,63 +181,29 @@
   }
   window.wydPdfTest = pdfZJpeg;   // do testów
 
-  // ---- „Wyślij rozliczenie”: zawsze JEDEN miesiąc; druk zaliczki + skany przez systemowe Udostępnij ----
+  // ---- „Wyślij rozliczenie”: zawsze JEDEN miesiąc; bot wysyła mail z xlsx + PDF + skanami na własną skrzynkę serwisanta ----
   window.wydRozliczenie = async function (mies) {
     const wys = ((D.wyslano || {}).zaliczka || {})[mies];
-    if (wys && !confirm('Rozliczenie za ten miesiąc wysłano już ' + dt(wys) + '. Przygotować jeszcze raz?')) return;
+    if (wys && !confirm('Rozliczenie za ten miesiąc wysłano już ' + dt(wys) + '. Wysłać jeszcze raz?')) return;
     const a = document.getElementById('ark');
-    a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(mies) + '</h4><div class="mute">Przygotowuję druk zaliczki i skany jako PDF…</div></div>';
+    a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(mies) + '</h4><div class="mute">Składam druk zaliczki i skany, wysyłam na pocztę… (kilkanaście sekund)</div></div>';
     a.classList.add('on');
     try {
-      const j = await api('rozliczenie', { mies: mies });
+      const j = await api('rozmail', { mies: mies });
       const r = j.wynik || {};
-      const plik = x => { const s = atob(x.b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new File([u], x.nazwa, { type: x.mime }); };
-      let pliki = (r.pliki || []).map(plik), zamiana = false;
-      if (navigator.canShare && !navigator.canShare({ files: pliki }) && r.drukPdf) { pliki = [plik(r.drukPdf)].concat(pliki.slice(1)); zamiana = true; }
-      ST.roz = { mies: mies, pliki: pliki, temat: r.temat, tresc: r.tresc, drukPdf: r.drukPdf && !zamiana ? plik(r.drukPdf) : null, xlsx: r.pliki && r.pliki[0] ? plik(r.pliki[0]) : null, r: r, zamiana: zamiana };
-      rozArkusz();
+      D.wyslano = D.wyslano || { premia: {}, zaliczka: {} }; D.wyslano.zaliczka[mies] = new Date().toISOString().slice(0, 10);
+      a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('check', 1) + ' Wysłane na pocztę</h4>' +
+        '<div class="row"><div class="g">Na adres: <b>' + esc(r.na || '') + '</b></div></div>' +
+        '<div class="row"><div class="g">Faktur: <b>' + (r.ile || 0) + '</b> · razem <b>' + z2(r.suma) + '</b></div></div>' +
+        (r.zalaczniki || []).map(n => '<div class="row"><div class="g">' + I('doc', 1) + ' ' + esc(n) + '</div></div>').join('') +
+        ((r.brakSkanu || []).length ? '<div class="mute" style="color:var(--org)">Bez skanu: ' + esc(r.brakSkanu.join(', ')) + '</div>' : '') +
+        '<div class="note" style="margin-top:10px">Otwórz tego maila w poczcie, naciśnij „Przekaż dalej” i wpisz adresata. Załączniki jadą razem z mailem.</div>' +
+        '<div class="ab" style="margin-top:14px"><button class="btn" onclick="arkZamknij()">Gotowe</button></div></div>';
+      render();
     } catch (e) {
       a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Rozliczenie</h4><div class="mute">' + esc(blad(e)) + '</div><div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zamknij</button></div></div>';
     }
   };
-  function rozArkusz() {
-    const R = ST.roz, r = R.r, a = document.getElementById('ark');
-    const mozna = navigator.canShare && navigator.canShare({ files: R.pliki });
-    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(R.mies) + ' ' + Math.floor(R.mies / 100) + '</h4>' +
-      '<div class="row"><div class="g">Faktur: <b>' + (r.ile || 0) + '</b> · razem <b>' + z2(r.suma) + '</b></div></div>' +
-      R.pliki.map(f => '<div class="row"><div class="g">' + I('doc', 1) + ' ' + esc(f.name) + '</div><span class="mute">' + Math.max(1, Math.round(f.size / 1024)) + ' KB</span></div>').join('') +
-      ((r.brakSkanu || []).length ? '<div class="mute" style="color:var(--org)">Bez skanu: ' + esc(r.brakSkanu.join(', ')) + '</div>' : '') +
-      (R.zamiana ? '<div class="mute">Telefon nie przyjmuje xlsx w Udostępnij – druk idzie jako PDF.' + (R.xlsx ? ' <a onclick="wydXlsx()">Pobierz druk w xlsx</a>' : '') + '</div>' : '') +
-      '<div class="ab" style="margin-top:14px"><button class="btn2" onclick="arkZamknij()">Zamknij</button>' +
-      (mozna ? '<button class="btn" onclick="wydUdostepnij()">' + I('send', 1) + 'Udostępnij…</button>' : '<button class="btn" onclick="wydPobierz()">' + I('doc', 1) + 'Pobierz pliki</button>') + '</div>' +
-      '<div class="note" style="margin-top:8px">' + (mozna ? 'Wybierz Outlook, Gmail albo inną aplikację – adresata wpiszesz sam.' : 'Ta przeglądarka nie udostępnia plików – pobierz i dołącz do maila.') + '</div></div>';
-  }
-  window.wydUdostepnij = async function () {
-    const r = ST.roz; if (!r) return;
-    try { await navigator.share({ files: r.pliki, title: r.temat, text: r.tresc }); }
-    catch (e) {
-      if (e && e.name === 'AbortError') return;
-      // Chrome na Androidzie potrafi powiedzieć canShare=tak, a potem odrzucić xlsx („Permission denied”) → druk jako PDF
-      if (r.drukPdf) { r.pliki = [r.drukPdf].concat(r.pliki.slice(1)); r.drukPdf = null; r.zamiana = true; rozArkusz(); toast('Telefon nie przepuścił xlsx – druk jako PDF, naciśnij jeszcze raz'); return; }
-      toast('Nie udało się udostępnić: ' + e.message); return;
-    }
-    oznaczWyslane(r.mies);
-  };
-  window.wydXlsx = function () {
-    const f = ST.roz && ST.roz.xlsx; if (!f) return;
-    const u = URL.createObjectURL(f), l = document.createElement('a'); l.href = u; l.download = f.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
-  };
-  window.wydPobierz = function () {
-    const r = ST.roz; if (!r) return;
-    r.pliki.forEach(f => { const u = URL.createObjectURL(f), l = document.createElement('a'); l.href = u; l.download = f.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); });
-    if (confirm('Pliki pobrane. Oznaczyć rozliczenie jako wysłane?')) oznaczWyslane(r.mies);
-  };
-  function oznaczWyslane(mies) {
-    api('wyslano', { typ: 'zaliczka', mies: mies, tak: 1 }).then(() => {
-      D.wyslano = D.wyslano || { premia: {}, zaliczka: {} }; D.wyslano.zaliczka[mies] = new Date().toISOString().slice(0, 10);
-      ST.roz = null; arkZamknij(); toast('Rozliczenie ' + nazwaMies(mies) + ' – wysłane'); render();
-    }).catch(e => toast(blad(e)));
-  }
 
   // karta rozpoznanej faktury – wszystko do poprawienia przed zapisem
   function karta() {
