@@ -57,6 +57,7 @@
     if (!p.poz) b.push(['ppoz', 'Oczyszczalnia wody 8 – pozycja przełącznika']);
     if (!String(p.licznik || '').trim()) b.push(['licznik', 'Licznik myć']);
     if (!p.godzOd) b.push(['godzOd', 'Godzina rozpoczęcia']);
+    if (!p.start) b.push(['start', 'Mycia testowe – start z biletu czy z pulpitu']);
     if (!p.godzDo) b.push(['godzDo', 'Godzina zakończenia']);
     return b;
   }
@@ -65,7 +66,7 @@
   function pusty(nazwa) {
     const w = myjnia(nazwa) || {};
     return { id: 'p' + Date.now(), myjnia: nazwa || '', model: w.model || '', licznik: String(w.licznik || '').replace(/\D/g, ''),
-      data: dzisIso(), godzOd: teraz(), godzDo: '', odp: {}, poz: '', uwagi: '', prog: {}, progInne: '', klient: '', podpisT: '', podpisK: '', zadania: {} };
+      data: dzisIso(), godzOd: teraz(), godzDo: '', odp: {}, poz: '', uwagi: '', prog: {}, start: '', progInne: '', klient: '', podpisT: '', podpisK: '', zadania: {} };
   }
   window.przNowy = function (nazwa) {
     if (!nazwa) return toast('Wybierz myjnię');
@@ -115,7 +116,13 @@
     }
     return h;
   }
-  const programyTxt = p => Object.keys(p.prog || {}).sort().map(n => 'P' + n + ' ×' + p.prog[n]).concat(String(p.progInne || '').trim() ? [String(p.progInne).trim()] : []).join(', ');
+  // skąd uruchomione mycie testowe – obowiązkowe: bilet z terminala albo pulpit (tryb serwisowy)
+  const STARTY = [['bilet', 'Bilet (terminal)'], ['pulpit', 'Pulpit (tryb serwisowy)']];
+  window.przStart = function (v) {
+    const p = P(); p.start = p.start === v ? '' : v; zapisz(p);
+    document.querySelectorAll('#prStart .pg').forEach(x => x.classList.toggle('on', x.dataset.v === p.start));
+  };
+  const programyTxt = p => Object.keys(p.prog || {}).sort().map(n => 'P' + n + ' ×' + p.prog[n]).concat(String(p.progInne || '').trim() ? [String(p.progInne).trim()] : []).join(', ') + (p.start ? ' · ' + p.start : '');
 
   // „Nie” → zadanie na tej myjni (ta sama droga co notatka z karty myjni)
   function przyciskZadania(p, k) {
@@ -324,7 +331,9 @@
     h += '</div>';
     h += '<div class="card"><h3>' + I('pen', 1) + 'Uwagi</h3><textarea data-k="uwagi" oninput="przPole(this)" placeholder="Co zauważone, co do zrobienia następnym razem">' + esc(p.uwagi) + '</textarea></div>';
     h += '<div class="card"><h3>' + I('clock', 1) + 'Mycia testowe i zakończenie</h3><label>Programy (klik = +1)</label><div class="pg-w" id="prProg">' + chipy(p) + '</div>' +
-      '<input class="as-in" data-k="progInne" placeholder="inne (np. pulpit)" value="' + esc(p.progInne) + '" oninput="przPole(this)">' +
+      '<div class="pole" data-ob="start"><label>Start mycia testowego</label><div class="pg-w" id="prStart">' +
+        STARTY.map(([v, t]) => '<div class="pg' + (p.start === v ? ' on' : '') + '" data-v="' + v + '"><button onclick="przStart(\'' + v + '\')">' + t + '</button></div>').join('') + '</div></div>' +
+      '<input class="as-in" data-k="progInne" placeholder="inne programy (opcjonalnie)" value="' + esc(p.progInne) + '" oninput="przPole(this)">' +
       '<div class="pole" data-ob="godzDo" style="margin-top:12px"><label>Godzina zakończenia</label><div class="gw"><input class="as-in" type="time" data-k="godzDo" value="' + esc(p.godzDo) + '" onchange="przPole(this)"><button class="btn2" onclick="przTeraz(\'godzDo\')">teraz</button></div></div></div>';
     h += '<div class="card"><h3>' + I('user', 1) + 'Podpisy <span class="nr">nieobowiązkowe</span></h3>' +
       '<label>Podpis technika</label><canvas id="prPodT"></canvas><button class="btn2" style="margin:8px 0 14px" onclick="przPodpisCzysc(\'podpisT\')">Wyczyść</button>' +
