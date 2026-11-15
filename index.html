@@ -484,7 +484,14 @@ function pillDni(d) {
 function load() {
   if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację linkiem z bota: napisz <b>/aplikacja</b> w Telegramie i kliknij link. Potem już zawsze z ikony.</div>'; setUpd('brak klucza'); return; }
   setUpd('odświeżam…'); document.getElementById('odsw').classList.add('spin');
-  api('dane').then(j => { D = j.dane; document.getElementById('odsw').classList.remove('spin'); setUpd('stan na ' + D.teraz); ANIM = true; render(); })
+  api('dane').then(j => {
+      // 15.11.2026: bez migania – ekran przerysowujemy tylko gdy dane naprawdę się zmieniły, animacja wejścia tylko przy pierwszym ładowaniu
+      const klucz = d => JSON.stringify(Object.assign({}, d, { teraz: '' }));
+      const bylo = D ? klucz(D) : null;
+      D = j.dane; document.getElementById('odsw').classList.remove('spin'); setUpd('stan na ' + D.teraz);
+      if (bylo === null) { ANIM = true; render(); }
+      else if (bylo !== klucz(D)) { ANIM = false; render(); }
+    })
     .catch(e => { document.getElementById('odsw').classList.remove('spin'); setUpd('błąd połączenia');
       if (!D) document.getElementById('main').innerHTML = '<div class="card">' + I('alert') + ' ' + esc(e.message) + '<div class="mute">Sprawdź internet i odśwież.</div></div>'; else toast('Nie udało się odświeżyć'); });
 }
