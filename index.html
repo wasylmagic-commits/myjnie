@@ -375,6 +375,7 @@
 
 <script src="asystent.js"></script>
 <script src="paliwo.js"></script>
+<script src="wydatki.js"></script>
 <script src="raport.js"></script>
 <script src="udostepnij.js"></script>
 <script>
@@ -442,8 +443,8 @@ const IC = {
 Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
-const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['asystent','spark','Asystent'],['wiecej','grid','Więcej']];
-const WIECEJ = { raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
+const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['wydatki','money','Wydatki'],['wiecej','grid','Więcej']];
+const WIECEJ = { asystent: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -634,21 +635,40 @@ function notatka() {
 }
 
 /* ---------- Dziś ---------- */
+// 15.11.2026: kafelki startowe – raport z dziś (szkic na urządzeniu) i premia bieżącego miesiąca (arkusz Kalendarz)
+function kafelRaport() {
+  const s = window.rapStanDzis ? window.rapStanDzis() : null;
+  const [kl, b, t] = !s ? ['o', 'zacznij', 'Raport dziś – jeszcze pusty'] : s.brak ? ['y', 'brak ' + s.brak, 'Raport dziś – dokończ'] : ['ok', 'gotowy', 'Raport dziś'];
+  return '<div class="tile" style="cursor:pointer" onclick="' + (s ? 'TAB=\'raport\';rapOtworz(\'' + jsq(s.id) + '\')' : 'go(\'raport\')') + '"><div class="ch ' + kl + '">' + I('doc') + '</div><div><b>' + b + '</b><span>' + t + '</span></div></div>';
+}
+function kafelPremia() {
+  const p = D.premia;
+  if (!p) return '<div class="tile" style="cursor:pointer" onclick="go(\'wydatki\')"><div class="ch ok">' + I('money') + '</div><div><b>Wydatki</b><span>zaliczka i paliwo</span></div></div>';
+  return '<div class="tile" style="cursor:pointer" onclick="pokazPremie()"><div class="ch ok">' + I('money') + '</div><div><b>' + zl(p.suma) + '</b><span>premia · ' + esc(String(p.mies).toLowerCase()) + '</span></div></div>';
+}
+function pokazPremie() {
+  const p = D.premia; if (!p) return;
+  const a = document.getElementById('ark');
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('money', 1) + ' Premia · ' + esc(p.mies) + ' ' + esc(p.rok) + '</h4>' +
+    (p.poz || []).map(x => '<div class="row"><div class="g">' + esc(x.co.charAt(0) + x.co.slice(1).toLowerCase()) + '<div class="mute">' + esc(x.ile) + '</div></div><b>' + zl(x.kwota) + '</b></div>').join('') +
+    '<div class="row"><div class="g"><b>Suma brutto</b></div><b style="font-size:20px;color:var(--grn)">' + zl(p.suma) + '</b></div>' +
+    '<div class="mute" style="font-size:13px;margin-top:6px">Z arkusza Kalendarz – rośnie z każdym raportem, przeglądem i dyżurem. Delegacja liczona osobno.</div>' +
+    '<div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zamknij</button></div></div>';
+  a.classList.add('on');
+}
 function dzis() {
   const ot = D.ogony.filter(open_), napr = ot.filter(o => kat(o) === 'naprawy');
   const prz = D.myjnie.filter(w => w.dni != null && w.dni <= 21).sort((a, b) => a.dni - b.dni);
   const akty = D.prace.filter(p => /czeka|pytania/.test(p.status));
   const mies = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
-  const wyd = D.zaliczka.filter(z => z.mies === mies).reduce((a, z) => a + z.kwota, 0);
   const g = new Date().getHours(), pora = g < 11 ? 'Dzień dobry' : g < 18 ? 'Cześć' : 'Dobry wieczór';
   const poTer = D.myjnie.filter(w => w.dni != null && w.dni < 0).length;
   let h = '<div class="hero"><small>Serwis myjni · ' + esc(UPD) + '</small><h2>' + pora + ', Wasyl</h2><div class="hs">' +
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
     '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
-    (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') + '</div></div>';
-  h += '<div class="tiles">' +
-    '<div class="tile"><div class="ch o">' + I('doc') + '</div><div><b>' + akty.length + '</b><span>dokumenty czekają</span></div></div>' +
-    '<div class="tile"><div class="ch ok">' + I('money') + '</div><div><b>' + zl(D.limitZaliczki - wyd) + '</b><span>zostało z zaliczki</span></div></div></div>';
+    (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +
+    (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') + '</div></div>';
+  h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
        '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
   if (prz.length) h += '<div class="card"><h3>' + I('cal', 1) + 'Przeglądy — 3 tygodnie</h3>' + prz.map(w => {
@@ -853,6 +873,7 @@ function przeglady() {
 function wiecej() {
   const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
   return '<div class="more">' +
+    k('asystent', 'spark', 'Asystent', 'diagnoza krok po kroku') +
     k('raport', 'doc', 'Raport', 'raport prac na jednym ekranie') +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +

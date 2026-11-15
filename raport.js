@@ -112,6 +112,12 @@
     }).catch(e => toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Karta myjni: ' + e.message));
   };
   window.rapLista = () => { ST.id = null; render(); window.scrollTo(0, 0); };
+  // 15.11.2026: kafelek „Raport dziś” na ekranie startowym – najnowszy szkic z dzisiejszą datą (bez pokazowych)
+  window.rapStanDzis = function () {
+    const dz = dzisIso(), o = wszystkie();
+    const lista = Object.keys(o).map(k => o[k]).filter(r => r && !r.demo && r.dataRaportu === dz).sort((a, b) => String(b.zm || '').localeCompare(String(a.zm || '')));
+    return lista.length ? { id: lista[0].id, brak: braki(lista[0]).length } : null;
+  };
   window.rapUsun = id => { if (!confirm('Usunąć ten szkic raportu?')) return; const o = wszystkie(); delete o[id]; zapiszWsz(o); ST.id = null; render(); };
 
   // zwykłe pola: data-k = nazwa pola; zapis bez przerysowania (fokus zostaje)

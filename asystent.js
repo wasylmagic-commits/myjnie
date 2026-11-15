@@ -216,7 +216,7 @@
   window.asPrzebieg = () => { ST.przebieg = !ST.przebieg; odswiez(); };
   window.asPlanWsz = () => { ST.planWsz = !ST.planWsz; odswiez(); };
 
-  function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = widok(); if (window.zmocz) zmocz(m); odswiezMik(); } } }
+  function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = window.MODULY.asystent.widok(); if (window.zmocz) zmocz(m); odswiezMik(); } } }
 
   function narzedzia(pole) {
     return '<div class="as-bar">' +
