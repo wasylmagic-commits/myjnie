@@ -367,6 +367,7 @@
 
 <script src="asystent.js"></script>
 <script src="paliwo.js"></script>
+<script src="raport.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -433,7 +434,7 @@ Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
 const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['asystent','spark','Asystent'],['wiecej','grid','Więcej']];
-const WIECEJ = { magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
+const WIECEJ = { raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -653,7 +654,8 @@ function pokazMyjnie(nazwa, bezAnim) {
   const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([w.nazwa.replace(/SP\s*/, ''), w.adres, w.miasto].filter(Boolean).join(' '));
   let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
           (window.asNowaDla ? '<button class="btn2" onclick="asNowaDla(\'' + jsq(w.nazwa) + '\')">' + I('spark', 1) + 'Diagnoza</button>' : '') +
-          '<a class="btn2" href="' + maps + '" target="_blank">' + I('route', 1) + 'Jedź</a></div></header><main>';
+          '<a class="btn2" href="' + maps + '" target="_blank">' + I('route', 1) + 'Jedź</a></div></header><main>' +
+          (window.rapNowy ? '<button class="btn" style="width:100%;margin-bottom:14px" onclick="rapNowy(\'' + jsq(w.nazwa) + '\')">' + I('doc', 1) + 'Raport z tej myjni</button>' : '');
   h += '<div class="card"><div class="mute">' + esc([w.model, w.segment ? 'segment ' + w.segment : '', w.co ? 'przegląd co ' + w.co + ' mies.' : '', w.klient].filter(Boolean).join(' · ')) + '</div>';
   if (w.termin !== undefined) h += '<div class="row"><div class="g">Następny przegląd: <b>' + esc(w.termin || '—') + '</b></div>' + pillDni(w.dni) + '</div>';
   {
@@ -741,6 +743,7 @@ function przeglady() {
 function wiecej() {
   const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
   return '<div class="more">' +
+    k('raport', 'doc', 'Raport', 'raport prac na jednym ekranie') +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
