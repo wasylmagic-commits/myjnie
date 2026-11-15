@@ -50,7 +50,10 @@
   const godz = x => String(x).replace('.', ',') + ' h';
   function czasy(r) {
     const c = r.czas || {};
-    return { dojazd: roz(c.wyjazd, c.przyjazd), serwis: roz(c.przyjazd, c.koniec), powrot: roz(c.odjazd, c.dom), kmD: +c.kmD || 0, kmP: +c.kmP || 0 };
+    // km: wpisany tylko jeden kierunek → drugi liczy się tak samo (bez przypominania i bez „braku pola”)
+    const ma = v => String(v == null ? '' : v).trim() !== '', kd = +c.kmD || 0, kp = +c.kmP || 0;
+    return { dojazd: roz(c.wyjazd, c.przyjazd), serwis: roz(c.przyjazd, c.koniec), powrot: roz(c.odjazd, c.dom),
+      kmD: ma(c.kmD) ? kd : (ma(c.kmP) ? kp : 0), kmP: ma(c.kmP) ? kp : (ma(c.kmD) ? kd : 0) };
   }
   function braki(r) {
     const ob = OBOW.slice();
@@ -470,8 +473,8 @@
       '<div class="czasy">' +
       CZASY.map(([k, t]) => '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" onclick="rapTeraz(\'' + k + '\')">' + t + '</button>' +
         '<input class="as-in" type="time" data-k="czas.' + k + '" value="' + esc(c[k] || '') + '" onchange="rapPole(this)"></div>').join('') + '</div>' +
-      '<div class="siatka"><div class="pole"><label>Km dojazd</label><input class="as-in" inputmode="numeric" data-k="czas.kmD" value="' + esc(c.kmD || '') + '" oninput="rapPole(this)"></div>' +
-      '<div class="pole"><label>Km powrót</label><input class="as-in" inputmode="numeric" data-k="czas.kmP" value="' + esc(c.kmP || '') + '" oninput="rapPole(this)"></div></div>' +
+      '<div class="siatka"><div class="pole"><label>Km dojazd</label><input class="as-in" inputmode="numeric" placeholder="puste = tyle co powrót" data-k="czas.kmD" value="' + esc(c.kmD || '') + '" oninput="rapPole(this)"></div>' +
+      '<div class="pole"><label>Km powrót</label><input class="as-in" inputmode="numeric" placeholder="puste = tyle co dojazd" data-k="czas.kmP" value="' + esc(c.kmP || '') + '" oninput="rapPole(this)"></div></div>' +
       '<div id="rpSum">' + tabelaCzasu(czasy(r)) + '</div><div class="note">Kliknij przycisk w chwili zdarzenia – godzina wpisze się sama (można poprawić). Pracownik: ' + SERWISANT + '.</div></div>';
 
     h += '<div class="card"><h3>' + CAM + 'Zdjęcia i komentarz <span class="nr">5</span></h3><div class="fot">' +
