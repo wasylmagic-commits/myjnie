@@ -379,6 +379,7 @@
 <script src="raport.js"></script>
 <script src="przeglad.js"></script>
 <script src="udostepnij.js"></script>
+<script src="sms.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -677,7 +678,9 @@ function dzis() {
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
     '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
     (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +
-    (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') + '</div></div>';
+    (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') +
+    (window.zleceniaNowe && zleceniaNowe().length ? '<div onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zleceniaNowe().length + '</b><span>nowe zlecenia</span></div>' : '') + '</div></div>';
+  if (window.zleceniaKarta) h += zleceniaKarta();
   h += terminyRozliczen();
   h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
@@ -918,6 +921,7 @@ function wiecej() {
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
     k('druk', 'print', 'Druki', 'formularze i BHP') +
+    '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
     '</div>';
