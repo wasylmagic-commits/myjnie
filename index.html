@@ -231,6 +231,22 @@
   #det main{padding-bottom:40px}
   #det .top{gap:8px}
 
+
+  /* ---------- tablet poziomo (Galaxy Tab): lista po lewej, szczegóły po prawej; telefon bez zmian ---------- */
+  @media (min-width:1000px) and (orientation:landscape){
+    :root{--lw:min(44vw,560px)}
+    main,#hd .top{max-width:1000px}
+    main.kol{columns:2;column-gap:16px}
+    main.kol>*{break-inside:avoid}
+    main.kol>.lt,main.kol>.hero,main.kol>.tiles{column-span:all}
+    body.dw main,body.dw #hd .top{max-width:none;width:var(--lw);margin:0}
+    body.dw main.kol{columns:1}
+    body.dw #bnav{right:auto;width:calc(var(--lw) - 28px)}
+    #det{left:var(--lw);box-shadow:none;border-left:.5px solid var(--line)}
+    #det main,#det .top{max-width:860px}
+    .row.sel{background:var(--acc2);border-radius:14px}
+  }
+
   /* wykresy i paski */
   .bar{height:8px;background:var(--fill);border-radius:99px;overflow:hidden;margin-top:6px}
   .bar>div{height:100%;border-radius:99px;transition:width .9s var(--spring)}
@@ -479,8 +495,8 @@ function render() {
   const tab = TABS.find(t => t[0] === TAB);
   document.getElementById('ct').textContent = tab ? tab[2] : '';
   const lt = tab ? '<div class="lt"><small' + (TAB === 'dzis' ? '' : ' id="upd"') + '>' + esc(TAB === 'dzis' ? new Date().toLocaleDateString('pl-PL', { weekday: 'long', day: 'numeric', month: 'long' }) : UPD) + '</small><h1>' + tab[2] + '</h1></div>' : '';
-  m.classList.remove('anim'); m.innerHTML = lt + (MOD ? MOD.widok() : ({ dzis, myjnie, ogony, przeglady, panel, wiecej, magazyn, druk, wykresy })[TAB]());
-  zmocz(m);
+  m.classList.remove('anim'); m.classList.toggle('kol', TAB === 'dzis'); m.innerHTML = lt + (MOD ? MOD.widok() : ({ dzis, myjnie, ogony, przeglady, panel, wiecej, magazyn, druk, wykresy })[TAB]());
+  zmocz(m); zaznacz();
   if (ANIM) { void m.offsetWidth; m.classList.add('anim'); }
   ANIM = false;
 }
@@ -576,7 +592,7 @@ function dzis() {
        '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
   if (prz.length) h += '<div class="card"><h3>' + I('cal', 1) + 'Przeglądy — 3 tygodnie</h3>' + prz.map(w => {
       const n = napr.filter(o => sama(o.myjnia, w)).length;
-      return '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+      return '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
         (n ? '<div class="mute" style="color:var(--org)">' + I('star', 1) + ' przy okazji do zamknięcia: ' + n + '</div>' : '') + '</div><div style="text-align:right">' + pillDni(w.dni) + '<div class="mute">' + esc(w.termin) + '</div></div></div>';
     }).join('') + '</div>';
   if (akty.length) h += '<div class="card"><h3>' + I('doc', 1) + 'Dokumenty</h3>' + akty.map(p => '<div class="row"><div class="g">' + esc(p.nr) + ' · ' + esc(p.firma) +
@@ -605,7 +621,7 @@ function klientAv(w) {
   return '<div class="av">' + esc(nr) + '</div>';
 }
 function myjnie() {
-  return '<input type="search" placeholder="Szukaj: numer, miasto, ulica" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'ml\').innerHTML=myjnieLista()">' +
+  return '<input type="search" placeholder="Szukaj: numer, miasto, ulica" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'ml\').innerHTML=myjnieLista();zaznacz()">' +
          '<div id="ml">' + myjnieLista() + '</div>';
 }
 function myjnieLista() {
@@ -616,7 +632,7 @@ function myjnieLista() {
     const n = ot.filter(o => kat(o) === 'naprawy' && sama(o.myjnia, w)).length;
     const a90 = awarie(w, 90);
     const info = [n ? I('wrench', 1) + ' ' + n + ' zad.' : '', a90 ? I('alert', 1) + ' ' + a90 + ' ' + (a90 === 1 ? 'awaria' : a90 % 10 >= 2 && a90 % 10 <= 4 && (a90 % 100 < 12 || a90 % 100 > 14) ? 'awarie' : 'awarii') + ' / 90 dni' : ''].filter(Boolean).join(' · ');
-    return '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')">' + klientAv(w) + '<div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (w.inna ? ' <span class="pill">zastępstwo</span>' : '') +
+    return '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')">' + klientAv(w) + '<div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (w.inna ? ' <span class="pill">zastępstwo</span>' : '') +
       '<div class="mute">' + esc([w.miasto, w.adres, w.model].filter(Boolean).join(' · ')) + '</div>' + (info ? '<div class="mute">' + info + '</div>' : '') + '</div>' + (w.inna ? '' : pillDni(w.dni)) + '</div>';
   }).join('') + '</div>';
 }
@@ -652,7 +668,7 @@ function pokazMyjnie(nazwa, bezAnim) {
   h += '<div class="card"><h3>' + I('wrench', 1) + 'Otwarte zadania (' + otw.length + ')</h3>' + (otw.length ? otw.map(o => ogonRow(o)).join('') : '<div class="mute">brak</div>') + '</div>';
   h += '<div class="card"><h3>' + I('history', 1) + 'Historia (' + zd.length + ')</h3><div class="tl">' +
        (zd.length ? zd.slice(0, 60).map(z => '<div><i>' + dt(z.d) + ' · ' + esc(z.t) + '</i>' + esc(z.o) + '</div>').join('') : '<div class="mute">na razie pusto</div>') + '</div></div></main>';
-  const det = document.getElementById('det'); if (bezAnim && det.classList.contains('on')) { det.innerHTML = h; return; } det.innerHTML = h; det.classList.remove('on', 'out'); det.style.transform = ''; void det.offsetWidth; det.classList.add('on'); det.scrollTop = 0;
+  const det = document.getElementById('det'); if (bezAnim && det.classList.contains('on')) { det.innerHTML = h; return; } det.innerHTML = h; det.classList.remove('on', 'out'); det.style.transform = ''; void det.offsetWidth; det.classList.add('on'); det.scrollTop = 0; zaznacz();
 }
 /* ---------- licznik myć: wpis ręczny (do czasu odczytu ze zdjęcia) ---------- */
 // idzie tą samą drogą co notatka: bot rozpoznaje fakt „licznik” → arkusz Liczniki + Myjnie, potwierdzenie w Telegramie
@@ -685,10 +701,15 @@ function licznikZapisz(nazwa) {
 }
 
 function zamknijDet() {
-  const d = document.getElementById('det'); DW = null;
+  const d = document.getElementById('det'); DW = null; zaznacz();
   if (!d.classList.contains('on')) return;
   d.style.transform = ''; d.classList.remove('on'); d.classList.add('out');
-  setTimeout(() => d.classList.remove('out'), 320);
+  setTimeout(() => { d.classList.remove('out'); zaznacz(); }, 320);
+}
+// tablet poziomo: body.dw = panel szczegółów otwarty obok listy; podświetlenie wybranej myjni na liście
+function zaznacz() {
+  document.body.classList.toggle('dw', !!DW || document.getElementById('det').classList.contains('out'));
+  document.querySelectorAll('#main .row[data-n]').forEach(x => x.classList.toggle('sel', !!DW && x.dataset.n === DW));
 }
 
 /* ---------- Zadania ---------- */
@@ -712,7 +733,7 @@ function ogony() {
 /* ---------- Przeglądy ---------- */
 function przeglady() {
   const l = D.myjnie.slice().sort((a, b) => (a.dni == null ? 9999 : a.dni) - (b.dni == null ? 9999 : b.dni));
-  return '<div class="card">' + l.map(w => '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+  return '<div class="card">' + l.map(w => '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
     '<div class="mute">termin ' + esc(w.termin || '—') + (w.co ? ' · co ' + esc(w.co) + ' mies.' : '') + '</div></div>' + pillDni(w.dni) + '</div>').join('') + '</div>';
 }
 
@@ -861,7 +882,7 @@ function panel() {
   h += '<div class="card"><h3>' + I('shield', 1) + 'Przeglądy w terminie</h3>' +
        '<div class="kpi">' + ring(proc, proc >= 90 ? 'var(--grn)' : proc >= 75 ? 'var(--org)' : 'var(--red)') + '<div><b>' + (zTer.length - poTer.length) + ' / ' + zTer.length + '</b><span>myjni z ważnym przeglądem</span></div>' +
        '<div><b>' + poTer.length + '</b><span>po terminie</span></div><div><b>' + wkrotce.length + '</b><span>termin w 3 tygodnie</span></div></div>' +
-       (poTer.length ? poTer.map(w => '<div class="row w" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+       (poTer.length ? poTer.map(w => '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
           (w.uwagi ? '<div class="mute">' + esc(String(w.uwagi).split('\n').pop()).slice(0, 120) + '</div>' : '') + '</div>' + pillDni(w.dni) + '</div>').join('') : '') +
        (wkrotce.length ? '<div class="mute" style="margin-top:6px">Najbliższe: ' + wkrotce.slice(0, 5).map(w => esc(skrot(w.nazwa)) + ' (' + (w.dni === 0 ? 'dziś' : 'za ' + dniTxt(w.dni)) + ')').join(', ') + '</div>' : '') +
        '<div style="margin-top:10px" class="mute">Wykonane przeglądy w miesiącu</div>' + slupki(et, [{ nazwa: 'przeglądy', kolor: 'var(--acc)', dane: przM }], 110) +
@@ -943,7 +964,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
   d.addEventListener('touchstart', e => { const t = e.touches[0]; x0 = t.clientX < 28 ? t.clientX : null; dx = 0; d.style.transition = 'none'; }, { passive: true });
   d.addEventListener('touchmove', e => { if (x0 == null) return; dx = Math.max(0, e.touches[0].clientX - x0); d.style.transform = 'translateX(' + dx + 'px)'; }, { passive: true });
   d.addEventListener('touchend', () => { if (x0 == null) return; x0 = null; d.style.transition = 'transform .3s cubic-bezier(.2,.8,.2,1)';
-    if (dx > window.innerWidth * 0.3) { d.style.transform = 'translateX(100%)'; setTimeout(() => { d.style.transition = ''; d.style.transform = ''; d.classList.remove('on'); DW = null; }, 300); }
+    if (dx > window.innerWidth * 0.3) { d.style.transform = 'translateX(100%)'; setTimeout(() => { d.style.transition = ''; d.style.transform = ''; d.classList.remove('on'); DW = null; zaznacz(); }, 300); }
     else { d.style.transform = ''; setTimeout(() => d.style.transition = '', 300); } });
 })();
 nav(); load();
