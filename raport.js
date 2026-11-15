@@ -174,54 +174,7 @@
   };
   window.rapFotoPompyUsun = () => { const r = R(); r.fotoPompy = ''; zapisz(r); render(); };
 
-  // dyktowanie (Chrome na Androidzie). Język: domyślnie zawsze PL; RU/UA/GR tylko w bieżącym raporcie, nic się nie zapamiętuje
-  const JEZYKI = [['PL', 'pl-PL'], ['RU', 'ru-RU'], ['UA', 'uk-UA'], ['GR', 'el-GR']];
-  const JEZ = { id: null, i: 0 };
-  const jezI = () => { if (JEZ.id !== ST.id) { JEZ.id = ST.id; JEZ.i = 0; } return JEZ.i; };
-  window.rapJezyk = function () {
-    jezI(); JEZ.i = (JEZ.i + 1) % JEZYKI.length;
-    document.querySelectorAll('.rp .jez').forEach(b => { b.textContent = JEZYKI[JEZ.i][0]; b.classList.toggle('inny', JEZ.i > 0); });
-    toast('Dyktowanie: ' + ({ PL: 'po polsku', RU: 'po rosyjsku', UA: 'po ukraińsku', GR: 'po grecku' })[JEZYKI[JEZ.i][0]] + (JEZ.i ? ' · potem „Popraw” przetłumaczy na polski' : ''));
-  };
-  // Mikrofon nagrywa, dopóki go sam nie wyłączysz (drugie dotknięcie). Chrome sam kończy sesję po ciszy – wtedy zaczynamy od nowa.
-  const MOW = { s: null, k: null, stop: false };
-  const mowaOff = () => { document.querySelectorAll('.rp .mic.nag').forEach(x => x.classList.remove('nag')); MOW.s = null; MOW.k = null; };
-  window.rapMow = function (k, b) {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return toast('Dyktowanie: użyj mikrofonu na klawiaturze');
-    if (MOW.s) { const same = MOW.k === k; MOW.stop = true; try { MOW.s.stop(); } catch (e) {} mowaOff(); if (same) return; }
-    const el = document.querySelector('[data-k="' + k + '"]'); if (!el) return;
-    MOW.stop = false; MOW.k = k; b.classList.add('nag');
-    let krotkie = 0;
-    const start = () => {
-      const s = new SR(), t0 = Date.now(); MOW.s = s;
-      let baza = el.value ? el.value.replace(/\s*$/, ' ') : '', gotowe = '';
-      s.lang = JEZYKI[jezI()][1]; s.continuous = true; s.interimResults = true;
-      // Chrome na Androidzie potrafi oddawać tę samą frazę po kawałku jako kolejne „finalne” wyniki ("ktoś", "ktoś wjechał", …).
-      // Dlatego pole składamy od nowa z całej listy wyników i wyrzucamy te, które są tylko początkiem następnego.
-      s.onresult = e => {
-        const seg = [];
-        for (let i = 0; i < e.results.length; i++) { const t = String(e.results[i][0].transcript || '').trim(); if (t) seg.push(t); }
-        const norm = x => x.toLowerCase();
-        const out = seg.filter((t, i) => !seg.slice(i + 1).some(n => norm(n).startsWith(norm(t))));
-        gotowe = out.join(' ');
-        el.value = baza + gotowe; rapPole(el);
-      };
-      s.onerror = e => {
-        if (e.error === 'no-speech' || e.error === 'aborted') return;
-        MOW.stop = true; toast(e.error === 'not-allowed' ? 'Brak zgody na mikrofon' : 'Mikrofon: ' + e.error);
-      };
-      s.onend = () => {
-        if (MOW.s !== s) return;
-        krotkie = Date.now() - t0 < 700 ? krotkie + 1 : 0;
-        if (MOW.stop || krotkie >= 3 || !el.isConnected || document.hidden) { mowaOff(); return; }
-        setTimeout(() => { if (!MOW.stop && MOW.s === s) start(); }, 150);
-      };
-      try { s.start(); } catch (e) { mowaOff(); }
-    };
-    start();
-  };
-  document.addEventListener('visibilitychange', () => { if (document.hidden && MOW.s) { MOW.stop = true; try { MOW.s.stop(); } catch (e) {} } });
+  // Dyktowanie: mikrofon na klawiaturze telefonu (Gboard) – język przełączasz klawiaturą (PL/RU/UA/GR), „Popraw” tłumaczy na polski.
 
   // ===== POPRAWA OPISU NA JĘZYK TECHNICZNY (Claude przez bota: POST ?api=popraw) =====
   // Serwisant dyktuje jak mówi, system przepisuje na zwięzły polski tekst do raportu. Nic nie dopisuje od siebie.
@@ -412,10 +365,8 @@
     '.rp .wyb{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}' +
     '.rp .wyb button{border:0;border-radius:999px;padding:10px 16px;font:inherit;font-size:15px;font-weight:600;background:var(--fill);color:var(--ink)}' +
     '.rp .wyb button.on{background:var(--acc);color:#fff}' +
-    '.rp .tx{position:relative} .rp .tx textarea{padding-right:52px} .rp .mic{position:absolute;right:8px;top:8px;width:40px;height:40px}' +
-    '.rp .mic.nag{background:var(--red);color:#fff;animation:spin 0s}' +
-    '.rp .tx textarea{min-height:96px} .rp .jez{position:absolute;right:8px;top:54px;width:40px;height:26px;border:0;border-radius:999px;font:inherit;font-size:12px;font-weight:700;letter-spacing:.3px;background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}' +
-    '.rp .jez.inny{background:var(--acc);color:#fff}' +
+    '.rp .tx{position:relative} ' +
+    '.rp .tx textarea{min-height:96px}' +
     '.rp .czasy{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}' +
     '.rp .cz{background:var(--fill);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px}' +
     '.rp .cz .btn{min-height:42px;font-size:15px;padding:0 10px} .rp .cz.ma .btn{background:var(--grn)}' +
@@ -452,11 +403,9 @@
     '<input class="as-in" data-k="' + k + '" value="' + esc(R()[k] || '') + '" oninput="rapPole(this)" onchange="rapDoMyjni(this)"></div>';
   const tx = (k, et, ob, ph) => '<div class="pole cala"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label><div class="tx">' +
     '<textarea data-k="' + k + '" placeholder="' + esc(ph || '') + '" oninput="rapPole(this)">' + esc(R()[k] || '') + '</textarea>' +
-    '<button class="ib mic" aria-label="Dyktuj" onclick="rapMow(\'' + k + '\',this)">' + MIC + '</button>' +
-    '<button class="jez' + (jezI() ? ' inny' : '') + '" aria-label="Język dyktowania" onclick="rapJezyk()">' + JEZYKI[jezI()][0] + '</button></div>' +
+    '</div>' +
     (k === 'opisPrac' || k === 'opisTestow' ? '<div class="popr"><button class="btn2" onclick="rapPopraw(\'' + k + '\')">' + I('spark', 1) + 'Popraw na język techniczny</button>' +
       (R()[k + 'Dyktowane'] ? '<button class="btn2" onclick="rapPoprawCofnij(\'' + k + '\')">Cofnij</button>' : '') + '</div>' : '') + '</div>';
-  const MIC = '<svg class="i s" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
   const CAM = '<svg class="i s" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
 
   function widokLista() {
