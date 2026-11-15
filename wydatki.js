@@ -194,25 +194,38 @@
       const plik = x => { const s = atob(x.b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new File([u], x.nazwa, { type: x.mime }); };
       let pliki = (r.pliki || []).map(plik), zamiana = false;
       if (navigator.canShare && !navigator.canShare({ files: pliki }) && r.drukPdf) { pliki = [plik(r.drukPdf)].concat(pliki.slice(1)); zamiana = true; }
-      ST.roz = { mies: mies, pliki: pliki, temat: r.temat, tresc: r.tresc };
-      const mozna = navigator.canShare && navigator.canShare({ files: pliki });
-      a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(mies) + ' ' + Math.floor(mies / 100) + '</h4>' +
-        '<div class="row"><div class="g">Faktur: <b>' + (r.ile || 0) + '</b> · razem <b>' + z2(r.suma) + '</b></div></div>' +
-        pliki.map(f => '<div class="row"><div class="g">' + I('doc', 1) + ' ' + esc(f.name) + '</div><span class="mute">' + Math.max(1, Math.round(f.size / 1024)) + ' KB</span></div>').join('') +
-        ((r.brakSkanu || []).length ? '<div class="mute" style="color:var(--org)">Bez skanu: ' + esc(r.brakSkanu.join(', ')) + '</div>' : '') +
-        (zamiana ? '<div class="mute">Telefon nie przyjmuje xlsx w Udostępnij – druk idzie jako PDF.</div>' : '') +
-        '<div class="ab" style="margin-top:14px"><button class="btn2" onclick="arkZamknij()">Zamknij</button>' +
-        (mozna ? '<button class="btn" onclick="wydUdostepnij()">' + I('send', 1) + 'Udostępnij…</button>' : '<button class="btn" onclick="wydPobierz()">' + I('doc', 1) + 'Pobierz pliki</button>') + '</div>' +
-        '<div class="note" style="margin-top:8px">' + (mozna ? 'Wybierz Outlook, Gmail albo inną aplikację – adresata wpiszesz sam.' : 'Ta przeglądarka nie udostępnia plików – pobierz i dołącz do maila.') + '</div></div>';
+      ST.roz = { mies: mies, pliki: pliki, temat: r.temat, tresc: r.tresc, drukPdf: r.drukPdf && !zamiana ? plik(r.drukPdf) : null, xlsx: r.pliki && r.pliki[0] ? plik(r.pliki[0]) : null, r: r, zamiana: zamiana };
+      rozArkusz();
     } catch (e) {
       a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Rozliczenie</h4><div class="mute">' + esc(blad(e)) + '</div><div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zamknij</button></div></div>';
     }
   };
+  function rozArkusz() {
+    const R = ST.roz, r = R.r, a = document.getElementById('ark');
+    const mozna = navigator.canShare && navigator.canShare({ files: R.pliki });
+    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(R.mies) + ' ' + Math.floor(R.mies / 100) + '</h4>' +
+      '<div class="row"><div class="g">Faktur: <b>' + (r.ile || 0) + '</b> · razem <b>' + z2(r.suma) + '</b></div></div>' +
+      R.pliki.map(f => '<div class="row"><div class="g">' + I('doc', 1) + ' ' + esc(f.name) + '</div><span class="mute">' + Math.max(1, Math.round(f.size / 1024)) + ' KB</span></div>').join('') +
+      ((r.brakSkanu || []).length ? '<div class="mute" style="color:var(--org)">Bez skanu: ' + esc(r.brakSkanu.join(', ')) + '</div>' : '') +
+      (R.zamiana ? '<div class="mute">Telefon nie przyjmuje xlsx w Udostępnij – druk idzie jako PDF.' + (R.xlsx ? ' <a onclick="wydXlsx()">Pobierz druk w xlsx</a>' : '') + '</div>' : '') +
+      '<div class="ab" style="margin-top:14px"><button class="btn2" onclick="arkZamknij()">Zamknij</button>' +
+      (mozna ? '<button class="btn" onclick="wydUdostepnij()">' + I('send', 1) + 'Udostępnij…</button>' : '<button class="btn" onclick="wydPobierz()">' + I('doc', 1) + 'Pobierz pliki</button>') + '</div>' +
+      '<div class="note" style="margin-top:8px">' + (mozna ? 'Wybierz Outlook, Gmail albo inną aplikację – adresata wpiszesz sam.' : 'Ta przeglądarka nie udostępnia plików – pobierz i dołącz do maila.') + '</div></div>';
+  }
   window.wydUdostepnij = async function () {
     const r = ST.roz; if (!r) return;
     try { await navigator.share({ files: r.pliki, title: r.temat, text: r.tresc }); }
-    catch (e) { if (e && e.name === 'AbortError') return; toast('Nie udało się udostępnić: ' + e.message); return; }
+    catch (e) {
+      if (e && e.name === 'AbortError') return;
+      // Chrome na Androidzie potrafi powiedzieć canShare=tak, a potem odrzucić xlsx („Permission denied”) → druk jako PDF
+      if (r.drukPdf) { r.pliki = [r.drukPdf].concat(r.pliki.slice(1)); r.drukPdf = null; r.zamiana = true; rozArkusz(); toast('Telefon nie przepuścił xlsx – druk jako PDF, naciśnij jeszcze raz'); return; }
+      toast('Nie udało się udostępnić: ' + e.message); return;
+    }
     oznaczWyslane(r.mies);
+  };
+  window.wydXlsx = function () {
+    const f = ST.roz && ST.roz.xlsx; if (!f) return;
+    const u = URL.createObjectURL(f), l = document.createElement('a'); l.href = u; l.download = f.name; document.body.appendChild(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000);
   };
   window.wydPobierz = function () {
     const r = ST.roz; if (!r) return;
