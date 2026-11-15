@@ -174,12 +174,20 @@
   };
   window.rapFotoPompyUsun = () => { const r = R(); r.fotoPompy = ''; zapisz(r); render(); };
 
-  // dyktowanie (Chrome na Androidzie, po polsku)
+  // dyktowanie (Chrome na Androidzie). Język: domyślnie zawsze PL; RU/UA/GR tylko w bieżącym raporcie, nic się nie zapamiętuje
+  const JEZYKI = [['PL', 'pl-PL'], ['RU', 'ru-RU'], ['UA', 'uk-UA'], ['GR', 'el-GR']];
+  const JEZ = { id: null, i: 0 };
+  const jezI = () => { if (JEZ.id !== ST.id) { JEZ.id = ST.id; JEZ.i = 0; } return JEZ.i; };
+  window.rapJezyk = function () {
+    jezI(); JEZ.i = (JEZ.i + 1) % JEZYKI.length;
+    document.querySelectorAll('.rp .jez').forEach(b => { b.textContent = JEZYKI[JEZ.i][0]; b.classList.toggle('inny', JEZ.i > 0); });
+    toast('Dyktowanie: ' + ({ PL: 'po polsku', RU: 'po rosyjsku', UA: 'po ukraińsku', GR: 'po grecku' })[JEZYKI[JEZ.i][0]] + (JEZ.i ? ' · potem „Popraw” przetłumaczy na polski' : ''));
+  };
   window.rapMow = function (k, b) {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return toast('Dyktowanie: użyj mikrofonu na klawiaturze');
     const s = new SR(), el = document.querySelector('[data-k="' + k + '"]');
-    s.lang = 'pl-PL'; s.interimResults = false; b.classList.add('nag');
+    s.lang = JEZYKI[jezI()][1]; s.interimResults = false; b.classList.add('nag');
     s.onresult = e => { const t = [...e.results].map(x => x[0].transcript).join(' '); el.value = (el.value ? el.value.trim() + ' ' : '') + t; rapPole(el); };
     s.onend = () => b.classList.remove('nag'); s.onerror = () => { b.classList.remove('nag'); toast('Nie usłyszałem – spróbuj jeszcze raz'); };
     s.start();
@@ -376,6 +384,8 @@
     '.rp .wyb button.on{background:var(--acc);color:#fff}' +
     '.rp .tx{position:relative} .rp .tx textarea{padding-right:52px} .rp .mic{position:absolute;right:8px;top:8px;width:40px;height:40px}' +
     '.rp .mic.nag{background:var(--red);color:#fff;animation:spin 0s}' +
+    '.rp .tx textarea{min-height:96px} .rp .jez{position:absolute;right:8px;top:54px;width:40px;height:26px;border:0;border-radius:999px;font:inherit;font-size:12px;font-weight:700;letter-spacing:.3px;background:var(--card);color:var(--ink);box-shadow:0 1px 4px rgba(0,0,0,.12)}' +
+    '.rp .jez.inny{background:var(--acc);color:#fff}' +
     '.rp .czasy{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}' +
     '.rp .cz{background:var(--fill);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:6px}' +
     '.rp .cz .btn{min-height:42px;font-size:15px;padding:0 10px} .rp .cz.ma .btn{background:var(--grn)}' +
@@ -412,7 +422,8 @@
     '<input class="as-in" data-k="' + k + '" value="' + esc(R()[k] || '') + '" oninput="rapPole(this)" onchange="rapDoMyjni(this)"></div>';
   const tx = (k, et, ob, ph) => '<div class="pole cala"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label><div class="tx">' +
     '<textarea data-k="' + k + '" placeholder="' + esc(ph || '') + '" oninput="rapPole(this)">' + esc(R()[k] || '') + '</textarea>' +
-    '<button class="ib mic" aria-label="Dyktuj" onclick="rapMow(\'' + k + '\',this)">' + MIC + '</button></div>' +
+    '<button class="ib mic" aria-label="Dyktuj" onclick="rapMow(\'' + k + '\',this)">' + MIC + '</button>' +
+    '<button class="jez' + (jezI() ? ' inny' : '') + '" aria-label="Język dyktowania" onclick="rapJezyk()">' + JEZYKI[jezI()][0] + '</button></div>' +
     (k === 'opisPrac' || k === 'opisTestow' ? '<div class="popr"><button class="btn2" onclick="rapPopraw(\'' + k + '\')">' + I('spark', 1) + 'Popraw na język techniczny</button>' +
       (R()[k + 'Dyktowane'] ? '<button class="btn2" onclick="rapPoprawCofnij(\'' + k + '\')">Cofnij</button>' : '') + '</div>' : '') + '</div>';
   const MIC = '<svg class="i s" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
