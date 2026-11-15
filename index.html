@@ -336,6 +336,8 @@
   .more button::after{background:none;inset:12px auto 12px 0;width:5px;border-radius:0 4px 4px 0;background:var(--led);box-shadow:0 0 12px var(--led)}
   .more button .ch{background:rgba(20,196,255,.12);color:var(--led)}
   .more button span{opacity:.6}
+  /* arkusze (Licznik, WebCon…) – pełne tło, bo ciemne „szkło” portalu dawało ciemny tekst na ciemnym */
+  #ark .ar{background:var(--solid)}
   /* pasek kart = czarna belka z niebieskim światłem */
   #bnav .in{background:var(--glass);box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 12px 32px rgba(0,0,0,.3)}
   #bnav button{color:rgba(255,255,255,.7)}
@@ -664,6 +666,14 @@ function pokazMyjnie(nazwa, bezAnim) {
     h += '<div class="row"><div class="g">Licznik myć: <b>' + esc(w.licznik || '—') + '</b>' + (w.licznik && w.odWymiany !== '' ? '<div class="mute">szczotki: ' + esc(w.odWymiany) + ' myć od wymiany ' + esc(w.wymiana) + (w.szczotki ? ' · ' + esc(w.szczotki) : '') + '</div>' +
        '<div class="bar"><div style="width:' + pr + '%;background:var(' + (od >= 50000 ? '--red' : od >= 45000 ? '--yel' : '--grn') + ')"></div></div>' : '') + '</div>' +
        '<button class="btn2" onclick="licznikArkusz(\'' + jsq(w.nazwa) + '\')">' + I('pen', 1) + 'Wpisz</button></div>';
+  }
+  // dane urządzenia z raportu (api=myjnia → kolumny Nr seryjny / Nastawy chemiczne / Link do nastaw w arkuszu Myjnie)
+  {
+    const lk = String(w.linkNastaw || '').trim(), url = /^https?:\/\//i.test(lk) ? lk : '';
+    h += '<div class="row"><div class="g">Nr seryjny: <b>' + esc(w.nrSeryjny || '—') + '</b>' +
+         (w.nastawy ? '<div class="mute">Nastawy chemiczne: ' + esc(w.nastawy) + '</div>' : '') +
+         (lk ? '<div class="mute">Link do nastaw: ' + (url ? '<a href="' + esc(url) + '" target="_blank">otwórz</a>' : esc(lk)) + '</div>' : '') +
+         (!w.nrSeryjny && !w.nastawy && !lk ? '<div class="mute">uzupełni się z pierwszego raportu</div>' : '') + '</div></div>';
   }
   h += '<div class="row"><div class="g">Awarie w ostatnim roku: <b>' + awarie(w, 365) + '</b></div></div>';
   if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';

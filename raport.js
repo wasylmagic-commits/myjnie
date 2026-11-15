@@ -95,7 +95,7 @@
   // dane myjni z raportu → karta myjni (arkusz). Puste w karcie – zapis od razu; inne – pytam.
   window.rapDoMyjni = function (el) {
     const r = R(), k = el.dataset.k, v = String(el.value || '').trim(), w = myjnia(r.myjnia);
-    if (!v || !w || !POLA_MYJNI[k]) return;
+    if (r.demo || !v || !w || !POLA_MYJNI[k]) return;
     const stare = String(w[k] || '').trim();
     if (stare === v) return;
     if (stare && !confirm('Zaktualizować dane myjni ' + skrot(r.myjnia) + '?\n' + POLA_MYJNI[k] + ':\n' + stare + '  →  ' + v)) return;
@@ -216,21 +216,111 @@
     el.scrollIntoView({ behavior: 'smooth', block: 'center' }); const f = el.querySelector('input,textarea,select') || el; setTimeout(() => f.focus && f.focus({ preventScroll: true }), 400);
   };
 
-  // tekst do przeklejenia w WebCon (do czasu API)
-  function tekst(r) {
-    const c = czasy(r);
-    return ['Myjnia: ' + r.myjnia + (r.szl ? ' · ' + r.szl : ''), 'Urządzenie: ' + r.model + ' · nr seryjny ' + r.nrSeryjny + (r.kodBledu ? ' · kod błędu ' + r.kodBledu : '') + ' · ilość myć ' + r.iloscMyc,
-      'Nastawy chemiczne zgodne: ' + (r.nastawyZgodne || '—') + (r.nastawy ? ' · ' + r.nastawy : '') + (r.linkNastaw ? ' · ' + r.linkNastaw : ''), 'Usługa: ' + (r.usluga || '—') + (r.rodzaj ? ' · ' + r.rodzaj : '') + ' · data do raportu ' + r.dataRaportu,
-      '', 'Opis wykonanych prac:', r.opisPrac, r.opisTestow ? '\nOpis przeprowadzonych testów:\n' + r.opisTestow : '', r.uwagi ? '\nUwagi: ' + r.uwagi : '',
-      '', 'Materiały:', ...(r.mat.length ? r.mat.map(m => '- ' + (m.kod ? m.kod + ' ' : '') + m.nazwa + ' – ' + m.ilosc + ' ' + m.jm + (m.mag ? '' : ' (poza magazynem)')) : ['- brak']),
-      '', 'Czas (' + SERWISANT + '): Dojazd ' + godz(c.dojazd) + ' / ' + c.kmD + ' km · Serwis ' + godz(c.serwis) + ' · Powrót ' + godz(c.powrot) + ' / ' + c.kmP + ' km',
-      'Odbierający: ' + r.odbImie + ' · ' + r.odbEmail + (r.odbUwagi ? ' · ' + r.odbUwagi : ''), r.komentarz ? 'Komentarz: ' + r.komentarz : '',
-      'Czy serwis wymaga kontynuacji? ' + (r.kontynuacja || '—') + ' · Zlecenie zamknięte u zleceniodawcy? ' + (r.zamknieteU || '—')].filter(x => x !== '').join('\n');
+  // ===== POKAZ DLA SZEFA (15.11.2026) =====
+  // Raport w aplikacji to WZÓR: tak wyglądałoby wypełnianie, gdyby firma dała dostęp do API WebCon.
+  // „Wyślij do WebCon” = tryb pokazowy: pokazuje, co poszłoby do których zakładek WebCon. NIC nie jest wysyłane.
+  function webconDane(r) {
+    const c = czasy(r), t = (k, v) => [k, v == null || v === '' ? '' : String(v)];
+    return [
+      ['Urządzenie', [t('Nazwa', r.model), t('Nr seryjny', r.nrSeryjny), t('Kod błędu', r.kodBledu), t('Ilość myć', r.iloscMyc), t('Link do nastaw', r.linkNastaw),
+        t('Nastawy chemiczne', r.nastawy), t('Nastawy chemiczne zgodne z ustaleniami?', r.nastawyZgodne)]],
+      ['Realizacja zlecenia', [t('Numer zlecenia', r.szl), t('Rodzaj zgłoszenia', r.rodzaj), t('Usługa serwisowa', r.usluga), t('Data do raportu', r.dataRaportu ? dt(r.dataRaportu) : ''),
+        t('Termin naprawy', r.terminNaprawy ? dt(r.terminNaprawy) : ''), t('Opis wykonywanych prac', r.opisPrac), t('Opis przeprowadzonych testów', r.opisTestow), t('Uwagi', r.uwagi)]],
+      ['Odbierający', [t('Imię i nazwisko', r.odbImie), t('Adres e-mail', r.odbEmail), t('Uwagi', r.odbUwagi)]],
+      ['Rejestracja czasu', [t('Serwis', c.serwis ? godz(c.serwis) : ''), t('Dojazd', c.kmD ? c.kmD + ' km' : ''), t('Powrót', c.kmP ? c.kmP + ' km' : ''), t('Pracownik', SERWISANT)]],
+      ['Materiały', r.mat.length ? r.mat.map(m => t((m.mag ? 'Magazyn ' + SERWISANT : 'Poza magazynem'), (m.kod ? m.kod + ' · ' : '') + m.nazwa + ' – ' + String(m.ilosc).replace('.', ',') + ' ' + m.jm)) : [t('Materiały', 'brak')]],
+      ['Załączniki', [t('Dokumentacja fotograficzna', (r.zal.length + (r.fotoPompy ? 1 : 0)) + ' zdj.' + (r.fotoPompy ? ' (w tym pompy dozujące)' : '')), t('Komentarz', r.komentarz),
+        t('Podpis odbierającego', r.podpis ? 'tak' : ''), t('Raport serwisowy (PDF)', 'generuje WebCon')]],
+      ['Podsumowanie', [t('Czy serwis wymaga kontynuacji?', r.kontynuacja), t('Czy zlecenie zostało zamknięte u zleceniodawcy?', r.zamknieteU)]]
+    ];
   }
-  window.rapKopiuj = function () {
-    const t = tekst(R());
-    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(() => toast('Skopiowane – wklej w WebCon'))
-      .catch(() => { const a = document.createElement('textarea'); a.value = t; document.body.appendChild(a); a.select(); document.execCommand('copy'); a.remove(); toast('Skopiowane'); });
+  const sleep = ms => new Promise(f => setTimeout(f, ms));
+  window.rapWyslij = async function () {
+    const r = R(); if (!r) return;
+    const a = document.getElementById('ark'), b = braki(r);
+    if (b.length) {
+      a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>WebCon nie przyjmie raportu</h4><div class="mute">Brakuje pól obowiązkowych – w WebCon wyszłoby to dopiero przy zapisie, tutaj widać od razu:</div>' +
+        '<div style="margin:10px 0">' + b.map(x => '<div class="row"><div class="g">' + I('alert', 1) + ' ' + esc(x[1]) + '</div></div>').join('') + '</div>' +
+        '<div class="ab"><button class="btn" onclick="arkZamknij();rapDoBraku()">Pokaż pierwsze</button></div></div>';
+      a.classList.add('on'); return;
+    }
+    const sek = webconDane(r);
+    const krok = (t, st) => '<div class="row"><div class="g">' + t + '</div>' + (st === 1 ? '<span class="pill ok">' + I('check', 1) + '</span>' : st === 0 ? '<span class="pill">…</span>' : '') + '</div>';
+    const kroki = ['Połączenie z WebCon (API)', 'Zlecenie ' + (r.szl || '—') + ' – odnalezione', ...sek.map(s => 'Zakładka „' + s[0] + '” – ' + s[1].filter(x => x[1]).length + ' pól'), 'Raport serwisowy PDF – wygenerowany'];
+    const pok = n => { a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>Wysyłanie do WebCon</h4><div class="mute">tryb pokazowy – bez połączenia, nic nie jest zapisywane</div><div style="margin:10px 0 4px">' +
+      kroki.map((k, i) => krok(esc(k), i < n ? 1 : i === n ? 0 : 2)).join('') + '</div></div>'; };
+    a.classList.add('on');
+    for (let i = 0; i <= kroki.length; i++) { pok(i); await sleep(i < 2 ? 450 : 260); }
+    const d = new Date(), srl = 'SRL/' + d.getFullYear() + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + String(10219 + (Date.now() % 700)).padStart(5, '0');
+    r.demoSrl = srl; r.demoKiedy = d.toISOString(); zapisz(r, 1);
+    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('check', 1) + ' Raport w WebCon</h4>' +
+      '<div class="row"><div class="g">Realizacja zlecenia<div class="mute">' + esc(r.szl || '') + ' · ' + esc(skrot(r.myjnia)) + '</div></div><b>' + srl + '</b></div>' +
+      '<div class="row"><div class="g">Wypełnione pola<div class="mute">jeden ekran, bez przełączania zakładek</div></div><b>' + sek.reduce((s, x) => s + x[1].filter(y => y[1]).length, 0) + ' pól</b></div>' +
+      '<div class="note">POKAZ: numer SRL jest przykładowy. Po udostępnieniu API WebCon ten przycisk zapisze raport naprawdę.</div>' +
+      '<div class="ab"><button class="btn2" onclick="arkZamknij();rapPodglad()">Co poszło do WebCon</button><button class="btn" onclick="arkZamknij()">OK</button></div></div>';
+    render();
+  };
+  // podgląd: pola raportu rozłożone na zakładki WebCon (to samo, co serwisant dziś przeklikuje ręcznie)
+  window.rapPodglad = function () {
+    const r = R(); if (!r) return;
+    const a = document.getElementById('ark');
+    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:82vh;overflow:auto"><h4>Pola w WebCon</h4><div class="mute">7 zakładek WebCon = 1 ekran raportu</div>' +
+      webconDane(r).map(([z, p]) => '<div style="margin-top:12px"><b>' + esc(z) + '</b>' + p.map(([k, v]) => '<div class="row"><div class="g mute">' + esc(k) + '</div><div style="max-width:58%;text-align:right">' +
+        (v ? esc(v.length > 90 ? v.slice(0, 90) + '…' : v) : '<span class="mute">—</span>') + '</div></div>').join('') + '</div>').join('') +
+      '<div class="ab" style="margin-top:12px"><button class="btn" onclick="arkZamknij()">Zamknij</button></div></div>';
+    a.classList.add('on');
+  };
+
+  // raport pokazowy: wypełniony jednym kliknięciem (do prezentacji – nic nie trafia do karty myjni ani do arkusza)
+  function rysunek(w, h, f) { const c = document.createElement('canvas'); c.width = w; c.height = h; const x = c.getContext('2d'); f(x); return c; }
+  function podpisDemo() {
+    return rysunek(600, 170, x => { x.strokeStyle = '#123'; x.lineWidth = 3; x.lineCap = 'round'; x.beginPath(); x.moveTo(60, 110);
+      for (let i = 0; i <= 60; i++) { const t = i / 60; x.lineTo(60 + t * 420, 105 - Math.sin(t * 18) * 28 * (1 - t * .5) - t * 20); }
+      x.stroke(); x.beginPath(); x.moveTo(420, 120); x.quadraticCurveTo(480, 140, 540, 112); x.stroke(); }).toDataURL('image/png');
+  }
+  function fotoDemo(tytul, kol) {
+    return rysunek(800, 600, x => { const g = x.createLinearGradient(0, 0, 800, 600); g.addColorStop(0, kol); g.addColorStop(1, '#1d2730'); x.fillStyle = g; x.fillRect(0, 0, 800, 600);
+      x.fillStyle = 'rgba(255,255,255,.9)'; x.font = 'bold 44px sans-serif'; x.textAlign = 'center'; x.fillText(tytul, 400, 290); x.font = '28px sans-serif'; x.fillText('zdjęcie przykładowe', 400, 345); }).toDataURL('image/jpeg', .7);
+  }
+  window.rapDemo = function () {
+    const lst = D ? D.myjnie.concat(D.inne) : [], w = lst.find(x => /orlen/i.test(x.nazwa)) || lst[0];
+    if (!w) return toast('Brak listy myjni – odśwież dane');
+    const r = pusty(w.nazwa), d = new Date();
+    Object.assign(r, { demo: 1, szlTyp: 'SZL', szlWpis: (d.getMonth() + 1) + '/600', rodzaj: 'AWP', usluga: 'Gwarancyjna', model: r.model || 'Myjnia Christ C-160 Genius',
+      nrSeryjny: r.nrSeryjny || '160-0000 (przykład)', iloscMyc: r.iloscMyc || '48210', kodBledu: 'E 412', nastawyZgodne: 'Tak', nastawy: r.nastawy || 'piana 2,5 % · wosk 1,2 % · osuszacz 0,8 %',
+      opisPrac: 'Zgłoszenie: portal staje w połowie programu, błąd E 412 (krańcówka jazdy). Wymieniono czujnik indukcyjny jazdy portalu, wyregulowano odległość od blachy (4 mm), sprawdzono przewód w łańcuchu kablowym.',
+      opisTestow: '3 mycia testowe na programie Premium i 1 na Standard – bez błędów, jazda płynna.', uwagi: 'Szczotki boczne do wymiany przy najbliższym przeglądzie.',
+      czas: { wyjazd: '07:30', przyjazd: '08:45', koniec: '11:15', odjazd: '11:20', dom: '12:35', kmD: '62', kmP: '62' },
+      odbImie: 'Kierownik stacji (przykład)', odbEmail: 'stacja@przyklad.pl', potw: true, podpis: podpisDemo(), kontynuacja: 'Nie', zamknieteU: 'Tak',
+      komentarz: 'Po pracy stanowisko posprzątane, zdjęcia przed i po w załącznikach.', zal: [fotoDemo('Czujnik jazdy – przed', '#5b6b7a'), fotoDemo('Czujnik jazdy – po', '#2f7d5b')] });
+    r.szl = pelnyNr('SZL', r.szlWpis);
+    r.mat = (D.magazyn || []).slice(0, 1).map(m => ({ mag: 1, kod: m.kod, nazwa: m.nazwa, jm: 'szt.', ilosc: 1, stan: m.ilosc }));
+    if (!r.mat.length) r.mat.push({ mag: 0, kod: '', nazwa: 'Czujnik indukcyjny M18 (przykład)', jm: 'szt.', ilosc: 1 });
+    r.mat.push({ mag: 0, kod: '', nazwa: 'Opaski kablowe', jm: 'szt.', ilosc: 4 });
+    if (orlen(r)) r.fotoPompy = fotoDemo('Pompy dozujące', '#3a5a8c');
+    zapisz(r, 1); ST.id = r.id; render(); window.scrollTo(0, 0); toast('Raport pokazowy gotowy');
+  };
+
+  // porównanie dla szefa: WebCon dziś ↔ raport w aplikacji
+  const PORown = [
+    ['Zakładki i przełączanie', '7 zakładek w zleceniu + 6 w raporcie, skakanie tam i z powrotem', 'jeden ekran, 7 bloków pod sobą'],
+    ['Czego brakuje', 'widać dopiero przy zapisie', 'licznik „Brakuje N pól” na górze, klik = przejście do pola'],
+    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Wyjazd / Na myjni / Koniec / Powrót – liczy się samo'],
+    ['Dane myjni', 'model, nr seryjny, nastawy – za każdym razem od nowa', 'wpisują się same z karty myjni'],
+    ['Opis prac', 'pisanie na klawiaturze', 'dyktowanie po polsku'],
+    ['Numer zlecenia', 'pełny SZL/2026/11/00600', 'skrót „11/600”'],
+    ['Kolejny wyjazd', '„Kontynuuj akcję serwisową” i wszystko od nowa', 'jeden klik, dane zlecenia przechodzą same'],
+    ['Zdjęcia pomp (Orlen)', 'łatwo zapomnieć', 'pole obowiązkowe tylko na Orlenie'],
+    ['Na tablecie', 'wąski formularz', 'dwie kolumny w poziomie']
+  ];
+  window.rapPorownanie = function () {
+    const a = document.getElementById('ark');
+    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:84vh;overflow:auto;max-width:760px"><h4>WebCon dziś → raport w aplikacji</h4>' +
+      '<div class="mute">Te same pola i nazwy co w WebCon. Różnica jest w tym, jak serwisant je wypełnia.</div><div class="rp-por">' +
+      PORown.map(([t, x, y]) => '<div class="pz"><b>' + esc(t) + '</b><div class="pw"><span>WebCon</span>' + esc(x) + '</div><div class="pa"><span>Aplikacja</span>' + esc(y) + '</div></div>').join('') + '</div>' +
+      '<div class="note">Potrzebne od firmy: dostęp do API WebCon (zapis Realizacji zlecenia). Wtedy przycisk „Wyślij do WebCon” zapisuje raport bez przepisywania.</div>' +
+      '<div class="ab" style="margin-top:12px"><button class="btn" onclick="arkZamknij()">Zamknij</button></div></div>';
+    a.classList.add('on');
   };
 
   const css = '<style>' +
@@ -266,6 +356,11 @@
     '.rp .wyb select.on{background:var(--acc);color:#fff}' +
     '.rp .pomp{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px} .rp .pomp img{width:120px;height:90px;object-fit:cover;border-radius:14px}' +
     '.rp .kont{background:color-mix(in srgb,var(--acc) 12%,var(--card));border-radius:16px;padding:12px;margin:0 0 12px}' +
+    '.rp-por{display:grid;gap:10px;margin-top:12px} @media (min-width:700px){.rp-por{grid-template-columns:1fr 1fr}}' +
+    '.rp-por .pz{background:var(--fill);border-radius:16px;padding:12px} .rp-por .pz>div{font-size:14px;margin-top:6px;line-height:1.35}' +
+    '.rp-por span{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-right:6px;padding:2px 7px;border-radius:999px}' +
+    '.rp-por .pw span{background:var(--orgbg);color:var(--org)} .rp-por .pa span{background:var(--grnbg);color:var(--grn)}' +
+    '.rp .demo{background:var(--acc2);color:var(--acc);border-radius:16px;padding:10px 14px;margin-bottom:14px;font-size:14px;font-weight:600}' +
     '</style>';
 
   const pole = (k, et, typ, ob, extra) => '<div class="pole' + (extra && extra.cala ? ' cala' : '') + '"' + (ob ? ' data-ob="' + k + '"' : '') + '><label>' + et + (ob ? ' <i>*</i>' : '') + '</label>' +
@@ -285,9 +380,11 @@
     h += '<div class="card"><h3>' + I('pen', 1) + 'Nowy raport</h3><select class="as-in" id="rpNm"><option value="">— wybierz myjnię —</option>' +
       lst.map(w => '<option>' + esc(w.nazwa) + '</option>').join('') + '</select><button class="btn" onclick="rapNowy(document.getElementById(\'rpNm\').value)">Zacznij raport</button>' +
       '<div class="note">Raport możesz też zacząć z karty myjni (przycisk „Raport”).</div></div>';
+    h += '<div class="card"><h3>' + I('spark', 1) + 'Pokaz dla szefa</h3><div class="mute" style="margin-bottom:10px">Tak wyglądałby raport, gdyby firma dała dostęp do API WebCon.</div>' +
+      '<div class="dol" style="margin:0"><button class="btn" onclick="rapDemo()">Raport pokazowy</button><button class="btn2" onclick="rapPorownanie()">WebCon dziś → aplikacja</button></div></div>';
     h += '<div class="card"><h3>' + I('doc', 1) + 'Szkice (' + l.length + ')</h3>' + (l.length ? l.map(r => { const b = braki(r).length;
       return '<div class="row w" onclick="rapOtworz(\'' + r.id + '\')"><div class="g"><b>' + esc(skrot(r.myjnia || 'bez myjni')) + '</b>' + (r.szl ? ' <span class="mute">' + esc(r.szl) + '</span>' : '') +
-        '<div class="mute">' + dt(r.dataRaportu) + (r.kontOd ? ' · kontynuacja' : '') + (r.opisPrac ? ' · ' + esc(r.opisPrac.slice(0, 60)) : '') + '</div></div><span class="pill ' + (b ? 'o' : 'ok') + '">' + (b ? 'brak ' + b : 'gotowy') + '</span></div>'; }).join('')
+        '<div class="mute">' + dt(r.dataRaportu) + (r.kontOd ? ' · kontynuacja' : '') + (r.demo ? ' · pokaz' : '') + (r.opisPrac ? ' · ' + esc(r.opisPrac.slice(0, 60)) : '') + '</div></div><span class="pill ' + (b ? 'o' : 'ok') + '">' + (b ? 'brak ' + b : r.demoSrl ? 'w WebCon (pokaz)' : 'gotowy') + '</span></div>'; }).join('')
       : '<div class="mute">brak szkiców</div>') + '</div>';
     return h;
   }
@@ -297,6 +394,7 @@
     let h = css + '<div class="rp"><div class="phead"><button class="ib" onclick="rapLista()">' + I('back') + '</button><div><b>Raport · ' + esc(skrot(r.myjnia || '')) + '</b><span>' +
       esc([w.miasto, w.adres].filter(Boolean).join(', ')) + ' · szkic zapisuje się sam</span></div></div>';
     h += '<div id="rpBr" class="rp-br" onclick="rapDoBraku()"></div>';
+    if (r.demo) h += '<div class="demo">Raport pokazowy – dane przykładowe, nic nie trafia do karty myjni ani do arkusza.</div>';
 
     h += '<div class="card"><h3>' + I('wrench', 1) + 'Urządzenie <span class="nr">1</span></h3><div class="siatka">' +
       '<div class="pole"><label>Myjnia</label><select class="as-in" data-k="myjnia" onchange="rapPole(this)">' + lst.map(x => '<option' + (x.nazwa === r.myjnia ? ' selected' : '') + '>' + esc(x.nazwa) + '</option>').join('') + '</select></div>' +
@@ -358,8 +456,10 @@
       tn('kontynuacja', 'Czy serwis wymaga kontynuacji?') +
       (r.kontynuacja === 'Tak' ? '<div class="kont">Kolejny wyjazd = nowy raport (w WebCon: „Kontynuuj akcję serwisową”).<button class="btn" style="margin-top:10px" onclick="rapKontynuacja()">+ Nowy raport – kontynuacja</button></div>' : '') +
       tn('zamknieteU', 'Czy zlecenie zostało zamknięte u zleceniodawcy?') + '</div>';
-    h += '<div class="dol"><button class="btn" onclick="rapKopiuj()">' + I('doc', 1) + 'Kopiuj do WebCon</button><button class="btn2" style="color:var(--red)" onclick="rapUsun(\'' + r.id + '\')">' + I('trash', 1) + 'Usuń szkic</button></div>' +
-      '<div class="note" style="border:0">Wysyłka prosto do WebCon – gdy będzie API. Na razie: „Kopiuj” i wklej opis w WebCon.</div></div>';
+    h += '<div class="dol"><button class="btn" onclick="rapWyslij()">' + I('check', 1) + 'Wyślij do WebCon</button><button class="btn2" onclick="rapPodglad()">' + I('doc', 1) + 'Co pójdzie do WebCon</button></div>' +
+      (r.demoSrl ? '<div class="note" style="border:0;margin-top:0">Pokaz: „wysłany” ' + dt(r.demoKiedy.slice(0, 10)) + ' jako ' + esc(r.demoSrl) + ' (numer przykładowy).</div>' : '') +
+      '<div class="dol"><button class="btn2" onclick="rapPorownanie()">WebCon dziś → aplikacja</button><button class="btn2" style="color:var(--red)" onclick="rapUsun(\'' + r.id + '\')">' + I('trash', 1) + 'Usuń szkic</button></div>' +
+      '<div class="note" style="border:0">Wzór raportu na czas, gdy będzie API WebCon. Teraz „Wyślij” działa w trybie pokazowym – nic nie jest zapisywane w WebCon.</div></div>';
     setTimeout(() => { licznik(); podpisStart(); }, 0);
     return h;
   }
