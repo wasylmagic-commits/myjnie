@@ -1183,7 +1183,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     ar = e.target.closest('.ar'); if (!ar) return;
     const t = e.touches[0], r = ar.getBoundingClientRect(); if (t.clientY - r.top > 48) { ar = null; return; }
     tlo = a.querySelector('.tlo'); h = r.height + 24; y0 = yp = t.clientY; tp = e.timeStamp; dy = 0; v = 0;
-    ar.style.transition = 'none'; if (tlo) tlo.style.transition = 'none';
+    ar.style.animation = 'none'; ar.style.transition = 'none'; if (tlo) { tlo.style.animation = 'none'; tlo.style.transition = 'none'; }   // animacja wjazdu (fill both) przykrywałaby transform z palca
   }, { passive: true });
   a.addEventListener('touchmove', e => {
     if (!ar) return; const y = e.touches[0].clientY;
