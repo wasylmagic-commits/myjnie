@@ -147,7 +147,7 @@
     const r = R(); if (!r) return;
     const k = el.dataset.k, v = el.type === 'checkbox' ? el.checked : el.value;
     if (k.indexOf('czas.') === 0) { r.czas = r.czas || {}; const kk = k.slice(5); r.czas[kk] = v; zapisz(r); sumyCzasu(r); if (KL.indexOf(kk) >= 0 && v && kontrolaCzasu(r, kk)) { const bl = bladCzasu(r); if (bl) toast('Sprawdź godziny: ' + NZ[bl[0]] + ' wcześniej niż ' + NZ[bl[1]]); } return; }
-    r[k] = v; if (k === 'myjnia') { const w = myjnia(v) || {}; ['model', 'nrSeryjny'].forEach(x => { if (!r[x] && w[x]) r[x] = w[x]; }); if (!r.odbEmail) r.odbEmail = emailStacji(v); if (!r.iloscMyc) r.iloscMyc = String(w.licznik || '').replace(/\D/g, ''); zapisz(r); render(); return; }
+    r[k] = v; if (k === 'myjnia') { const w = myjnia(v) || {}; /* 16.11.2026: zmiana stacji = inna maszyna – dane urządzenia (model, nr seryjny, licznik, nastawy, e-mail) bierzemy z NOWEJ stacji, stare nie zostają */ r.model = w.model || ''; r.nrSeryjny = w.nrSeryjny || w.serial || ''; r.nastawy = w.nastawy || ''; r.linkNastaw = w.linkNastaw || ''; r.odbEmail = emailStacji(v); r.iloscMyc = String(w.licznik || '').replace(/\D/g, ''); zapisz(r); render(); return; }
     clearTimeout(tz); tz = setTimeout(() => zapisz(r), 250);
   };
   window.rapWybor = function (k, v) { const r = R(); r[k] = r[k] === v ? '' : v; zapisz(r); render(); };
@@ -489,6 +489,12 @@
     // 16.11.2026: szkic założony wcześniej (zanim doszły dane stacji) – dopełnij puste pola z karty myjni i e-mail Orlen z numeru SP
     if (r.myjnia && !r.demo) {
       let zm = 0;
+      // szkic ze starej wersji: dane z INNEJ stacji (zmieniono myjnię po wpisaniu) – popraw
+      const inne = lst.filter(x => x.nazwa !== r.myjnia);
+      if (r.nrSeryjny && inne.some(x => x.nrSeryjny === r.nrSeryjny) && (w.nrSeryjny || '') !== r.nrSeryjny) { r.nrSeryjny = ''; zm = 1; }
+      const lc = x => String(x || '').replace(/\D/g, '');
+      if (r.iloscMyc && inne.some(x => lc(x.licznik) === lc(r.iloscMyc)) && lc(w.licznik) !== lc(r.iloscMyc)) { r.iloscMyc = ''; zm = 1; }
+      if (/^s0\d{4}@sp\.orlen\.pl$/i.test(r.odbEmail || '') && r.odbEmail !== emailStacji(r.myjnia)) { r.odbEmail = ''; zm = 1; }
       [['model', w.model], ['nrSeryjny', w.nrSeryjny || w.serial], ['odbEmail', emailStacji(r.myjnia)]].forEach(([k, v]) => { if (!String(r[k] || '').trim() && v) { r[k] = v; zm = 1; } });
       if (!String(r.iloscMyc || '').trim() && w.licznik) { r.iloscMyc = String(w.licznik).replace(/\D/g, ''); zm = 1; }
       if (zm) zapisz(r);
