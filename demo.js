@@ -1,5 +1,5 @@
 /* Tryb DEMO aplikacji „Serwis myjni” – „serwer” działa w przeglądarce, bez Apps Script i bez Claude.
- * Włączenie: otwórz aplikację z linkiem  …/myjnie/#demo=1  (opcjonalnie &n=NAZWISKO%20IMIĘ). Wyłączenie: #demo=0.
+ * Włączenie: otwórz …/myjnie/demo/#n=NAZWISKO%20IMIĘ (osobny adres i osobna pamięć – nie rusza prawdziwych danych). Stary link #demo=1 przekierowuje tam. Sprzątanie po starej wersji: #demo=0.
  * Co robi: podmienia fetch() dla adresu https://script.google.com/macros/s/DEMO/exec i odpowiada przykładowymi danymi
  * (lista myjni, prace, zadania, magazyn, zaliczka, premia). Zmiany żyją do przeładowania strony.
  * Odpowiedzi „AI” (diagnoza, Popraw, zdjęcie faktury, strona notesu) to ZAPROGRAMOWANE PRZYKŁADY – ekran je oznacza.
@@ -7,16 +7,42 @@
  */
 (function () {
   const H = new URLSearchParams(location.hash.slice(1));
+  const BAZA = 'https://script.google.com/macros/s/DEMO/exec';
+  const SPR = String(location.pathname).indexOf('/demo/') >= 0 || window.__DEMO === true;   // demo wyłącznie pod adresem …/myjnie/demo/ (16.11.2026)
+
+  // 16.11.2026: demo ma OSOBNE miejsce w pamięci przeglądarki (klucze z przedrostkiem demo:), a włącza je sam adres …/demo/,
+  // a nie flaga w localStorage – dzięki temu otwarcie demo na własnym telefonie nie nadpisuje prawdziwego klucza, imienia ani szkiców.
+  if (SPR) {
+    const P = 'demo:', SG = Storage.prototype.getItem, SS = Storage.prototype.setItem, SR = Storage.prototype.removeItem;
+    Storage.prototype.getItem = function (k) { return SG.call(this, this === window.localStorage ? P + k : k); };
+    Storage.prototype.setItem = function (k, v) { return SS.call(this, this === window.localStorage ? P + k : k, v); };
+    Storage.prototype.removeItem = function (k) { return SR.call(this, this === window.localStorage ? P + k : k); };
+  }
   const LSset = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} };
   const LSget = k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } };
-  const BAZA = 'https://script.google.com/macros/s/DEMO/exec';
 
-  if (H.get('demo') === '0') { ['demo', 'k', 'u', 'd', 'n'].forEach(k => LSset(k, null)); try { history.replaceState(null, '', location.pathname); } catch (e) {} return; }
-  if (H.get('demo') === '1') {
+  if (!SPR) {
+    // stare linki …/myjnie/#demo=1 → przenieś do …/myjnie/demo/ (hash zostaje, np. &n=NAZWISKO%20IMIĘ), nic nie zapisując
+    if (H.get('demo') === '1') {
+      H.delete('demo');
+      const reszta = H.toString();
+      location.replace(location.pathname.replace(/[^\/]*$/, '') + 'demo/' + (reszta ? '#' + reszta : ''));
+      return;
+    }
+    // sprzątanie po starej wersji demo: flaga demo w prawdziwej pamięci. Prawdziwy klucz (k różny od „demo”) = to nie demo → usuń ślady (m.in. imię Anton)
+    const stare = LSget('demo') === '1', kd = LSget('k') === 'demo';
+    if (H.get('demo') === '0' || (stare && !kd)) {
+      ['demo', 'd', 'n'].forEach(k => LSset(k, null));
+      if (kd) { LSset('k', null); LSset('u', null); }
+      try { history.replaceState(null, '', location.pathname); } catch (e) {}
+      if (H.get('demo') === '0') return;
+    }
+    // stary instalowany egzemplarz demo (np. u Antona: demo=1 i k=demo) działa dalej jak dotąd
+    if (!(stare && kd)) return;
+  } else {
     LSset('demo', '1'); LSset('k', 'demo'); LSset('u', BAZA); LSset('d', '1');
     if (!H.get('n') && !LSget('n')) LSset('n', 'DEMO ANTON');
   }
-  if (LSget('demo') !== '1') return;
 
   /* ---------- daty ---------- */
   const DZIS = new Date(); DZIS.setHours(12, 0, 0, 0);

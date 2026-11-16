@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>Serwis myjni – DEMO</title>
+<meta name="theme-color" content="#14c4ff">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="../icon-192.png">
+<!-- 16.11.2026: DEMO pod osobnym adresem. Ładuje tę samą aplikację (../index.html), ale demo.js widzi /demo/ w adresie
+     i wszystko trzyma w osobnych kluczach (demo:…) – prawdziwe dane serwisanta na tym samym telefonie zostają nietknięte. -->
+<script>
+window.__DEMO = true;
+fetch('../index.html', { cache: 'no-cache' }).then(function (r) { return r.text(); }).then(function (t) {
+  t = t.replace('<head>', '<head><base href="../">').replace('<link rel="manifest" href="manifest.json">', '<link rel="manifest" href="demo/manifest.json">')
+       .replace('<title>Serwis myjni</title>', '<title>Serwis myjni – DEMO</title>');
+  document.open(); document.write(t); document.close();
+}).catch(function () { document.body.textContent = 'Brak internetu – otwórz demo ponownie.'; });
+</script>
+</head>
+<body></body>
+</html>
