@@ -13,7 +13,7 @@
   // pola przepisywane do karty myjni (arkusz Myjnie) – api=myjnia
   const POLA_MYJNI = { model: 'Nazwa (model)', nrSeryjny: 'Nr seryjny' };
   // przyciski czasu: serwisant tylko klika, godzina wpisuje się sama (16.11.2026: bez „Odjazd z myjni” i „Powrót” – w raporcie tylko godziny na myjni)
-  const CZASY = [['wyjazd', 'Wyjazd'], ['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy']];
+  const CZASY = [['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy']];
   // pola obowiązkowe (* w WebCon) – kolejność = kolejność na ekranie
   const OBOW = [['nrSeryjny', 'Nr seryjny'], ['iloscMyc', 'Ilość myć'], ['nastawyZgodne', 'Nastawy zgodne?'], ['usluga', 'Usługa serwisowa'],
     ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail'], ['podpisSerw', 'Podpis serwisanta']];
@@ -72,7 +72,7 @@
   function czasy(r) {
     const c = r.czas || {};
     // km liczą się dokładnie tak, jak wpisane; puste pole = 0 (bez przypominania i bez „braku pola”)
-    return { dojazd: rozT(ts(r, 'wyjazd'), ts(r, 'przyjazd')), serwis: rozT(ts(r, 'przyjazd'), ts(r, 'koniec')), powrot: 0, kmD: +c.kmD || 0, kmP: +c.kmP || 0 };
+    return { dojazd: 0, serwis: rozT(ts(r, 'przyjazd'), ts(r, 'koniec')), powrot: 0, kmD: +c.kmD || 0, kmP: +c.kmP || 0 };
   }
   function braki(r) {
     const ob = OBOW.slice();
@@ -394,7 +394,7 @@
   const PORown = [
     ['Zakładki i przełączanie', '7 zakładek w zleceniu + 6 w raporcie, skakanie tam i z powrotem', 'jeden ekran, 7 bloków pod sobą'],
     ['Czego brakuje', 'widać dopiero przy zapisie', 'licznik „Brakuje N pól” na górze, klik = przejście do pola'],
-    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Wyjazd / Na myjni / Koniec pracy – liczy się samo'],
+    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Na myjni / Koniec pracy – liczy się samo'],
     ['Opis prac', 'pisanie na klawiaturze', 'dyktujesz jak mówisz – system przepisuje na poprawny język techniczny raportu'],
     ['Kolejny wyjazd', '„Kontynuuj akcję serwisową” i wszystko od nowa', 'jeden klik, dane zlecenia przechodzą same'],
     ['Na tablecie', 'wąski formularz', 'dwie kolumny w poziomie']
@@ -551,9 +551,11 @@
       '<div class="czasy">' +
       CZASY.map(([k, t]) => '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" onclick="rapTeraz(\'' + k + '\')">' + t + '</button>' +
         '<input class="as-in" type="time" data-k="czas.' + k + '" value="' + esc(c[k] || '') + '" onchange="rapPole(this)">' +
-        '<label class="dch' + (efData(r, k) !== (r.dataRaportu || dzisIso()) ? ' pn' : '') + '">' + dt(efData(r, k)).slice(0, 5) + ' ✎<input type="date" data-k="czas.d_' + k + '" value="' + efData(r, k) + '" onchange="rapCzasData(this)"></label></div>').join('') + '</div>' +
-      '<div class="siatka"><div class="pole"><label>Km dojazd</label><input class="as-in" inputmode="numeric" data-k="czas.kmD" value="' + esc(c.kmD || '') + '" oninput="rapPole(this)"></div>' +
-      '<div class="pole"><label>Km powrót</label><input class="as-in" inputmode="numeric" data-k="czas.kmP" value="' + esc(c.kmP || '') + '" oninput="rapPole(this)"></div></div>' +
+        '<label class="dch' + (efData(r, k) !== (r.dataRaportu || dzisIso()) ? ' pn' : '') + '">' + dt(efData(r, k)).slice(0, 5) + ' ✎<input type="date" data-k="czas.d_' + k + '" value="' + efData(r, k) + '" onchange="rapCzasData(this)"></label></div>').join('') +
+      // 16.11.2026: km w takich samych płytkach jak przyciski czasu (dwie płytki godzin + dwie km)
+      [['kmD', 'Km dojazd'], ['kmP', 'Km powrót']].map(([k, t]) => '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" type="button" onclick="this.nextElementSibling.focus()">' + t + '</button>' +
+        '<input class="as-in" inputmode="numeric" placeholder="km" data-k="czas.' + k + '" value="' + esc(c[k] || '') + '" oninput="rapPole(this);this.parentNode.classList.toggle(\'ma\',!!this.value.trim())">' +
+        '<span class="dch" style="visibility:hidden">km</span></div>').join('') + '</div>' +
       '<div id="rpSum">' + tabelaCzasu(czasy(r)) + '</div><div class="note">Kliknij przycisk w chwili zdarzenia – godzina wpisze się sama (można poprawić). Pracownik: ' + SERWISANT + '.</div></div>';
 
     h += '<div class="card"><h3>' + CAM + 'Zdjęcia i komentarz <span class="nr">5</span></h3><div class="fot">' +
