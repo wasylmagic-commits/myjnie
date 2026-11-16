@@ -413,6 +413,13 @@
   html,body{overflow-x:clip;max-width:100%}
   main{overflow-x:clip;touch-action:pan-y pinch-zoom}
   #bnav{will-change:transform;transform:translateZ(0);contain:layout style}
+  /* 16.11.2026: okno na dole / panel myjni – tło pod spodem stoi w miejscu; tekst nie jest zaznaczany długim dotknięciem (poza polami i .sel) */
+  html.blok,html.blok body{overflow:hidden}
+  #ark .tlo{touch-action:none}
+  #ark .ar{max-height:calc(100dvh - 24px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y}
+  #det{overscroll-behavior:contain}
+  body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+  input,textarea,select,[contenteditable],.sel,.sel *{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
 </style>
 </head>
 <body>
@@ -1333,6 +1340,15 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     else { x.style.transform = ''; if (t) t.style.opacity = ''; }
   };
   a.addEventListener('touchend', koniec); a.addEventListener('touchcancel', koniec);
+})();
+/* ---------- blokada przewijania tła, gdy otwarte okno na dole albo panel myjni (telefon) ---------- */
+(function () {
+  const a = document.getElementById('ark'), d = document.getElementById('det'), h = document.documentElement;
+  const ust = () => h.classList.toggle('blok', a.classList.contains('on') || (d.classList.contains('on') && !document.body.classList.contains('dw')));
+  const mo = new MutationObserver(ust);
+  mo.observe(a, { attributes: true, attributeFilter: ['class'] }); mo.observe(d, { attributes: true, attributeFilter: ['class'] }); mo.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+  ust();
+  document.addEventListener('contextmenu', e => { if (!e.target.closest('input,textarea,select,[contenteditable],.sel')) e.preventDefault(); });
 })();
 nav(); load();
 </script>
