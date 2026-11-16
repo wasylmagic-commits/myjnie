@@ -78,7 +78,8 @@
   #ark .ar{position:absolute;left:8px;right:8px;bottom:calc(8px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;padding:8px 18px 18px;border-radius:32px;
            background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);
            box-shadow:inset 0 1px 0 var(--hl),inset 0 0 0 .5px var(--line),0 20px 60px rgba(0,0,0,.3);animation:sheet .5s var(--spring) both}
-  #ark .ar::before{content:"";display:block;width:36px;height:5px;border-radius:3px;background:var(--mute);opacity:.5;margin:0 auto 12px}
+  #ark .ar::before{content:"";display:block;width:36px;height:5px;border-radius:3px;background:var(--mute);opacity:.5;margin:0 auto 12px;box-shadow:0 0 0 14px transparent}
+  #ark .ar{overscroll-behavior:contain}
   #ark h4{margin:0 0 2px;font-size:20px;font-weight:700;letter-spacing:.2px}
   #ark .duza{font:700 40px/1.1 var(--fr);text-align:center;margin:14px 0 4px;padding:12px;letter-spacing:1px}
   #ark .ab{display:flex;gap:10px;margin-top:6px} #ark .ab button{flex:1}
@@ -1139,7 +1140,6 @@ ustawMotyw(LS.get('motyw') || 'auto');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (!document.hidden && D) load(); });
 document.getElementById('logo').innerHTML = '<img src="icon-192.png" alt="">';
-window.addEventListener('popstate', zamknijDet);
 // pasek u góry: duży tytuł chowa się, mały pojawia się przy przewijaniu
 window.addEventListener('scroll', () => document.getElementById('hd').classList.toggle('sc', window.scrollY > 34), { passive: true });
 // gest „wstecz”: przesuń od lewej krawędzi w prawo
@@ -1150,6 +1150,49 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
   d.addEventListener('touchend', () => { if (x0 == null) return; x0 = null; d.style.transition = 'transform .3s cubic-bezier(.2,.8,.2,1)';
     if (dx > window.innerWidth * 0.3) { d.style.transform = 'translateX(100%)'; setTimeout(() => { d.style.transition = ''; d.style.transform = ''; d.classList.remove('on'); DW = null; zaznacz(); }, 300); }
     else { d.style.transform = ''; setTimeout(() => d.style.transition = '', 300); } });
+})();
+/* ---------- gest „wstecz” systemu Androida (17.11.2026) ----------
+ * Zawsze jest jeden wpis „straż” w historii. Wstecz zamyka kolejno: okno na dole (#ark) → panel myjni (#det) → widok w module
+ * (raport / przegląd / diagnoza) → poprzednia zakładka → Dziś. Na Dziś: pierwszy gest pokazuje podpowiedź, drugi (w 2,5 s) wychodzi. */
+(function () {
+  const stos = []; let wyjscie = 0;
+  const go0 = go;
+  go = function (t) { if (t !== TAB && !window.__wstecz) { if (stos[stos.length - 1] === t) stos.pop(); else if (t === 'dzis') stos.length = 0; else stos.push(TAB); } go0(t); };
+  const straz = () => { try { history.pushState({ straz: 1 }, '', location.href); } catch (e) {} };
+  straz();
+  window.addEventListener('popstate', () => {
+    const ark = document.getElementById('ark'), det = document.getElementById('det');
+    if (wyjscie && Date.now() < wyjscie) { wyjscie = 0; history.back(); return; }
+    straz();
+    if (ark.classList.contains('on')) return arkZamknij();
+    if (det.classList.contains('on')) return zamknijDet();
+    const M = (window.MODULY || {})[TAB];
+    window.__wstecz = true;
+    try {
+      if (M && M.wstecz && M.wstecz()) return;
+      if (stos.length) return go(stos.pop());
+      if (TAB !== 'dzis') return go('dzis');
+    } finally { window.__wstecz = false; }
+    wyjscie = Date.now() + 2500; toast('Cofnij jeszcze raz, aby wyjść');
+  });
+})();
+/* ---------- okno na dole: przeciągnij za uchwyt w dół, żeby zamknąć ---------- */
+(function () {
+  const a = document.getElementById('ark'); let ar = null, y0 = 0, dy = 0;
+  a.addEventListener('touchstart', e => {
+    ar = e.target.closest('.ar'); if (!ar) return;
+    const t = e.touches[0]; if (t.clientY - ar.getBoundingClientRect().top > 44) { ar = null; return; }
+    y0 = t.clientY; dy = 0; ar.style.transition = 'none';
+  }, { passive: true });
+  a.addEventListener('touchmove', e => {
+    if (!ar) return; dy = Math.max(0, e.touches[0].clientY - y0); ar.style.transform = 'translateY(' + dy + 'px)'; e.preventDefault();
+  }, { passive: false });
+  const koniec = () => {
+    if (!ar) return; const x = ar; ar = null; x.style.transition = 'transform .25s ease';
+    if (dy > 80) { x.style.transform = 'translateY(110%)'; setTimeout(arkZamknij, 220); }
+    else x.style.transform = '';
+  };
+  a.addEventListener('touchend', koniec); a.addEventListener('touchcancel', koniec);
 })();
 nav(); load();
 </script>

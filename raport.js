@@ -514,5 +514,5 @@
 
   function widok() { return ST.id && R() ? widokRaport() : (ST.id = null, widokLista()); }
   window.MODULY = window.MODULY || {};
-  window.MODULY.raport = { widok: widok, bezDanych: true };
+  window.MODULY.raport = { widok: widok, bezDanych: true, wstecz: () => { if (ST.id) { window.rapLista(); return true; } } };
 })();

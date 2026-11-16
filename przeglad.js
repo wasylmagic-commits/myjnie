@@ -359,5 +359,5 @@
   };
   function widok() { return ST.id && P() ? widokPrzeglad() : (ST.id = null, przKarta()); }
   window.MODULY = window.MODULY || {};
-  window.MODULY.przeglad = { widok: widok };
+  window.MODULY.przeglad = { widok: widok, wstecz: () => { if (ST.id) { window.przLista(); return true; } } };
 })();
