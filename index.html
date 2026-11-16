@@ -866,7 +866,21 @@ function licznikArkusz(nazwa) {
   a.classList.add('on');
   setTimeout(() => { const i = document.getElementById('lcz'); if (i) i.focus(); }, 350);
 }
-function arkZamknij() { const a = document.getElementById('ark'); a.classList.remove('on'); a.innerHTML = ''; }
+function arkZamknij() {
+  const a = document.getElementById('ark');
+  // „duch”: kopia okna zjeżdża w dół i gaśnie, a prawdziwe okno jest od razu puste (nic się nie ściga, gdy zaraz otwiera się następne)
+  if (a.classList.contains('on') && a.querySelector('.ar')) {
+    const g = a.cloneNode(true), ar = g.querySelector('.ar'), tlo = g.querySelector('.tlo');
+    g.style.pointerEvents = 'none'; g.classList.add('on'); g.setAttribute('aria-hidden', 'true');
+    g.querySelectorAll('[id]').forEach(x => x.removeAttribute('id'));
+    ar.style.animation = 'none'; if (tlo) tlo.style.animation = 'none';
+    document.body.appendChild(g); void g.offsetWidth;
+    ar.style.transition = 'transform .24s ease-in'; ar.style.transform = 'translateY(110%)';
+    if (tlo) { tlo.style.transition = 'opacity .24s'; tlo.style.opacity = '0'; }
+    setTimeout(() => g.remove(), 280);
+  }
+  a.classList.remove('on'); a.innerHTML = '';
+}
 function licznikZapisz(nazwa) {
   const w = D.myjnie.find(x => x.nazwa === nazwa) || D.inne.find(x => x.nazwa === nazwa);
   const n = +String(document.getElementById('lcz').value).replace(/\D/g, ''), d = document.getElementById('lcd').value || dzisIso();
