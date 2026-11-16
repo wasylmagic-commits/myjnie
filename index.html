@@ -406,6 +406,11 @@
   .ladow .pkol i{animation-duration:2.6s!important}
   html.laduje .hero .pkol i{animation-duration:2.6s!important}
   /* bez animacji (przełącznik w „Więcej” albo ustawienie systemu) */
+  /* tryb lekki (słaby telefon, włącza się sam): bez ruchomego rozmytego tła i bez rozmycia szkła */
+  html.lekki body::before{animation:none;filter:none}
+  html.lekki #bnav .in,html.lekki header::before,html.lekki #ark .ar,html.lekki .hero .hs div,html.lekki .ib,html.lekki .btn2{-webkit-backdrop-filter:none;backdrop-filter:none}
+  html.lekki .pkol i{animation:none;opacity:0}
+  html.lekki .hero[data-s=alarm] .pkol .led,html.lekki .hero .hs div.s-r::after{animation:none}
   html.bezanim .pkol i{animation:none;opacity:0}
   html.bezanim .hero[data-s=alarm] .pkol .led,html.bezanim .hero .hs div.s-r::after{animation:none}
   @media (prefers-reduced-motion:reduce){.pkol i{opacity:0}}
@@ -1025,7 +1030,7 @@ function wiecej() {
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
 function animacje() {
-  const wyl = LS.get('anim') !== '0'; LS.set('anim', wyl ? '0' : '1'); if (!wyl) { LS.set('lekki', '0'); LS.set('lagi', '0'); }
+  const wyl = LS.get('anim') !== '0'; LS.set('anim', wyl ? '0' : '1'); if (!wyl) { LS.set('lekki', '0'); LS.set('lagi', '0'); document.documentElement.classList.remove('lekki'); }
   document.documentElement.classList.toggle('bezanim', wyl); render(); toast(wyl ? 'Animacje wyłączone' : 'Animacje włączone');
 }
 
@@ -1232,6 +1237,7 @@ function wykresy() {
 document.getElementById('odsw').innerHTML = I('refresh');
 ustawMotyw(LS.get('motyw') || 'auto');
 if (LS.get('anim') === '0') document.documentElement.classList.add('bezanim');
+if (LS.get('lekki') === '1') document.documentElement.classList.add('lekki');
 const pk0 = document.getElementById('pk0'); if (pk0) pk0.outerHTML = mokro();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (!document.hidden && D) load(); });
@@ -1257,7 +1263,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
   const lekki = () => LS.get('lekki') === '1' || document.documentElement.classList.contains('bezanim');
   const mierz = () => { let last = performance.now(); const kon = last + 520; let max = 0;
     (function f(t) { max = Math.max(max, t - last); last = t; if (t < kon) return requestAnimationFrame(f);
-      if (max > 80) { const n = (+LS.get('lagi') || 0) + 1; LS.set('lagi', String(n)); if (n >= 2) { LS.set('lekki', '1'); toast('Telefon słabszy – przełączanie zakładek uproszczone'); } } })(last); };
+      if (max > 80) { const n = (+LS.get('lagi') || 0) + 1; LS.set('lagi', String(n)); if (n >= 2) { LS.set('lekki', '1'); document.documentElement.classList.add('lekki'); toast('Telefon słabszy – przełączanie zakładek uproszczone'); } } })(last); };
   const blok = el => { for (; el && el !== m; el = el.parentElement) {
       if (/^(INPUT|TEXTAREA|SELECT|CANVAS|VIDEO)$/.test(el.tagName) || el.isContentEditable || el.dataset.noswipe != null) return true;
       if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true; }
@@ -1285,8 +1291,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     // jeden ruch na jednym elemencie: stary ekran wyjeżdża i gaśnie → podmiana treści → nowy wjeżdża z drugiej strony (bez animacji dzieci)
     const s0 = dx < 0 ? -1 : 1;
     if (lekki()) {   // słabszy telefon: bez wyjazdu/wjazdu – od razu nowa zakładka i krótkie pojawienie się
-      m.style.transition = 'none'; m.style.transform = ''; go(TABS[j][0]); m.classList.remove('anim'); m.style.opacity = '0'; void m.offsetWidth;
-      m.style.transition = 'opacity .14s ease-out'; m.style.opacity = ''; setTimeout(() => m.style.transition = '', 170); return; }
+      m.style.transition = 'none'; m.style.transform = ''; go(TABS[j][0]); m.classList.remove('anim'); return; }
     mierz();
     m.style.transition = 'transform .12s ease-in, opacity .12s ease-in'; m.style.transform = 'translate3d(' + (s0 * w * 0.2) + 'px,0,0)'; m.style.opacity = '0';
     setTimeout(() => {

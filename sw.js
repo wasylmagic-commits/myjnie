@@ -1,6 +1,6 @@
 // Serwis myjni – service worker: strona zawsze świeża z sieci (no-cache = zawsze sprawdza, GitHub Pages trzyma pliki w cache 10 min), kopia tylko na wypadek braku internetu.
 // 15.11.2026: „Udostępnij → Serwis myjni” (share_target): POST …/udostepnij → plik do cache „udostepnione”, aplikacja wysyła go do Apps Script (udostepnij.js).
-const CACHE = 'myjnie-v43';
+const CACHE = 'myjnie-v44';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
