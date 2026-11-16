@@ -409,11 +409,10 @@
   /* tryb lekki (słaby telefon, włącza się sam): bez ruchomego rozmytego tła i bez rozmycia szkła */
   html.lekki body::before{animation:none;filter:none}
   html.lekki #bnav .in,html.lekki header::before,html.lekki #ark .ar,html.lekki .hero .hs div,html.lekki .ib,html.lekki .btn2{-webkit-backdrop-filter:none;backdrop-filter:none}
-  html.lekki .pkol i{animation:none;opacity:0}
   html.lekki .hero[data-s=alarm] .pkol .led,html.lekki .hero .hs div.s-r::after{animation:none}
-  html.bezanim .pkol i{animation:none;opacity:0}
+  html.bezanim .pkol i{animation-play-state:paused!important}
   html.bezanim .hero[data-s=alarm] .pkol .led,html.bezanim .hero .hs div.s-r::after{animation:none}
-  @media (prefers-reduced-motion:reduce){.pkol i{opacity:0}}
+  @media (prefers-reduced-motion:reduce){.pkol i{animation-play-state:paused!important}}
   /* przesuwanie zakładek: nic nie może poszerzać strony (inaczej przeglądarka przesuwa/zmniejsza widok razem z paskiem) */
   html,body{overflow-x:clip;max-width:100%}
   main{overflow-x:clip;touch-action:pan-y pinch-zoom}
