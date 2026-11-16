@@ -1,6 +1,6 @@
 // Serwis myjni – service worker: strona zawsze świeża z sieci (no-cache = zawsze sprawdza, GitHub Pages trzyma pliki w cache 10 min), kopia tylko na wypadek braku internetu.
 // 15.11.2026: „Udostępnij → Serwis myjni” (share_target): POST …/udostepnij → plik do cache „udostepnione”, aplikacja wysyła go do Apps Script (udostepnij.js).
-const CACHE = 'myjnie-v32';
+const CACHE = 'myjnie-v33';
 self.addEventListener('install', e => self.skipWaiting());
 self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', e => {
@@ -20,6 +20,7 @@ self.addEventListener('fetch', e => {
     })());
     return;
   }
+  if (/\/opencv\.js$/.test(u.pathname)) return;   // 13 MB – zostaje w zwykłym cache przeglądarki, bez kopii w SW
   if (e.request.method !== 'GET' || u.origin !== location.origin) return;   // dane z Apps Script – bez cache
   e.respondWith(fetch(e.request, { cache: 'no-cache' }).then(r => { const c = r.clone(); caches.open(CACHE).then(x => x.put(e.request, c)); return r; })
     .catch(() => caches.match(e.request)));

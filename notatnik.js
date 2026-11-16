@@ -21,8 +21,9 @@
     let h = '<div class="card nt"><h3>' + I('cal', 1) + 'Notes · dzień pracy</h3>';
     if (s.karta) h += '<div class="row nt-cz" onclick="notatnikOtworz()"><div class="g"><b>Strona z ' + esc(s.karta.data) + ' czeka</b><div class="mute">sprawdź i zapisz</div></div><span class="pill o">otwórz</span></div>';
     if (s.pyt && s.pyt.lista && s.pyt.lista.length) h += '<div class="row nt-cz" onclick="notatnikPytania()"><div class="g"><b>Pytania do dnia ' + esc(s.pyt.data || '') + '</b><div class="mute">' + s.pyt.lista.length + ' do odpowiedzi</div></div><span class="pill o">odpowiedz</span></div>';
-    h += '<label class="btn nt-foto' + (ST.trwa ? ' dis' : '') + '"><input type="file" accept="image/*" hidden onchange="notatnikPlik(this)"' + (ST.trwa ? ' disabled' : '') + '>' +
-      I('cal', 1) + (ST.trwa ? 'Czytam stronę…' : 'Zdjęcie strony notesu') + '</label>' +
+    h += (ST.trwa ? '<div class="nt-dwa"><label class="btn nt-foto dis">' + I('cal', 1) + 'Czytam stronę…</label></div>' :
+      '<div class="nt-dwa"><label class="btn nt-foto"><input type="file" accept="image/*" capture="environment" hidden onchange="notatnikPlik(this)">' + I('cal', 1) + 'Zrób zdjęcie</label>' +
+      '<label class="btn2 nt-foto"><input type="file" accept="image/*" hidden onchange="notatnikPlik(this)">' + I('plus', 1) + 'Z galerii</label></div>') +
       '<div class="note" style="text-align:center;margin-top:6px">' + (ST.trwa ? 'zwykle 20–60 sekund, możesz zostać na tym ekranie' : 'cała strona razem z datą u góry · zapis jak w bocie, bez Telegrama') + '</div></div>';
     return h;
   };
@@ -182,7 +183,7 @@
   // style modułu
   const css = document.createElement('style');
   css.textContent =
-    '.nt-foto{display:flex;width:100%;min-height:54px;font-size:17px;cursor:pointer;margin-top:4px} .nt-foto.dis{opacity:.6;pointer-events:none}' +
+    '.nt-dwa{display:flex;gap:8px;margin-top:4px} .nt-foto{display:flex;flex:1;min-width:0;min-height:54px;font-size:16px;cursor:pointer;text-align:center} .nt-foto.dis{opacity:.6;pointer-events:none}' +
     '.nt-cz{cursor:pointer;box-shadow:inset 3px 0 0 var(--org)}' +
     '#ark .ar.nt-k{max-height:calc(100dvh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch}' +
     '.nt-k label{display:block;font-size:12px;color:var(--mute);margin:6px 0 3px} #ark .nt-k input{margin-bottom:4px;padding:9px 10px;font-size:16px;box-sizing:border-box}' +

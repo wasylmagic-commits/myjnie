@@ -39,9 +39,10 @@
       '<div><b style="color:' + (zost < 0 ? 'var(--red)' : 'var(--grn)') + '">' + zl(zost) + '</b><span>zostało</span></div></div>' +
       '<div class="wy-bar"><i style="width:' + proc + '%;' + (proc >= 90 ? 'background:var(--red)' : '') + '"></i></div></div>';
 
-    h += '<label class="btn wy-foto' + (ST.trwa ? ' dis' : '') + '"><input type="file" accept="image/*,application/pdf" multiple hidden onchange="wydPlik(this)"' + (ST.trwa ? ' disabled' : '') + '>' +
-      I('doc', 1) + (ST.trwa ? 'Czytam dokument…' : 'Zdjęcie dokumentu') + '</label>' +
-      '<div class="note" style="text-align:center;margin:-4px 0 14px">PDF albo zdjęcie (kilka zdjęć = kilka stron jednego PDF) · faktura, paragon, tankowanie – rozpoznam sam</div>';
+    h += ST.trwa ? '<div class="wy-dwa"><label class="btn wy-foto dis">' + I('doc', 1) + 'Czytam dokument…</label></div>' :
+      '<div class="wy-dwa"><label class="btn wy-foto"><input type="file" accept="image/*" capture="environment" hidden onchange="wydPlik(this)">' + I('doc', 1) + 'Zrób zdjęcie</label>' +
+      '<label class="btn2 wy-foto"><input type="file" accept="image/*,application/pdf" multiple hidden onchange="wydPlik(this)">' + I('plus', 1) + 'Z galerii / PDF</label></div>';
+    h += '<div class="note" style="text-align:center;margin:-4px 0 14px">kartkę wyprostuję i wyczyszczę sam · kilka zdjęć = kilka stron jednego PDF · faktura, paragon, tankowanie – rozpoznam sam</div>';
 
     h += '<div class="card"><h3>' + I('money', 1) + 'Dokumenty · ' + nazwaMies(m) + (bezM ? ' <span class="pill o">bez miejsca: ' + bezM + '</span>' : '') + '</h3>' +
       (lista.length ? lista.map(z => {
@@ -124,12 +125,25 @@
   async function dodajStrony(fs) {
     ST.strony = ST.strony || [];
     for (const f of fs) {
-      try { const x = await doB64(f); const wh = await wymiary(x.b64); ST.strony.push({ b64: x.b64, w: wh[0], h: wh[1] }); }
+      try {
+        const x = await doB64(f); let st = { b64: x.b64, orig: x.b64 };
+        if (window.skanDokument) {
+          toast('Prostuję i czyszczę kartkę…');
+          try {
+            const sk = await window.skanDokument(x.b64);
+            st.skan = sk.b64; st.b64 = sk.b64; st.popr = true;
+            if (!sk.kadr) toast('Nie widzę krawędzi kartki – poprawiłem tylko kontrast');
+          } catch (e) { toast('Skaner niedostępny, zostawiam zdjęcie bez poprawy'); }
+        }
+        const wh = await wymiary(st.b64); st.w = wh[0]; st.h = wh[1]; ST.strony.push(st);
+      }
       catch (e) { toast(blad(e)); }
     }
     strony();
   }
   window.wydStrona = async inp => { const fs = Array.from(inp.files || []); inp.value = ''; if (fs.length) await dodajStrony(fs); };
+  window.wydPrzel = async i => { const s = ST.strony[i]; if (!s || !s.skan) return; s.popr = !s.popr; s.b64 = s.popr ? s.skan : s.orig;
+    const wh = await wymiary(s.b64); s.w = wh[0]; s.h = wh[1]; strony(); };
   window.wydStronaUsun = i => { ST.strony.splice(i, 1); if (ST.strony.length) strony(); else { ST.strony = null; arkZamknij(); } };
   window.wydStronyAnuluj = () => { ST.strony = null; arkZamknij(); };
   window.wydStronyWyslij = async () => {
@@ -144,7 +158,8 @@
     const s = ST.strony || [], a = document.getElementById('ark');
     a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>' + I('doc', 1) + ' Dokument · ' + s.length + ' ' + (s.length === 1 ? 'strona' : s.length < 5 ? 'strony' : 'stron') + '</h4>' +
       '<div class="mute" style="margin:-2px 0 10px">Faktura ma więcej stron? Dodaj je – wyślę jeden PDF.</div>' +
-      '<div class="wy-st">' + s.map((x, i) => '<div><img src="data:image/jpeg;base64,' + x.b64 + '" alt="strona ' + (i + 1) + '"><button class="ib" aria-label="Usuń stronę" onclick="wydStronaUsun(' + i + ')">' + I('trash', 1) + '</button><span>' + (i + 1) + '</span></div>').join('') +
+      '<div class="wy-st">' + s.map((x, i) => '<div><img src="data:image/jpeg;base64,' + x.b64 + '" alt="strona ' + (i + 1) + '"><button class="ib" aria-label="Usuń stronę" onclick="wydStronaUsun(' + i + ')">' + I('trash', 1) + '</button><span>' + (i + 1) + '</span>' +
+      (x.skan ? '<button class="wy-tg" onclick="wydPrzel(' + i + ')">' + (x.popr ? 'pokaż oryginał' : 'pokaż skan') + '</button>' : '') + '</div>').join('') +
       '<label class="wy-plus"><input type="file" accept="image/*" capture="environment" hidden onchange="wydStrona(this)">' + I('plus', 1) + '<span>Strona</span></label></div>' +
       '<div class="ab" style="margin-top:14px"><button class="btn2" onclick="wydStronyAnuluj()">Anuluj</button>' +
       '<button class="btn" onclick="wydStronyWyslij()">' + I('check', 1) + 'Wyślij PDF</button></div></div>';
@@ -278,7 +293,7 @@
     '.wy-m{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px} .wy-m b{font-size:17px;text-transform:capitalize;text-align:center;flex:1}' +
     '.wy-m .ib[disabled]{opacity:.3}' +
     '.wy-bar{height:8px;border-radius:99px;background:var(--fill);overflow:hidden} .wy-bar i{display:block;height:100%;border-radius:99px;background:var(--grn);transition:width .6s var(--spring)}' +
-    '.wy-foto{display:flex;width:100%;min-height:58px;font-size:18px;margin:2px 0 10px;cursor:pointer} .wy-foto.dis{opacity:.6;pointer-events:none}' +
+    '.wy-dwa{display:flex;gap:8px;margin:2px 0 10px} .wy-foto{display:flex;flex:1;min-width:0;min-height:58px;font-size:16px;margin:0;cursor:pointer;text-align:center} .wy-foto.dis{opacity:.6;pointer-events:none}' +
     '.wy-bm{box-shadow:inset 3px 0 0 var(--org)} .wy-dod{color:var(--org);font-weight:600;font-size:14px;cursor:pointer}' +
     '.wy-k label{display:block;font-size:13px;color:var(--mute);margin:10px 0 4px} .wy-k .as-in{width:100%;box-sizing:border-box}' +
     '.wy-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}' +
@@ -288,6 +303,7 @@
     '.wy-st{display:grid;grid-template-columns:repeat(3,1fr);gap:8px} .wy-st>div{position:relative;border-radius:12px;overflow:hidden;background:var(--fill);aspect-ratio:3/4}' +
     '.wy-st img{width:100%;height:100%;object-fit:cover;display:block} .wy-st .ib{position:absolute;top:4px;right:4px;width:30px;height:30px;color:var(--red)}' +
     '.wy-st>div span{position:absolute;left:6px;bottom:4px;font-weight:700;color:#fff;text-shadow:0 1px 3px #000}' +
+    '.wy-tg{position:absolute;left:4px;right:4px;bottom:4px;border:0;border-radius:8px;padding:5px 4px;font-size:11px;font-weight:600;background:rgba(0,0,0,.6);color:#fff;cursor:pointer} .wy-st>div>span{bottom:34px}' +
     '.wy-plus{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;border:2px dashed var(--line);color:var(--acc);font-weight:600;cursor:pointer;aspect-ratio:3/4}';
   document.head.appendChild(css);
 
