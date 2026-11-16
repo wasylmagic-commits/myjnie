@@ -638,19 +638,29 @@ function notatkaMyjni() {
 function pokazZapisane(r) {
   const a = document.getElementById('ark'), l = r.wpisy || [];
   a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + (l.length ? 'Zapisane (' + l.length + ')' : 'Nic nie zapisałem') + '</h4>' +
-    (l.length ? '<div style="margin:8px 0">' + l.map(x => '<div class="row"><div class="g"><b>' + esc(x.ikona || '') + '</b> ' + esc(x.opis) +
+    (l.length ? '<div style="margin:8px 0">' + l.map(x => '<div class="row"><div class="g"><b>' + esc(x.ikona || '') + '</b>' + (x.myjnia ? ' <span class="mute">' + esc(x.myjnia) + '</span>' : '') + ' ' + esc(x.opis) +
       (x.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(x.czesci) + '</div>' : '') + (x.termin ? '<div class="mute">termin ' + esc(x.termin) + '</div>' : '') + '</div></div>').join('') + '</div>' : '') +
     ((r.zamkniete || []).length ? '<div class="mute">Zamknięte zadania: #' + r.zamkniete.map(esc).join(', #') + '</div>' : '') +
     (r.niejasne ? '<div class="mute" style="color:var(--org);margin-top:8px">' + I('alert', 1) + ' ' + esc(r.niejasne) + '</div>' : '') +
     '<div class="ab" style="margin-top:16px"><button class="btn" onclick="arkZamknij()">OK</button></div></div>';
   a.classList.add('on');
 }
+// 16.11.2026: notatka ze startu – api=notatkaDzis: bot rozbija i zapisuje OD RAZU (bez Telegrama), aplikacja pokazuje co zapisano.
+// Bez patcha bota (Nieznana akcja) – stara droga api=notatka z potwierdzeniem w Telegramie.
 function notatka() {
-  const t = document.getElementById('nt').value.trim();
+  const el = document.getElementById('nt'), b = document.getElementById('ntb');
+  const t = el.value.trim();
   if (t.length < 5) return toast('Napisz trochę więcej');
-  document.getElementById('ntb').disabled = true;
-  api('notatka', { t: t }).then(() => { document.getElementById('nt').value = ''; document.getElementById('ntb').disabled = false; toast('Wysłane — potwierdź w Telegramie'); })
-    .catch(e => { document.getElementById('ntb').disabled = false; toast('Błąd: ' + e.message); });
+  b.disabled = true; b.textContent = 'Analizuję…';
+  const koniec = () => { b.disabled = false; b.textContent = 'Wyślij'; };
+  api('notatkaDzis', { t: t }).then(j => {
+    el.value = ''; koniec(); pokazZapisane(j.wynik || {}); load();
+  }).catch(e => {
+    if (/Nieznana akcja/.test(e.message)) {
+      api('notatka', { t: t }).then(() => { el.value = ''; koniec(); toast('Wysłane — potwierdź w Telegramie'); })
+        .catch(e2 => { koniec(); toast('Błąd: ' + e2.message); });
+    } else { koniec(); toast('Błąd: ' + e.message); }
+  });
 }
 
 /* ---------- Dziś ---------- */
@@ -693,7 +703,7 @@ function dzis() {
   h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
   if (window.notatnikKarta) h += notatnikKarta();   // 16.11.2026: strona notesu zdjęciem (notatnik.js)
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
-       '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
+       '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">zapisze się od razu</span></div>';
   if (prz.length) h += '<div class="card"><h3>' + I('cal', 1) + 'Przeglądy — 3 tygodnie</h3>' + prz.map(w => {
       const n = napr.filter(o => sama(o.myjnia, w)).length;
       return '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +

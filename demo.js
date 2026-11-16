@@ -247,10 +247,12 @@
       case 'otworz': { const o = znajdzOg(p.id); if (o) { o.status = 'otwarty'; o.zamkn = ''; } return { ok: true, wynik: !!o }; }
       case 'usun': { const i = S.ogony.findIndex(o => o.id === String(p.id)); if (i >= 0) S.ogony.splice(i, 1); return { ok: true, wynik: i >= 0 }; }
       case 'notatka': return { ok: true, wynik: 'ok' };
+      case 'notatkaDzis':
       case 'notatkaMyjni': {
-        const t = String(p.t || ''), kup = /kupi|kupić|zamów|zamow|купить|заказ/i.test(t), typ = kup ? 'do kupienia' : 'do zrobienia';
-        const id = String(++nOg); S.ogony.push({ d: iso(DZIS), myjnia: p.m, typ: typ, opis: t.slice(0, 160), czesci: '', status: 'otwarty', zamkn: '', zrodlo: 'aplikacja', id: id, termin: '' });
-        return { ok: true, wynik: { zapisane: 1, wpisy: [{ typ: kup ? 'kupic' : 'ogon', ikona: kup ? '🛒 Do kupienia' : '🔧 Ogon', opis: t.slice(0, 160), czesci: '', termin: '' }], zamkniete: [], niejasne: 'Tryb demo: wpis zapisany bez rozbioru przez Claude.' } };
+        const t = String(p.t || ''), zam = /zamów|zamow|заказ/i.test(t), kup = !zam && /kupi|kupić|купить/i.test(t);
+        const typ = zam ? 'do biura' : kup ? 'do kupienia' : 'do zrobienia';
+        const id = String(++nOg); S.ogony.push({ d: iso(DZIS), myjnia: p.m || '', typ: typ, opis: t.slice(0, 160), czesci: '', status: 'otwarty', zamkn: '', zrodlo: 'aplikacja', id: id, termin: '' });
+        return { ok: true, wynik: { zapisane: 1, wpisy: [{ typ: zam ? 'biuro' : kup ? 'kupic' : 'ogon', ikona: zam ? '📦 Do biura' : kup ? '🛒 Do kupienia' : '🔧 Ogon', myjnia: p.m || '', opis: t.slice(0, 160), czesci: '', termin: '' }], zamkniete: [], niejasne: 'Tryb demo: wpis zapisany bez rozbioru przez Claude.' } };
       }
       case 'myjnia': { const m = S.myjnie.find(x => x.nazwa === p.n); const pola = JSON.parse(p.pola || '{}'), zap = [], kon = {};
         Object.keys(pola).forEach(k => { if (!m) return; const st = String(m[k] || ''); if (st && st !== pola[k] && p.nadpisz !== '1') kon[k] = st; else { m[k] = pola[k]; zap.push(k); } });
@@ -284,7 +286,7 @@
     let tekst;
     if (api === 'sms') tekst = p.test ? 'DEMO: rozpoznano zlecenie SZL/2026/11/00235 · WLOSCIANSKA 6, POZNAN · Praca na sucho pompy glebinowej (nic nie zapisano)' : 'ok (demo)';
     else tekst = JSON.stringify(trasa(api, p, body));
-    const opoz = api === 'asystent' ? 1400 : /popraw|dokument|notatnik$|notatkaMyjni/.test(api) ? 1100 : 250;
+    const opoz = api === 'asystent' ? 1400 : /popraw|dokument|notatnik$|notatkaMyjni|notatkaDzis/.test(api) ? 1100 : 250;
     return new Promise(res => setTimeout(() => res(new Response(tekst, { status: 200, headers: { 'Content-Type': 'application/json' } })), opoz));
   };
 })();
