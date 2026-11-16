@@ -18,6 +18,11 @@
   const OBOW = [['nrSeryjny', 'Nr seryjny'], ['iloscMyc', 'Ilość myć'], ['nastawyZgodne', 'Nastawy zgodne?'], ['usluga', 'Usługa serwisowa'],
     ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail'], ['podpisSerw', 'Podpis serwisanta']];
   const orlen = r => /orlen/i.test(r.myjnia || '');
+  // e-mail stacji Orlen z numeru SP: „Orlen SP 1467” → s01467@sp.orlen.pl (16.11.2026, zasada od Wasyla)
+  function emailStacji(nazwa) {
+    const t = String(nazwa || '').toUpperCase(); if (t.indexOf('ORLEN') < 0) return '';
+    const m = t.match(/(?:SP|ORLEN)\s*(\d{3,4})(?!\d)/); return m ? 's0' + ('0000' + m[1]).slice(-4) + '@sp.orlen.pl' : '';
+  }
   // nr zlecenia skrótem: „11/600” → SZL/2026/11/00600; „600” → bieżący miesiąc; miesiąc „z przyszłości” = zeszły rok (w styczniu wpisujesz grudzień)
   function pelnyNr(typ, s) {
     s = String(s || '').trim().toUpperCase().replace(/\s+/g, '');
@@ -88,7 +93,7 @@
     return { id: 'r' + Date.now(), myjnia: nazwa || '', szlTyp: 'SZL', szlWpis: '', szl: '', model: w.model || '', nrSeryjny: w.nrSeryjny || w.serial || '', kodBledu: '',
       iloscMyc: String(w.licznik || '').replace(/\D/g, ''), nastawy: w.nastawy || '', linkNastaw: w.linkNastaw || '', nastawyZgodne: '', fotoPompy: '', usluga: '', rodzaj: '',
       dataRaportu: dzisIso(), terminNaprawy: '', opisPrac: '', opisTestow: '', uwagi: '', mat: [], czas: {}, zal: [], komentarz: '',
-      odbImie: '', odbEmail: '', odbUwagi: '', potw: false, podpis: '', kontynuacja: '', zamknieteU: '' };
+      odbImie: '', odbEmail: emailStacji(nazwa), odbUwagi: '', potw: false, podpis: '', kontynuacja: '', zamknieteU: '' };
   }
   window.rapNowy = function (nazwa) {
     const r = pusty(nazwa);
@@ -142,7 +147,7 @@
     const r = R(); if (!r) return;
     const k = el.dataset.k, v = el.type === 'checkbox' ? el.checked : el.value;
     if (k.indexOf('czas.') === 0) { r.czas = r.czas || {}; const kk = k.slice(5); r.czas[kk] = v; zapisz(r); sumyCzasu(r); if (KL.indexOf(kk) >= 0 && v && kontrolaCzasu(r, kk)) { const bl = bladCzasu(r); if (bl) toast('Sprawdź godziny: ' + NZ[bl[0]] + ' wcześniej niż ' + NZ[bl[1]]); } return; }
-    r[k] = v; if (k === 'myjnia') { const w = myjnia(v) || {}; ['model', 'nrSeryjny'].forEach(x => { if (!r[x] && w[x]) r[x] = w[x]; }); if (!r.iloscMyc) r.iloscMyc = String(w.licznik || '').replace(/\D/g, ''); zapisz(r); render(); return; }
+    r[k] = v; if (k === 'myjnia') { const w = myjnia(v) || {}; ['model', 'nrSeryjny'].forEach(x => { if (!r[x] && w[x]) r[x] = w[x]; }); if (!r.odbEmail) r.odbEmail = emailStacji(v); if (!r.iloscMyc) r.iloscMyc = String(w.licznik || '').replace(/\D/g, ''); zapisz(r); render(); return; }
     clearTimeout(tz); tz = setTimeout(() => zapisz(r), 250);
   };
   window.rapWybor = function (k, v) { const r = R(); r[k] = r[k] === v ? '' : v; zapisz(r); render(); };
