@@ -1290,8 +1290,8 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
     // jeden ruch na jednym elemencie: stary ekran wyjeżdża i gaśnie → podmiana treści → nowy wjeżdża z drugiej strony (bez animacji dzieci)
     const s0 = dx < 0 ? -1 : 1;
-    if (lekki()) {   // słabszy telefon: bez wyjazdu/wjazdu – od razu nowa zakładka i krótkie pojawienie się
-      m.style.transition = 'none'; m.style.transform = ''; go(TABS[j][0]); m.classList.remove('anim'); return; }
+    if (lekki()) {   // słabszy telefon: jak przy dolnym przycisku (go() + jego animacja)
+      m.style.transition = 'none'; m.style.transform = ''; go(TABS[j][0]); return; }   // dokładnie ta sama animacja, co po kliknięciu dolnego przycisku
     mierz();
     m.style.transition = 'transform .12s ease-in, opacity .12s ease-in'; m.style.transform = 'translate3d(' + (s0 * w * 0.2) + 'px,0,0)'; m.style.opacity = '0';
     setTimeout(() => {
