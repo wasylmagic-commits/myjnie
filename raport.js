@@ -13,7 +13,7 @@
   // pola przepisywane do karty myjni (arkusz Myjnie) – api=myjnia
   const POLA_MYJNI = { model: 'Nazwa (model)', nrSeryjny: 'Nr seryjny' };
   // przyciski czasu: serwisant tylko klika, godzina wpisuje się sama (16.11.2026: bez „Odjazd z myjni” i „Powrót” – w raporcie tylko godziny na myjni)
-  const CZASY = [['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy']];
+  const CZASY = [['przyjazd', 'Początek pracy'], ['koniec', 'Koniec pracy']];
   // pola obowiązkowe (* w WebCon) – kolejność = kolejność na ekranie
   const OBOW = [['nrSeryjny', 'Nr seryjny'], ['iloscMyc', 'Ilość myć'], ['nastawyZgodne', 'Nastawy zgodne?'], ['usluga', 'Usługa serwisowa'],
     ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail'], ['podpisSerw', 'Podpis serwisanta']];
@@ -186,7 +186,7 @@
   // 16.11.2026: do raportu liczą się tylko godziny NA MYJNI (Na myjni → Koniec pracy); czas w drodze nie jest sumowany, zostają same km
   function tabelaCzasu(c) {
     const w = (t, h, km) => '<div class="row"><div class="g">' + t + '</div><b>' + (h == null ? '' : godz(h)) + '</b><span class="mute" style="width:70px;text-align:right">' + (km != null ? km + ' km' : '') + '</span></div>';
-    return w('Na myjni (serwis)', c.serwis, null) + w('Dojazd – km', null, c.kmD) + w('Powrót – km', null, c.kmP) +
+    return w('Dojazd', null, c.kmD) + w('Praca na myjni', c.serwis, null) + w('Powrót', null, c.kmP) +
       '<div class="row"><div class="g"><b>Razem</b></div><b>' + godz(c.serwis) + '</b><span class="mute" style="width:70px;text-align:right">' + (c.kmD + c.kmP) + ' km</span></div>';
   }
 
@@ -394,7 +394,7 @@
   const PORown = [
     ['Zakładki i przełączanie', '7 zakładek w zleceniu + 6 w raporcie, skakanie tam i z powrotem', 'jeden ekran, 7 bloków pod sobą'],
     ['Czego brakuje', 'widać dopiero przy zapisie', 'licznik „Brakuje N pól” na górze, klik = przejście do pola'],
-    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Na myjni / Koniec pracy – liczy się samo'],
+    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Początek pracy / Koniec pracy – liczy się samo'],
     ['Opis prac', 'pisanie na klawiaturze', 'dyktujesz jak mówisz – system przepisuje na poprawny język techniczny raportu'],
     ['Kolejny wyjazd', '„Kontynuuj akcję serwisową” i wszystko od nowa', 'jeden klik, dane zlecenia przechodzą same'],
     ['Na tablecie', 'wąski formularz', 'dwie kolumny w poziomie']
@@ -549,11 +549,12 @@
     h += '<div class="card" data-ob="czas"><h3>' + I('clock', 1) + 'Rejestracja czasu <span class="nr">4</span></h3>' +
       '<div class="siatka"><div class="pole" data-ob="dataRaportu"><label>Dzień wyjazdu (data do raportu) <i>*</i></label><input class="as-in" type="date" data-k="dataRaportu" value="' + esc(r.dataRaportu || '') + '" onchange="rapPole(this)"></div></div>' +
       '<div class="czasy">' +
-      CZASY.map(([k, t]) => '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" onclick="rapTeraz(\'' + k + '\')">' + t + '</button>' +
+      // 16.11.2026: kolejność jak w dniu pracy: dojazd (km) → początek pracy → koniec pracy → powrót (km); wszystkie płytki takie same
+      [['km', 'kmD', 'Dojazd (km)'], ['t', 'przyjazd', 'Początek pracy'], ['t', 'koniec', 'Koniec pracy'], ['km', 'kmP', 'Powrót (km)']].map(([typ, k, t]) => typ === 't' ?
+        '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" type="button" onclick="rapTeraz(\'' + k + '\')">' + t + '</button>' +
         '<input class="as-in" type="time" data-k="czas.' + k + '" value="' + esc(c[k] || '') + '" onchange="rapPole(this)">' +
-        '<label class="dch' + (efData(r, k) !== (r.dataRaportu || dzisIso()) ? ' pn' : '') + '">' + dt(efData(r, k)).slice(0, 5) + ' ✎<input type="date" data-k="czas.d_' + k + '" value="' + efData(r, k) + '" onchange="rapCzasData(this)"></label></div>').join('') +
-      // 16.11.2026: km w takich samych płytkach jak przyciski czasu (dwie płytki godzin + dwie km)
-      [['kmD', 'Km dojazd'], ['kmP', 'Km powrót']].map(([k, t]) => '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" type="button" onclick="this.nextElementSibling.focus()">' + t + '</button>' +
+        '<label class="dch' + (efData(r, k) !== (r.dataRaportu || dzisIso()) ? ' pn' : '') + '">' + dt(efData(r, k)).slice(0, 5) + ' ✎<input type="date" data-k="czas.d_' + k + '" value="' + efData(r, k) + '" onchange="rapCzasData(this)"></label></div>' :
+        '<div class="cz' + (c[k] ? ' ma' : '') + '"><button class="btn" type="button" onclick="this.nextElementSibling.focus()">' + t + '</button>' +
         '<input class="as-in" inputmode="numeric" placeholder="km" data-k="czas.' + k + '" value="' + esc(c[k] || '') + '" oninput="rapPole(this);this.parentNode.classList.toggle(\'ma\',!!this.value.trim())">' +
         '<span class="dch" style="visibility:hidden">km</span></div>').join('') + '</div>' +
       '<div id="rpSum">' + tabelaCzasu(czasy(r)) + '</div><div class="note">Kliknij przycisk w chwili zdarzenia – godzina wpisze się sama (można poprawić). Pracownik: ' + SERWISANT + '.</div></div>';
