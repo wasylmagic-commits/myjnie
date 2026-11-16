@@ -27,9 +27,9 @@
     const sum = p.map(q => q[0] + q[1]), dif = p.map(q => q[0] - q[1]);
     return [p[sum.indexOf(Math.min.apply(0, sum))], p[dif.indexOf(Math.max.apply(0, dif))], p[sum.indexOf(Math.max.apply(0, sum))], p[dif.indexOf(Math.min.apply(0, dif))]];
   }
-  function czworokat(cv, bin, A) {   // największy sensowny czworokąt na masce krawędzi/jasności
+  function czworokat(cv, bin, A, mw, mh) {   // największy sensowny czworokąt na masce krawędzi/jasności
     const cs = new cv.MatVector(), h = new cv.Mat(); let best = null;
-    cv.findContours(bin, cs, h, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+    cv.findContours(bin, cs, h, cv.RETR_LIST, cv.CHAIN_APPROX_SIMPLE);
     for (let i = 0; i < cs.size(); i++) {
       const c = cs.get(i), pole = cv.contourArea(c);
       if (pole < A * 0.2 || pole > A * 0.985) { c.delete(); continue; }
@@ -44,7 +44,12 @@
         const r = cv.minAreaRect(hull), q = cv.RotatedRect.points(r); pts = q.map(z => [z.x, z.y]);
         const rp = r.size.width * r.size.height; if (pole / rp < 0.8) pts = null;
       }
-      if (pts && (!best || pole > best.pole)) best = { pole, pts };
+      if (pts) {                       // kontur musi wypełniać swój czworokąt (inaczej to plama ze stołem/tłem, nie kartka)
+        let qa = 0; for (let k = 0; k < 4; k++) { const u = pts[k], v = pts[(k + 1) % 4]; qa += u[0] * v[1] - v[0] * u[1]; } qa = Math.abs(qa) / 2;
+        const wyp = pole / Math.max(qa, 1);
+        const mx = mw * 0.02, my = mh * 0.02, brzeg = pts.filter(q => q[0] < mx || q[0] > mw - mx || q[1] < my || q[1] > mh - my).length;   // ramka zdjęcia, nie kartka
+        if (wyp > 0.88 && wyp < 1.12 && brzeg < 3 && (!best || pole > best.pole)) best = { pole, pts };
+      }
       hull.delete(); c.delete();
     }
     cs.delete(); h.delete(); return best;
@@ -56,9 +61,10 @@
     cv.cvtColor(mala, g, cv.COLOR_RGBA2GRAY); cv.GaussianBlur(g, bl, new cv.Size(5, 5), 0);
     const A = mw * mh, k = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(5, 5)); let najl = null;
     const e = new cv.Mat(); cv.Canny(bl, e, 40, 120); cv.dilate(e, e, k); cv.morphologyEx(e, e, cv.MORPH_CLOSE, k);
-    najl = czworokat(cv, e, A); e.delete();
-    const t = new cv.Mat(); cv.threshold(bl, t, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU); cv.morphologyEx(t, t, cv.MORPH_OPEN, k); cv.morphologyEx(t, t, cv.MORPH_CLOSE, k);
-    const b2 = czworokat(cv, t, A); t.delete();
+    najl = czworokat(cv, e, A, mw, mh); e.delete();
+    const t = new cv.Mat(); cv.threshold(bl, t, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU);
+    const k2 = cv.getStructuringElement(cv.MORPH_RECT, new cv.Size(21, 21)); cv.morphologyEx(t, t, cv.MORPH_OPEN, k2); cv.morphologyEx(t, t, cv.MORPH_CLOSE, k); k2.delete();
+    const b2 = czworokat(cv, t, A, mw, mh); t.delete();
     if (b2 && (!najl || b2.pole > najl.pole)) najl = b2;
     k.delete(); mala.delete(); g.delete(); bl.delete();
     return najl ? porzadek(najl.pts.map(p => [p[0] / sc, p[1] / sc])) : null;
@@ -97,7 +103,7 @@
         }
       }
       const g = popraw(cv, m); mats.push(g);        // poprawa kontrastu także gdy nie znaleziono kartki (całe zdjęcie)
-      return { b64: doJpeg(cv, g), ok: ok, powod: powod, kadr: ok };
+      return { b64: doJpeg(cv, g), ok: ok, powod: powod, kadr: ok, rogi: p };
     } finally { mats.forEach(x => x.delete()); }
   };
 })();
