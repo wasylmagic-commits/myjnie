@@ -1025,7 +1025,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + '</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v46</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
@@ -1278,7 +1278,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     if (x0 == null) return; const t = e.touches[0], ax = t.clientX - x0, ay = t.clientY - y0;
     if (!kier) { if (Math.abs(ax) < 10 && Math.abs(ay) < 10) return; kier = Math.abs(ax) > Math.abs(ay) * 1.5 ? 1 : -1; if (kier < 0) { x0 = null; return; } m.style.transition = 'none'; }
     dx = ax; const i = TABS.findIndex(x => x[0] === TAB), kraniec = (dx > 0 && i === 0) || (dx < 0 && i === TABS.length - 1);
-    m.style.transform = 'translate3d(' + (dx * (kraniec ? 0.12 : 0.35)).toFixed(1) + 'px,0,0)';
+    if (!lekki()) m.style.transform = 'translate3d(' + (dx * (kraniec ? 0.12 : 0.35)).toFixed(1) + 'px,0,0)';   // tryb lekki: ekran nie jedzie za palcem
   }, { passive: true });
   const koniec = e => {
     if (x0 == null || kier !== 1) { x0 = null; return; } x0 = null;
