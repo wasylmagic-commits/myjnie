@@ -508,7 +508,10 @@
       (orlen(r) ? '<div class="pole cala" data-ob="fotoPompy"><label>Zdjęcie pomp dozujących (wszystkie na jednym) <i>*</i></label><div class="pomp">' +
         (r.fotoPompy ? '<img src="' + r.fotoPompy + '"><button class="btn2" onclick="rapFotoPompyUsun()">Usuń</button>' : '') +
         '<label class="btn2" style="display:inline-flex">' + CAM + (r.fotoPompy ? ' Zrób ponownie' : ' Zrób zdjęcie pomp') + '<input type="file" accept="image/*" capture="environment" hidden onchange="rapFotoPompy(this)"></label>' +
-        '<label class="btn2" style="display:inline-flex">' + I('doc', 1) + ' Wgraj z galerii<input type="file" accept="image/*" hidden onchange="rapFotoPompy(this)"></label></div></div>' : '') +
+        '<label class="btn2" style="display:inline-flex">' + I('doc', 1) + ' Wgraj z galerii<input type="file" accept="image/*" hidden onchange="rapFotoPompy(this)"></label></div></div>' :
+        '<div class="pole cala"><label>Zdjęcie pomp / nastaw <small style="font-weight:400">(trafia do „Zdjęcia” na dole' + (r.zal.length ? ', dodano: ' + r.zal.length : '') + ')</small></label><div class="pomp">' +
+        '<label class="btn2" style="display:inline-flex">' + CAM + ' Zrób zdjęcie<input type="file" accept="image/*" capture="environment" hidden onchange="rapFoto(this)"></label>' +
+        '<label class="btn2" style="display:inline-flex">' + I('doc', 1) + ' Wgraj z galerii<input type="file" accept="image/*" multiple hidden onchange="rapFoto(this)"></label></div></div>') +
       '<div class="note cala">Model i nr seryjny zapisują się też w karcie myjni – następnym razem wpiszą się same.</div></div></div>';
 
     h += '<div class="card"><h3>' + I('pen', 1) + 'Co zrobione <span class="nr">2</span></h3><div class="siatka">' +
