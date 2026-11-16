@@ -486,6 +486,13 @@
 
   function widokRaport() {
     const r = R(), w = myjnia(r.myjnia) || {}, c = r.czas || {}, lst = D ? D.myjnie.concat(D.inne) : [];
+    // 16.11.2026: szkic założony wcześniej (zanim doszły dane stacji) – dopełnij puste pola z karty myjni i e-mail Orlen z numeru SP
+    if (r.myjnia && !r.demo) {
+      let zm = 0;
+      [['model', w.model], ['nrSeryjny', w.nrSeryjny || w.serial], ['odbEmail', emailStacji(r.myjnia)]].forEach(([k, v]) => { if (!String(r[k] || '').trim() && v) { r[k] = v; zm = 1; } });
+      if (!String(r.iloscMyc || '').trim() && w.licznik) { r.iloscMyc = String(w.licznik).replace(/\D/g, ''); zm = 1; }
+      if (zm) zapisz(r);
+    }
     let h = css + '<div class="rp"><div class="phead"><button class="ib" onclick="rapLista()">' + I('back') + '</button><div><b>Raport · ' + esc(skrot(r.myjnia || '')) + '</b><span>' +
       esc([w.miasto, w.adres].filter(Boolean).join(', ')) + ' · szkic zapisuje się sam</span></div></div>';
     h += '<div id="rpBr" class="rp-br" onclick="rapDoBraku()"></div>';
