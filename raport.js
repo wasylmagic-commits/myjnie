@@ -12,8 +12,8 @@
   const RODZAJE_RESZTA = ['Myjnia nieczynna', 'Awaria częściowa', 'Awaria drobna', 'Awaria programu', 'Awaria', 'ANU', 'PRV', 'CHE', 'GWA', 'Mycie myjni'];
   // pola przepisywane do karty myjni (arkusz Myjnie) – api=myjnia
   const POLA_MYJNI = { model: 'Nazwa (model)', nrSeryjny: 'Nr seryjny' };
-  // przyciski czasu: serwisant tylko klika, godziny Dojazd/Serwis/Powrót liczą się same
-  const CZASY = [['wyjazd', 'Wyjazd'], ['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy'], ['odjazd', 'Odjazd z myjni'], ['dom', 'Powrót']];
+  // przyciski czasu: serwisant tylko klika, godzina wpisuje się sama (16.11.2026: bez „Odjazd z myjni” i „Powrót” – w raporcie tylko godziny na myjni)
+  const CZASY = [['wyjazd', 'Wyjazd'], ['przyjazd', 'Na myjni'], ['koniec', 'Koniec pracy']];
   // pola obowiązkowe (* w WebCon) – kolejność = kolejność na ekranie
   const OBOW = [['nrSeryjny', 'Nr seryjny'], ['iloscMyc', 'Ilość myć'], ['nastawyZgodne', 'Nastawy zgodne?'], ['usluga', 'Usługa serwisowa'],
     ['opisPrac', 'Opis wykonanych prac'], ['dataRaportu', 'Data do raportu'], ['czas', 'Rejestracja czasu'], ['odbImie', 'Odbierający – imię i nazwisko'], ['odbEmail', 'Odbierający – e-mail'], ['podpisSerw', 'Podpis serwisanta']];
@@ -72,7 +72,7 @@
   function czasy(r) {
     const c = r.czas || {};
     // km liczą się dokładnie tak, jak wpisane; puste pole = 0 (bez przypominania i bez „braku pola”)
-    return { dojazd: rozT(ts(r, 'wyjazd'), ts(r, 'przyjazd')), serwis: rozT(ts(r, 'przyjazd'), ts(r, 'koniec')), powrot: rozT(ts(r, 'odjazd'), ts(r, 'dom')), kmD: +c.kmD || 0, kmP: +c.kmP || 0 };
+    return { dojazd: rozT(ts(r, 'wyjazd'), ts(r, 'przyjazd')), serwis: rozT(ts(r, 'przyjazd'), ts(r, 'koniec')), powrot: 0, kmD: +c.kmD || 0, kmP: +c.kmP || 0 };
   }
   function braki(r) {
     const ob = OBOW.slice();
@@ -394,7 +394,7 @@
   const PORown = [
     ['Zakładki i przełączanie', '7 zakładek w zleceniu + 6 w raporcie, skakanie tam i z powrotem', 'jeden ekran, 7 bloków pod sobą'],
     ['Czego brakuje', 'widać dopiero przy zapisie', 'licznik „Brakuje N pól” na górze, klik = przejście do pola'],
-    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Wyjazd / Na myjni / Koniec / Powrót – liczy się samo'],
+    ['Czas pracy', 'godziny i km wpisywane ręcznie', 'przyciski Wyjazd / Na myjni / Koniec pracy – liczy się samo'],
     ['Opis prac', 'pisanie na klawiaturze', 'dyktujesz jak mówisz – system przepisuje na poprawny język techniczny raportu'],
     ['Kolejny wyjazd', '„Kontynuuj akcję serwisową” i wszystko od nowa', 'jeden klik, dane zlecenia przechodzą same'],
     ['Na tablecie', 'wąski formularz', 'dwie kolumny w poziomie']
