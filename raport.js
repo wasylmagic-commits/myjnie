@@ -5,7 +5,7 @@
  * Ładowany PRZED głównym skryptem; funkcje index.html (esc, I, jsq, toast, dzisIso, dt, skrot, naglowek, LS, D, go) używane dopiero przy wywołaniu.
  */
 (function () {
-  const SERWISANT = 'TOMCZAKOWSKI WASYL';
+  const SERWISANT = (() => { const DOM = 'TOMCZAKOWSKI WASYL'; try { const h = new URLSearchParams(location.hash.slice(1)).get('n'); if (h) localStorage.setItem('n', h); return localStorage.getItem('n') || DOM; } catch (e) { return DOM; } })();
   const USLUGI = ['Gwarancyjna', 'Płatna', 'Ryczałtowa', 'Inna', 'Do decyzji serwisanta'];
   // Rodzaj zgłoszenia – pełna lista z WebCon (15.11.2026); pierwsze 4 jako przyciski, reszta w „więcej”
   const RODZAJE_GL = ['AWP', 'AWK', 'PSE', 'USZ'];

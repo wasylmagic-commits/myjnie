@@ -386,11 +386,15 @@ const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e)
 (function () {
   const h = new URLSearchParams(location.hash.slice(1));
   if (h.get('k')) LS.set('k', h.get('k'));
+  if (h.get('n')) LS.set('n', h.get('n'));   // nazwisko i imię serwisanta (druki, powitanie); bez tego: Wasyl
+  if (h.get('d')) LS.set('d', h.get('d'));   // d=1 → oznaczenie „DEMO”
   // adres serwera tylko z Google Apps Script (audyt 14.11.2026, №16)
   if (h.get('u') && /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(h.get('u'))) LS.set('u', h.get('u'));
   if (location.hash) history.replaceState(null, '', location.pathname);
 })();
 const K = LS.get('k'), API = LS.get('u');
+// imię do powitania: ostatni wyraz z #n=NAZWISKO IMIĘ (np. „KOWALSKI ANTON” → Anton); bez #n zostaje Wasyl
+function imieSerw() { const n = (LS.get('n') || '').trim().split(/\s+/).pop(); return n ? n.charAt(0).toUpperCase() + n.slice(1).toLowerCase() : 'Wasyl'; }
 // zapytanie do Apps Script (GET, bez preflight CORS)
 function api(akcja, par) {
   const q = new URLSearchParams(Object.assign({ api: akcja, k: K }, par || {}));
@@ -675,7 +679,7 @@ function dzis() {
   const mies = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
   const g = new Date().getHours(), pora = g < 11 ? 'Dzień dobry' : g < 18 ? 'Cześć' : 'Dobry wieczór';
   const poTer = D.myjnie.filter(w => w.dni != null && w.dni < 0).length;
-  let h = '<div class="hero"><small>Serwis myjni · ' + esc(UPD) + '</small><h2>' + pora + ', Wasyl</h2><div class="hs">' +
+  let h = '<div class="hero"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
     '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
     (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +

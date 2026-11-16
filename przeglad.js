@@ -7,7 +7,7 @@
  * Ładowany PRZED głównym skryptem; funkcje index.html (esc, I, jsq, toast, dzisIso, dt, skrot, LS, D, go, api, arkZamknij) używane dopiero przy wywołaniu.
  */
 (function () {
-  const TECHNIK = 'TOMCZAKOWSKI WASYL';
+  const TECHNIK = (() => { const DOM = 'TOMCZAKOWSKI WASYL'; try { const h = new URLSearchParams(location.hash.slice(1)).get('n'); if (h) localStorage.setItem('n', h); return localStorage.getItem('n') || DOM; } catch (e) { return DOM; } })();
   // [sekcja, punkty] – teksty dokładnie jak na formularzu papierowym
   const SEKCJE = [
     ['Dostawa mediów', ['Sprawdzenie stanu przewodów wodnych i elektrycznych w energołańcuchu']],
