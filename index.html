@@ -409,6 +409,9 @@
   html.bezanim .pkol i{animation:none;opacity:0}
   html.bezanim .hero[data-s=alarm] .pkol .led,html.bezanim .hero .hs div.s-r::after{animation:none}
   @media (prefers-reduced-motion:reduce){.pkol i{opacity:0}}
+  /* przesunięcie zakładek palcem: nowa wjeżdża z boku */
+  main.zp>*{animation:zp .4s var(--spring) both} main.zl>*{animation:zl .4s var(--spring) both}
+  @keyframes zp{from{opacity:0;transform:translate3d(48px,0,0)}} @keyframes zl{from{opacity:0;transform:translate3d(-48px,0,0)}}
 </style>
 </head>
 <body>
@@ -1235,6 +1238,44 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
   d.addEventListener('touchend', () => { if (x0 == null) return; x0 = null; d.style.transition = 'transform .3s cubic-bezier(.2,.8,.2,1)';
     if (dx > window.innerWidth * 0.3) { d.style.transform = 'translateX(100%)'; setTimeout(() => { d.style.transition = ''; d.style.transform = ''; d.classList.remove('on'); DW = null; zaznacz(); }, 300); }
     else { d.style.transform = ''; setTimeout(() => d.style.transition = '', 300); } });
+})();
+/* ---------- 16.11.2026: przesuń palcem w lewo/prawo = sąsiednia zakładka dolnego paska ----------
+ * Tylko na 6 głównych zakładkach (nie w modułach z „Więcej”, nie w formularzach), nie przy krawędziach (tam gest systemu),
+ * nie na polach tekstowych i paskach przewijanych w bok. Ekran lekko jedzie za palcem; przełącza po ~22% szerokości albo szybkim smyrgnięciu. */
+(function () {
+  const m = document.getElementById('main'); let x0 = null, y0 = 0, t0 = 0, dx = 0, kier = 0;
+  const glowna = () => TABS.some(t => t[0] === TAB);
+  const blok = el => { for (; el && el !== m; el = el.parentElement) {
+      if (/^(INPUT|TEXTAREA|SELECT|CANVAS|VIDEO)$/.test(el.tagName) || el.isContentEditable || el.dataset.noswipe != null) return true;
+      if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true; }
+    return false; };
+  m.addEventListener('touchstart', e => {
+    x0 = null; if (e.touches.length !== 1 || !D || !glowna()) return;
+    if (document.getElementById('ark').classList.contains('on') || document.getElementById('det').classList.contains('on') && !document.body.classList.contains('dw')) return;
+    const t = e.touches[0]; if (t.clientX < 24 || t.clientX > window.innerWidth - 24 || blok(e.target)) return;
+    x0 = t.clientX; y0 = t.clientY; t0 = e.timeStamp; dx = 0; kier = 0;
+  }, { passive: true });
+  m.addEventListener('touchmove', e => {
+    if (x0 == null) return; const t = e.touches[0], ax = t.clientX - x0, ay = t.clientY - y0;
+    if (!kier) { if (Math.abs(ax) < 10 && Math.abs(ay) < 10) return; kier = Math.abs(ax) > Math.abs(ay) * 1.5 ? 1 : -1; if (kier < 0) { x0 = null; return; } m.style.transition = 'none'; }
+    dx = ax; const i = TABS.findIndex(x => x[0] === TAB), kraniec = (dx > 0 && i === 0) || (dx < 0 && i === TABS.length - 1);
+    m.style.transform = 'translate3d(' + (dx * (kraniec ? 0.12 : 0.35)).toFixed(1) + 'px,0,0)';
+  }, { passive: true });
+  const koniec = e => {
+    if (x0 == null || kier !== 1) { x0 = null; return; } x0 = null;
+    const szybko = Math.abs(dx) > 45 && Math.abs(dx) / Math.max(1, e.timeStamp - t0) > 0.5;
+    const i = TABS.findIndex(x => x[0] === TAB), j = i + (dx < 0 ? 1 : -1);
+    m.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1)'; m.style.transform = '';
+    setTimeout(() => m.style.transition = '', 260);
+    if ((Math.abs(dx) > window.innerWidth * 0.22 || szybko) && j >= 0 && j < TABS.length) {
+      if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
+      go(TABS[j][0]);
+      m.classList.remove('anim', 'zp', 'zl'); void m.offsetWidth; m.classList.add(dx < 0 ? 'zp' : 'zl');
+      setTimeout(() => m.classList.remove('zp', 'zl'), 450);
+    }
+  };
+  m.addEventListener('touchend', koniec, { passive: true });
+  m.addEventListener('touchcancel', () => { x0 = null; m.style.transform = ''; }, { passive: true });
 })();
 /* ---------- gest „wstecz” systemu Androida (17.11.2026) ----------
  * Zawsze jest jeden wpis „straż” w historii. Wstecz zamyka kolejno: okno na dole (#ark) → panel myjni (#det) → widok w module
