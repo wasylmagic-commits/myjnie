@@ -95,7 +95,8 @@
       try { j = JSON.parse(t); } catch (e) { throw new Error('serwer nie odpowiedział poprawnie'); }
       if (!j.ok) throw new Error(j.blad || 'błąd serwera');
       const w = j.wynik || {};
-      if (w.typ === 'faktura' && w.juz) toast('Faktura ' + (w.numer || '') + ' jest już zapisana');
+      if (w.typ === 'notes' && window.notatnikPokaz) notatnikPokaz(w);   // 16.11.2026: strona notesu → karta dnia (notatnik.js)
+      else if (w.typ === 'faktura' && w.juz) toast('Faktura ' + (w.numer || '') + ' jest już zapisana');
       else if (w.typ === 'faktura' && w.key) { ST.karta = w; karta(); }
       else if ((w.komunikaty || []).length) { komunikaty(w); load(); }
       else if (w.typ === 'tankowanie' || w.typ === 'licznik_auta') { toast(w.typ === 'tankowanie' ? 'Tankowanie zapisane' : 'Licznik auta zapisany'); load(); }

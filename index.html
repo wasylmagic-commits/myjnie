@@ -380,6 +380,7 @@
 <script src="przeglad.js"></script>
 <script src="udostepnij.js"></script>
 <script src="sms.js"></script>
+<script src="notatnik.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -683,6 +684,7 @@ function dzis() {
   if (window.zleceniaKarta) h += zleceniaKarta();
   h += terminyRozliczen();
   h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
+  if (window.notatnikKarta) h += notatnikKarta();   // 16.11.2026: strona notesu zdjęciem (notatnik.js)
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
        '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">potwierdzenie przyjdzie w Telegramie</span></div>';
   if (prz.length) h += '<div class="card"><h3>' + I('cal', 1) + 'Przeglądy — 3 tygodnie</h3>' + prz.map(w => {
