@@ -1025,7 +1025,7 @@ function wiecej() {
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
 function animacje() {
-  const wyl = LS.get('anim') !== '0'; LS.set('anim', wyl ? '0' : '1');
+  const wyl = LS.get('anim') !== '0'; LS.set('anim', wyl ? '0' : '1'); if (!wyl) { LS.set('lekki', '0'); LS.set('lagi', '0'); }
   document.documentElement.classList.toggle('bezanim', wyl); render(); toast(wyl ? 'Animacje wyłączone' : 'Animacje włączone');
 }
 
@@ -1253,6 +1253,11 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
 (function () {
   const m = document.getElementById('main'); let x0 = null, y0 = 0, t0 = 0, dx = 0, kier = 0;
   const glowna = () => TABS.some(t => t[0] === TAB);
+  // 16.11.2026: na słabym telefonie przejście zakładek tnie – mierzymy przerwy między klatkami; po 2 szarpnięciach przełączamy na tryb lekki (zapamiętane)
+  const lekki = () => LS.get('lekki') === '1' || document.documentElement.classList.contains('bezanim');
+  const mierz = () => { let last = performance.now(); const kon = last + 520; let max = 0;
+    (function f(t) { max = Math.max(max, t - last); last = t; if (t < kon) return requestAnimationFrame(f);
+      if (max > 80) { const n = (+LS.get('lagi') || 0) + 1; LS.set('lagi', String(n)); if (n >= 2) { LS.set('lekki', '1'); toast('Telefon słabszy – przełączanie zakładek uproszczone'); } } })(last); };
   const blok = el => { for (; el && el !== m; el = el.parentElement) {
       if (/^(INPUT|TEXTAREA|SELECT|CANVAS|VIDEO)$/.test(el.tagName) || el.isContentEditable || el.dataset.noswipe != null) return true;
       if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true; }
@@ -1279,6 +1284,10 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
     // jeden ruch na jednym elemencie: stary ekran wyjeżdża i gaśnie → podmiana treści → nowy wjeżdża z drugiej strony (bez animacji dzieci)
     const s0 = dx < 0 ? -1 : 1;
+    if (lekki()) {   // słabszy telefon: bez wyjazdu/wjazdu – od razu nowa zakładka i krótkie pojawienie się
+      m.style.transition = 'none'; m.style.transform = ''; go(TABS[j][0]); m.classList.remove('anim'); m.style.opacity = '0'; void m.offsetWidth;
+      m.style.transition = 'opacity .14s ease-out'; m.style.opacity = ''; setTimeout(() => m.style.transition = '', 170); return; }
+    mierz();
     m.style.transition = 'transform .12s ease-in, opacity .12s ease-in'; m.style.transform = 'translate3d(' + (s0 * w * 0.2) + 'px,0,0)'; m.style.opacity = '0';
     setTimeout(() => {
       m.style.transition = 'none'; go(TABS[j][0]); m.classList.remove('anim');
