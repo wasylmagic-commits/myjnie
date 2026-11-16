@@ -409,9 +409,10 @@
   html.bezanim .pkol i{animation:none;opacity:0}
   html.bezanim .hero[data-s=alarm] .pkol .led,html.bezanim .hero .hs div.s-r::after{animation:none}
   @media (prefers-reduced-motion:reduce){.pkol i{opacity:0}}
-  /* przesunięcie zakładek palcem: nowa wjeżdża z boku */
-  main.zp>*{animation:zp .4s var(--spring) both} main.zl>*{animation:zl .4s var(--spring) both}
-  @keyframes zp{from{opacity:0;transform:translate3d(48px,0,0)}} @keyframes zl{from{opacity:0;transform:translate3d(-48px,0,0)}}
+  /* przesuwanie zakładek: nic nie może poszerzać strony (inaczej przeglądarka przesuwa/zmniejsza widok razem z paskiem) */
+  html,body{overflow-x:clip;max-width:100%}
+  main{overflow-x:clip;touch-action:pan-y pinch-zoom}
+  #bnav{will-change:transform;transform:translateZ(0);contain:layout style}
 </style>
 </head>
 <body>
@@ -1264,15 +1265,20 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
   const koniec = e => {
     if (x0 == null || kier !== 1) { x0 = null; return; } x0 = null;
     const szybko = Math.abs(dx) > 45 && Math.abs(dx) / Math.max(1, e.timeStamp - t0) > 0.5;
-    const i = TABS.findIndex(x => x[0] === TAB), j = i + (dx < 0 ? 1 : -1);
-    m.style.transition = 'transform .25s cubic-bezier(.2,.8,.2,1)'; m.style.transform = '';
-    setTimeout(() => m.style.transition = '', 260);
-    if ((Math.abs(dx) > window.innerWidth * 0.22 || szybko) && j >= 0 && j < TABS.length) {
-      if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
-      go(TABS[j][0]);
-      m.classList.remove('anim', 'zp', 'zl'); void m.offsetWidth; m.classList.add(dx < 0 ? 'zp' : 'zl');
-      setTimeout(() => m.classList.remove('zp', 'zl'), 450);
-    }
+    const i = TABS.findIndex(x => x[0] === TAB), j = i + (dx < 0 ? 1 : -1), w = window.innerWidth;
+    if (!((Math.abs(dx) > w * 0.22 || szybko) && j >= 0 && j < TABS.length)) {   // za krótko: wróć na miejsce
+      m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; m.style.transform = '';
+      setTimeout(() => m.style.transition = '', 240); return; }
+    if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
+    // jeden ruch na jednym elemencie: stary ekran wyjeżdża i gaśnie → podmiana treści → nowy wjeżdża z drugiej strony (bez animacji dzieci)
+    const s0 = dx < 0 ? -1 : 1;
+    m.style.transition = 'transform .12s ease-in, opacity .12s ease-in'; m.style.transform = 'translate3d(' + (s0 * w * 0.2) + 'px,0,0)'; m.style.opacity = '0';
+    setTimeout(() => {
+      m.style.transition = 'none'; go(TABS[j][0]); m.classList.remove('anim');
+      m.style.transform = 'translate3d(' + (-s0 * w * 0.12) + 'px,0,0)'; void m.offsetWidth;
+      m.style.transition = 'transform .24s cubic-bezier(.2,.8,.2,1), opacity .24s ease-out'; m.style.transform = ''; m.style.opacity = '';
+      setTimeout(() => m.style.transition = '', 260);
+    }, 125);
   };
   m.addEventListener('touchend', koniec, { passive: true });
   m.addEventListener('touchcancel', () => { x0 = null; m.style.transform = ''; }, { passive: true });
