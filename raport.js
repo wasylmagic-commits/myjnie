@@ -183,10 +183,11 @@
     const c = czasy(r), el = document.getElementById('rpSum');
     if (el) el.innerHTML = tabelaCzasu(c);
   }
+  // 16.11.2026: do raportu liczą się tylko godziny NA MYJNI (Na myjni → Koniec pracy); czas w drodze nie jest sumowany, zostają same km
   function tabelaCzasu(c) {
-    const w = (t, h, km) => '<div class="row"><div class="g">' + t + '</div><b>' + godz(h) + '</b><span class="mute" style="width:70px;text-align:right">' + (km != null ? km + ' km' : '') + '</span></div>';
-    return w('Dojazd', c.dojazd, c.kmD) + w('Serwis', c.serwis, null) + w('Powrót', c.powrot, c.kmP) +
-      '<div class="row"><div class="g"><b>Razem</b></div><b>' + godz(c.dojazd + c.serwis + c.powrot) + '</b><span class="mute" style="width:70px;text-align:right">' + (c.kmD + c.kmP) + ' km</span></div>';
+    const w = (t, h, km) => '<div class="row"><div class="g">' + t + '</div><b>' + (h == null ? '' : godz(h)) + '</b><span class="mute" style="width:70px;text-align:right">' + (km != null ? km + ' km' : '') + '</span></div>';
+    return w('Na myjni (serwis)', c.serwis, null) + w('Dojazd – km', null, c.kmD) + w('Powrót – km', null, c.kmP) +
+      '<div class="row"><div class="g"><b>Razem</b></div><b>' + godz(c.serwis) + '</b><span class="mute" style="width:70px;text-align:right">' + (c.kmD + c.kmP) + ' km</span></div>';
   }
 
   // materiały: z magazynu w aucie (szukajka) albo spoza magazynu (wpis ręczny)
