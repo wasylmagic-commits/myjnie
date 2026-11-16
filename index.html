@@ -1176,21 +1176,29 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     wyjscie = Date.now() + 2500; toast('Cofnij jeszcze raz, aby wyjść');
   });
 })();
-/* ---------- okno na dole: przeciągnij za uchwyt w dół, żeby zamknąć ---------- */
+/* ---------- okno na dole: złap za uchwyt i przeciągnij w dół – zamyka się dopiero po pełnym „smyrgnięciu” ---------- */
 (function () {
-  const a = document.getElementById('ark'); let ar = null, y0 = 0, dy = 0;
+  const a = document.getElementById('ark'); let ar = null, tlo = null, y0 = 0, dy = 0, v = 0, tp = 0, yp = 0, h = 0;
   a.addEventListener('touchstart', e => {
     ar = e.target.closest('.ar'); if (!ar) return;
-    const t = e.touches[0]; if (t.clientY - ar.getBoundingClientRect().top > 44) { ar = null; return; }
-    y0 = t.clientY; dy = 0; ar.style.transition = 'none';
+    const t = e.touches[0], r = ar.getBoundingClientRect(); if (t.clientY - r.top > 48) { ar = null; return; }
+    tlo = a.querySelector('.tlo'); h = r.height + 24; y0 = yp = t.clientY; tp = e.timeStamp; dy = 0; v = 0;
+    ar.style.transition = 'none'; if (tlo) tlo.style.transition = 'none';
   }, { passive: true });
   a.addEventListener('touchmove', e => {
-    if (!ar) return; dy = Math.max(0, e.touches[0].clientY - y0); ar.style.transform = 'translateY(' + dy + 'px)'; e.preventDefault();
+    if (!ar) return; const y = e.touches[0].clientY;
+    dy = Math.max(0, y - y0);
+    const dt = e.timeStamp - tp; if (dt > 0) v = 0.7 * v + 0.3 * ((y - yp) / dt); yp = y; tp = e.timeStamp;
+    ar.style.transform = 'translateY(' + dy + 'px)';
+    if (tlo) tlo.style.opacity = String(Math.max(0.15, 1 - dy / h));
+    e.preventDefault();
   }, { passive: false });
   const koniec = () => {
-    if (!ar) return; const x = ar; ar = null; x.style.transition = 'transform .25s ease';
-    if (dy > 80) { x.style.transform = 'translateY(110%)'; setTimeout(arkZamknij, 220); }
-    else x.style.transform = '';
+    if (!ar) return; const x = ar, t = tlo; ar = null;
+    const zamknij = dy > h * 0.5 || (v > 0.8 && dy > 60);          // ponad połowa wysokości albo szybkie machnięcie
+    x.style.transition = 'transform .32s cubic-bezier(.2,.8,.2,1)'; if (t) t.style.transition = 'opacity .32s';
+    if (zamknij) { x.style.transform = 'translateY(' + (h + 40) + 'px)'; if (t) t.style.opacity = '0'; setTimeout(arkZamknij, 300); }
+    else { x.style.transform = ''; if (t) t.style.opacity = ''; }
   };
   a.addEventListener('touchend', koniec); a.addEventListener('touchcancel', koniec);
 })();
