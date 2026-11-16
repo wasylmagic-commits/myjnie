@@ -357,6 +357,58 @@
   .mokro .led,.pb{display:none}
   .kr.sp{animation:none} .kr.sp::after{display:none}
   .kr{opacity:.75}
+
+  /* ===== MOTYW „A2 GRAFIT” (16.11.2026): jasna belka z aluminium, czarna kolumna portalu Christ z LED i pierścieniami,
+     kafelki grafitowe, kolumna = światło stanu dnia (turkus / pomarańcz / czerwień). Animacje tylko transform+opacity. ===== */
+  :root{--led:#3fd6ff;--ledc:#3fd6ff;--ledg:rgba(63,214,255,.7);
+    --ant:linear-gradient(160deg,#7d858e 0%,#5c636b 55%,#474d54 100%);
+    --heroBg:linear-gradient(165deg,#ffffff 0%,#f1f4f7 60%,#e4e9ee 100%);--heroInk:#141618;--heroSm:#0089c2;
+    --kaf:linear-gradient(160deg,#7d858e 0%,#5c636b 55%,#474d54 100%)}
+  @media (prefers-color-scheme:dark){:root:not([data-t=jasny]){--heroBg:linear-gradient(165deg,#2a2e33 0%,#1d2024 60%,#151719 100%);--heroInk:#f2f4f6;--heroSm:#3fd6ff;
+    --kaf:linear-gradient(160deg,#5a6169 0%,#41474e 55%,#30353a 100%);--ant:linear-gradient(160deg,#5a6169 0%,#41474e 55%,#30353a 100%)}}
+  :root[data-t=ciemny]{--heroBg:linear-gradient(165deg,#2a2e33 0%,#1d2024 60%,#151719 100%);--heroInk:#f2f4f6;--heroSm:#3fd6ff;
+    --kaf:linear-gradient(160deg,#5a6169 0%,#41474e 55%,#30353a 100%);--ant:linear-gradient(160deg,#5a6169 0%,#41474e 55%,#30353a 100%)}
+  .hero{background:var(--heroBg);color:var(--heroInk);padding-left:48px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 0 1px var(--line),0 10px 26px rgba(0,60,110,.12)}
+  .hero::before{background:repeating-linear-gradient(90deg,rgba(128,128,128,.035) 0 1px,transparent 1px 3px)}
+  .hero::after{display:none}
+  .hero small{color:var(--heroSm)}
+  /* kolumna portalu */
+  .hero>.pkol,.ladow>.pkol{position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:30px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
+    background:linear-gradient(90deg,#0d0f11,#1c1f23 70%,#2a2e33);pointer-events:none}
+  .mokro.pkol .led{display:block;position:absolute;left:7px;right:7px;top:14px;height:30%;max-height:120px;border-radius:4px;
+    background:linear-gradient(180deg,#fff 0%,var(--ledc) 30%,var(--ledc));box-shadow:0 0 10px var(--ledc),0 0 24px var(--ledg);transition:background .6s,box-shadow .6s}
+  .pkol i{position:absolute;left:50%;bottom:-18px;width:var(--w);height:var(--w);margin-left:calc(var(--w) / -2);border:2px solid var(--ledc);border-radius:50%;
+    box-shadow:0 0 6px var(--ledg);opacity:0;will-change:transform,opacity;animation:pier var(--t) linear var(--d) infinite}
+  @keyframes pier{0%{transform:translate3d(0,0,0);opacity:0}10%{opacity:1}65%{opacity:.85}100%{transform:translate3d(var(--x),-260px,0);opacity:0}}
+  .hero.stop .pkol i,.ladow.stop .pkol i{animation-play-state:paused}
+  /* światło stanu dnia */
+  .hero[data-s=uwaga]{--ledc:#ff9f0a;--ledg:rgba(255,159,10,.65)}
+  .hero[data-s=alarm]{--ledc:#ff453a;--ledg:rgba(255,69,58,.7)}
+  .hero[data-s=alarm] .pkol .led{animation:alarm 1.4s ease-in-out infinite}
+  @keyframes alarm{50%{opacity:.35}}
+  /* kafelki grafit (+ kolory stanu) */
+  .hero .hs div{background:var(--kaf);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 -1px 0 rgba(0,0,0,.15),0 5px 14px rgba(40,50,60,.2)}
+  .hero .hs b{color:#fff}
+  .hero .hs div:first-child b{color:#6fe6ff;text-shadow:0 0 12px rgba(63,214,255,.55)}
+  .hero .hs span{color:rgba(255,255,255,.88)}
+  .hero .hs div.s-o{background:linear-gradient(160deg,#ffb340,#f08a00 60%,#d97400)} .hero .hs div.s-o b{color:#fff;text-shadow:none}
+  .hero .hs div.s-r{background:linear-gradient(160deg,#ff6961,#e5281e 60%,#c51d14)} .hero .hs div.s-r b{color:#fff;text-shadow:none}
+  .hero .hs div.s-r::after{content:"";position:absolute;inset:0;border-radius:inherit;box-shadow:0 0 0 2px rgba(255,69,58,.6),0 0 18px rgba(255,69,58,.55);animation:alarm 1.4s ease-in-out infinite;pointer-events:none}
+  .hero .hs div{position:relative}
+  /* stare „mokre szkło” wyłączone */
+  .kr,.pb,.mokro:not(.pkol){display:none}
+  /* LED-kanty: nagłówki kart */
+  .card h3::before{content:"";flex:0 0 auto;width:3px;height:15px;border-radius:2px;background:var(--led);box-shadow:0 0 8px var(--ledg)}
+  /* ładowanie: kolumna z pierścieniami zamiast szarych pasków */
+  .ladow{position:relative;overflow:hidden;height:220px;border-radius:26px;margin:4px 0 14px;padding:22px 20px 20px 52px;background:var(--heroBg);
+    box-shadow:inset 0 0 0 1px var(--line),0 10px 26px rgba(0,60,110,.1);color:var(--mute);font-weight:600;display:flex;align-items:flex-end}
+  .ladow .pkol i{animation-duration:2.6s!important}
+  html.laduje .hero .pkol i{animation-duration:2.6s!important}
+  /* bez animacji (przełącznik w „Więcej” albo ustawienie systemu) */
+  html.bezanim .pkol i{animation:none;opacity:0}
+  html.bezanim .hero[data-s=alarm] .pkol .led,html.bezanim .hero .hs div.s-r::after{animation:none}
+  @media (prefers-reduced-motion:reduce){.pkol i{opacity:0}}
 </style>
 </head>
 <body>
@@ -368,7 +420,7 @@
     <button class="ib" onclick="load()" aria-label="Odśwież" id="odsw"></button>
   </div>
 </header>
-<main id="main"><div class="sk"></div><div class="sk"></div><div class="sk" style="height:160px"></div></main>
+<main id="main"><div class="ladow"><div class="mokro pkol" id="pk0"></div>Wczytuję dane…</div></main>
 <nav id="bnav"><div class="in" id="nav"></div></nav>
 <div id="det"></div>
 <div id="toast"></div>
@@ -492,16 +544,16 @@ function pillDni(d) {
 
 function load() {
   if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację linkiem z bota: napisz <b>/aplikacja</b> w Telegramie i kliknij link. Potem już zawsze z ikony.</div>'; setUpd('brak klucza'); return; }
-  setUpd('odświeżam…'); document.getElementById('odsw').classList.add('spin');
+  setUpd('odświeżam…'); document.getElementById('odsw').classList.add('spin'); document.documentElement.classList.add('laduje');
   api('dane').then(j => {
       // 15.11.2026: bez migania – ekran przerysowujemy tylko gdy dane naprawdę się zmieniły, animacja wejścia tylko przy pierwszym ładowaniu
       const klucz = d => JSON.stringify(Object.assign({}, d, { teraz: '' }));
       const bylo = D ? klucz(D) : null;
-      D = j.dane; document.getElementById('odsw').classList.remove('spin'); setUpd('stan na ' + D.teraz);
+      D = j.dane; document.getElementById('odsw').classList.remove('spin'); document.documentElement.classList.remove('laduje'); setUpd('stan na ' + D.teraz);
       if (bylo === null) { ANIM = true; render(); }
       else if (bylo !== klucz(D)) { ANIM = false; render(); }
     })
-    .catch(e => { document.getElementById('odsw').classList.remove('spin'); setUpd('błąd połączenia');
+    .catch(e => { document.getElementById('odsw').classList.remove('spin'); document.documentElement.classList.remove('laduje'); setUpd('błąd połączenia');
       if (!D) document.getElementById('main').innerHTML = '<div class="card">' + I('alert') + ' ' + esc(e.message) + '<div class="mute">Sprawdź internet i odśwież.</div></div>'; else toast('Nie udało się odświeżyć'); });
 }
 function nav() {
@@ -533,19 +585,14 @@ function render() {
   if (ANIM) { void m.offsetWidth; m.classList.add('anim'); }
   ANIM = false;
 }
-// mokre szkło na kartach „hero”: krople (kilka spływa), pęcherzyki piany w trzech kolorach, światło LED portalu
+// 16.11.2026: kolumna portalu Christ na kartach „hero”: LED u góry + pierścienie płynące w górę (tylko transform/opacity – lekkie)
 function mokro() {
-  let h = '<div class="mokro">';
-  const r = (a, b) => a + Math.random() * (b - a);
-  for (let i = 0; i < 7; i++) { const w = r(5, 12), sp = false;
-    h += '<i class="kr' + (sp ? ' sp' : '') + '" style="left:' + r(4, 94).toFixed(1) + '%;top:' + r(sp ? 4 : 8, sp ? 40 : 88).toFixed(1) + '%;width:' + w.toFixed(1) + 'px;height:' + (w * 1.15).toFixed(1) + 'px' +
-         (sp ? ';--t:' + r(7, 13).toFixed(1) + 's;--d:' + r(0, 6).toFixed(1) + 's;--sl:' + r(25, 60).toFixed(0) + 'px' : '') + '"></i>'; }
-  const kol = ['rgba(255,120,200,.22)', 'rgba(100,210,255,.22)', 'rgba(255,214,10,.2)'];
-  for (let i = 0; i < 0; i++) { const w = r(8, 20);
-    h += '<i class="pb" style="left:' + r(5, 92).toFixed(1) + '%;width:' + w.toFixed(1) + 'px;height:' + w.toFixed(1) + 'px;--c:' + kol[i % 3] + ';--t:' + r(7, 12).toFixed(1) + 's;--d:' + r(0, 8).toFixed(1) + 's;--x:' + r(-18, 18).toFixed(0) + 'px"></i>'; }
-  return h + '</div>';
+  const R = [[12, 7, 0, 2], [8, 9, 2.5, -2], [14, 8, 4.6, 1], [6, 6, 1.3, 0], [10, 10, 6.2, -1], [7, 7.5, 3.7, 2]];
+  return '<div class="mokro pkol"><div class="led"></div>' + R.map(([w, t, d, x]) => '<i style="--w:' + w + 'px;--t:' + t + 's;--d:-' + d + 's;--x:' + x + 'px"></i>').join('') + '</div>';
 }
-function zmocz(el) { (el || document).querySelectorAll('.hero').forEach(x => { if (!x.querySelector('.mokro')) x.insertAdjacentHTML('afterbegin', mokro()); }); }
+// animacja stoi, gdy karta nie jest na ekranie
+const OBS = 'IntersectionObserver' in window ? new IntersectionObserver(e => e.forEach(x => x.target.classList.toggle('stop', !x.isIntersecting))) : null;
+function zmocz(el) { (el || document).querySelectorAll('.hero').forEach(x => { if (!x.querySelector('.mokro')) x.insertAdjacentHTML('afterbegin', mokro()); if (OBS) OBS.observe(x); }); }
 function naglowek(ic, t, sub) {
   return '<div class="phead"><button class="ib" onclick="go(\'wiecej\')">' + I('back') + '</button><div><b>' + t + '</b>' + (sub ? '<span>' + sub + '</span>' : '') + '</div></div>';
 }
@@ -692,12 +739,17 @@ function dzis() {
   const mies = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
   const g = new Date().getHours(), pora = g < 11 ? 'Dzień dobry' : g < 18 ? 'Cześć' : 'Dobry wieczór';
   const poTer = D.myjnie.filter(w => w.dni != null && w.dni < 0).length;
-  let h = '<div class="hero"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
+  // 16.11.2026: światło stanu dnia w kolumnie: alarm = nowe zlecenie AWK / myjnia nieczynna, uwaga = coś po terminie
+  const zN = window.zleceniaNowe ? zleceniaNowe() : [], awk = zN.some(p => /AWK|nieczynna/i.test(p.rodzaj || ''));
+  const zadPo = ot.filter(o => /^\d{4}-\d\d-\d\d/.test(String(o.termin || '')) && String(o.termin).slice(0, 10) < dzisIso()).length;
+  const stanDnia = awk ? 'alarm' : (poTer || zadPo) ? 'uwaga' : 'ok';
+  let h = '<div class="hero" data-s="' + stanDnia + '"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
     '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
-    (poTer ? '<div onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +
+    (poTer ? '<div class="s-o" onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +
+    (zadPo ? '<div class="s-o" onclick="go(\'ogony\')"><b>' + zadPo + '</b><span>zadania po terminie</span></div>' : '') +
     (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') +
-    (window.zleceniaNowe && zleceniaNowe().length ? '<div onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zleceniaNowe().length + '</b><span>nowe zlecenia</span></div>' : '') + '</div></div>';
+    (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
   if (window.zleceniaKarta) h += zleceniaKarta();
   h += terminyRozliczen();
   h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
@@ -957,7 +1009,13 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + '</span></button>' +
     '</div>';
+}
+// 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
+function animacje() {
+  const wyl = LS.get('anim') !== '0'; LS.set('anim', wyl ? '0' : '1');
+  document.documentElement.classList.toggle('bezanim', wyl); render(); toast(wyl ? 'Animacje wyłączone' : 'Animacje włączone');
 }
 
 /* ---------- Magazyn ---------- */
@@ -1162,6 +1220,8 @@ function wykresy() {
 
 document.getElementById('odsw').innerHTML = I('refresh');
 ustawMotyw(LS.get('motyw') || 'auto');
+if (LS.get('anim') === '0') document.documentElement.classList.add('bezanim');
+const pk0 = document.getElementById('pk0'); if (pk0) pk0.outerHTML = mokro();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (!document.hidden && D) load(); });
 document.getElementById('logo').innerHTML = '<img src="icon-192.png" alt="">';

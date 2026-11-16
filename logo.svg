@@ -2,7 +2,7 @@
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".55" stop-color="#e9edf2"/><stop offset="1" stop-color="#cfd6de"/></linearGradient>
     <linearGradient id="alu" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#7f8892"/><stop offset=".5" stop-color="#c3c9d0"/><stop offset="1" stop-color="#737c86"/></linearGradient>
-    <linearGradient id="led" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5fdcff"/><stop offset="1" stop-color="#0a9ad8"/></linearGradient>
+    <linearGradient id="led" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#c8f6ff"/><stop offset=".35" stop-color="#3fd6ff"/><stop offset="1" stop-color="#14b4f0"/></linearGradient>
     <linearGradient id="br" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2a2f35"/><stop offset=".5" stop-color="#5d646d"/><stop offset="1" stop-color="#2a2f35"/></linearGradient>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="14"/></filter>
     <clipPath id="bl"><rect x="330" y="380" width="92" height="320" rx="46"/></clipPath>
@@ -15,10 +15,14 @@
   <!-- portal z aluminium -->
   <path d="M232 800 V318 a78 78 0 0 1 78 -78 H714 a78 78 0 0 1 78 78 V800 h-86 V330 a10 10 0 0 0 -10 -10 H328 a10 10 0 0 0 -10 10 V800 z" fill="url(#alu)"/>
   <!-- kolumny LED -->
-  <rect x="246" y="330" width="22" height="440" rx="11" fill="#14c4ff" filter="url(#glow)" opacity=".9"/>
-  <rect x="246" y="330" width="22" height="440" rx="11" fill="url(#led)"/>
-  <rect x="756" y="330" width="22" height="440" rx="11" fill="#14c4ff" filter="url(#glow)" opacity=".9"/>
-  <rect x="756" y="330" width="22" height="440" rx="11" fill="url(#led)"/>
+  <rect x="240" y="324" width="34" height="452" rx="17" fill="#111316"/>
+  <rect x="246" y="336" width="22" height="160" rx="11" fill="#3fd6ff" filter="url(#glow)" opacity=".9"/>
+  <rect x="246" y="336" width="22" height="160" rx="11" fill="url(#led)"/>
+  <g fill="none" stroke="#3fd6ff" stroke-width="5"><circle cx="257" cy="560" r="8"/><circle cx="257" cy="625" r="11"/><circle cx="257" cy="690" r="6"/><circle cx="257" cy="740" r="9"/></g>
+  <rect x="750" y="324" width="34" height="452" rx="17" fill="#111316"/>
+  <rect x="756" y="336" width="22" height="160" rx="11" fill="#3fd6ff" filter="url(#glow)" opacity=".9"/>
+  <rect x="756" y="336" width="22" height="160" rx="11" fill="url(#led)"/>
+  <g fill="none" stroke="#3fd6ff" stroke-width="5"><circle cx="767" cy="560" r="8"/><circle cx="767" cy="625" r="11"/><circle cx="767" cy="690" r="6"/><circle cx="767" cy="740" r="9"/></g>
   <!-- belka szczotki dachowej -->
   <rect x="318" y="320" width="388" height="44" fill="#3a4047"/>
   <!-- szczotki -->
