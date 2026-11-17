@@ -45,6 +45,7 @@
     const o = wszystkie(); p.zm = new Date().toISOString(); o[p.id] = p;
     if (!zapiszWsz(o)) toast('Brak miejsca w pamięci telefonu');
     if (!cicho) licznik();
+    chPlan(p);
   }
   const myjnia = n => (D && (D.myjnie.find(x => x.nazwa === n) || D.inne.find(x => x.nazwa === n))) || null;
   const teraz = () => { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
@@ -75,10 +76,75 @@
     if (typeof zamknijDet === 'function') zamknijDet();
     arkZamknij(); go('przeglad');
   };
-  window.przOtworz = id => { ST.id = id; TAB = 'przeglad'; render(); window.scrollTo(0, 0); };
+  window.przOtworz = id => { ST.id = id; TAB = 'przeglad'; render(); window.scrollTo(0, 0); chSynchro(1); };
   window.przLista = () => { ST.id = null; go('przeglady'); };
-  window.przUsun = id => { if (!confirm('Usunąć ten przegląd z telefonu?')) return; const o = wszystkie(); delete o[id]; zapiszWsz(o); ST.id = null; go('przeglady'); };
+  window.przUsun = id => { if (!confirm('Usunąć ten przegląd z telefonu i z chmury (na innych urządzeniach też zniknie)?')) return; const o = wszystkie(); delete o[id]; zapiszWsz(o); chBrud.delete(id); if (!chOff && API && K) chPost({ akcja: 'usun', id: id }).catch(chBlad); ST.id = null; go('przeglady'); };
   window.przSzkice = () => Object.values(wszystkie()).sort((a, b) => (b.zm || '').localeCompare(a.zm || ''));
+
+  // ===== SZKICE W CHMURZE (łatka bota Szkice.gs: POST ?api=przSzkic) – 17.11.2026 =====
+  // Szkic wysyła się sam ~3 s po ostatniej zmianie (z podpisami); na drugim urządzeniu pojawia się na liście „Przegląd w aplikacji”.
+  // Wygrywa nowszy p.zm. Bez łatki bota wszystko działa jak dotąd – tylko lokalnie (komunikat przy przeglądzie).
+  const chBrud = new Set();
+  let chOff = false, chT = 0, chLot = false, chOst = 0, chTxt = '';
+  const maTresc = p => !!p && (Object.keys(p.odp || {}).some(k => p.odp[k]) || p.poz || p.uwagi || Object.keys(p.prog || {}).length);
+  async function chPost(body) {
+    const res = await fetch(API + '?api=przSzkic', { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ k: K }, body)) });
+    const t = await res.text(); let j; try { j = JSON.parse(t); } catch (e) { throw new Error('Nieznana akcja'); }
+    if (!j.ok) throw new Error(j.blad || 'błąd serwera');
+    return j;
+  }
+  function chStatus(t) { chTxt = t; const e = document.getElementById('prCh'); if (e) e.textContent = t; }
+  function chBlad(e) {
+    if (/Nieznana|akcja|Unknown/i.test(e.message)) { chOff = true; chStatus('Szkic tylko na tym urządzeniu – zainstaluj aktualizację bota (/aktualizuj)'); }
+    else chStatus('Chmura: ' + e.message + ' – ponowię przy następnej zmianie');
+  }
+  function chUsunLok(id) {
+    const o = wszystkie(); delete o[id]; zapiszWsz(o); chBrud.delete(id);
+    if (ST.id === id) { ST.id = null; toast('Ten przegląd usunięto na innym urządzeniu'); go('przeglady'); }
+  }
+  async function chPobierz(id) {
+    const j = await chPost({ akcja: 'pobierz', id: id });
+    if (!j.szkic || j.szkic.x) { chUsunLok(id); return; }
+    const o = wszystkie(); o[id] = j.szkic; zapiszWsz(o);   // zm zostaje z chmury – nie bijemy go zapisz()
+    if (ST.id === id) { render(); toast('Wczytano nowszą wersję z chmury'); }
+  }
+  function chPlan(p) {
+    if (chOff || !API || !K || !maTresc(p)) return;
+    chBrud.add(p.id); clearTimeout(chT); chT = setTimeout(chFlush, 3000);
+  }
+  async function chFlush() {
+    if (chOff || !API || !K) return;
+    if (chLot) { chT = setTimeout(chFlush, 1500); return; }
+    chLot = true;
+    try {
+      for (const id of Array.from(chBrud)) {
+        const p = wszystkie()[id]; chBrud.delete(id); if (!p) continue;
+        chStatus('Wysyłam szkic do chmury…');
+        const j = await chPost({ akcja: 'zapisz', szkic: p, ile: braki(p).length }), w = j.wynik || {};
+        if (w.zapisano === false) { if (w.x) chUsunLok(id); else await chPobierz(id); }
+        else chStatus('✓ Szkic w chmurze ' + teraz());
+      }
+    } catch (e) { chBlad(e); } finally { chLot = false; }
+  }
+  async function chSynchro(sila) {
+    if (chOff || !API || !K) return;
+    if (!sila && Date.now() - chOst < 8000) return;
+    chOst = Date.now();
+    try {
+      const j = await chPost({ akcja: 'lista' }); let zm = false;
+      for (const m of j.lista) {
+        const l = wszystkie()[m.id];
+        if (m.x) { if (l && (l.zm || '') <= m.zm) { chUsunLok(m.id); zm = true; } continue; }
+        if (!l || (l.zm || '') < m.zm) { await chPobierz(m.id); zm = true; }
+        else if ((l.zm || '') > m.zm) chBrud.add(m.id);
+      }
+      Object.values(wszystkie()).forEach(l => { if (maTresc(l) && !j.lista.some(m => m.id === l.id)) chBrud.add(l.id); });
+      if (chBrud.size) chFlush();
+      if (zm && !ST.id && TAB === 'przeglady') { const sel = document.getElementById('prNm'); if (!sel || !sel.value) render(); }
+    } catch (e) { chBlad(e); }
+  }
+  window.przChmura = function () { const p = P(); if (!p) return; chBrud.add(p.id); chFlush().then(() => toast(chOff ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Szkic wysłany do chmury')); };
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && (ST.id || TAB === 'przeglady')) chSynchro(); });
 
   window.przPole = function (el) {
     const p = P(); if (!p) return;
@@ -341,6 +407,7 @@
     let h = css + '<div class="pr"><div class="phead"><button class="ib" onclick="przLista()">' + I('back') + '</button><div><b>Przegląd · ' + esc(skrot(p.myjnia)) + '</b><span>' +
       esc([w.miasto, w.adres].filter(Boolean).join(', ')) + ' · zapisuje się sam</span></div></div>';
     h += '<div id="prBr" class="rp-br" onclick="przDoBraku()"></div>';
+    h += '<div class="note" style="border:0;margin:0 0 8px;display:flex;gap:8px;align-items:center"><span id="prCh" style="flex:1">' + esc(chTxt || 'Szkic zapisuje się też w chmurze – dokończysz go na innym urządzeniu') + '</span><button class="btn2" onclick="przChmura()">Wyślij teraz</button></div>';
     h += '<div class="card"><h3>' + I('user', 1) + 'Nagłówek</h3><div class="siatka">' +
       '<div class="pole cala"><label>Technik serwisu</label><input class="as-in" value="' + TECHNIK + '" disabled></div>' +
       '<div class="pole"><label>Urządzenie</label><input class="as-in" data-k="model" value="' + esc(p.model) + '" oninput="przPole(this)"></div>' +
@@ -373,7 +440,7 @@
       '<div class="note">Bez podpisów na wydruku zostaną puste miejsca – podpis i pieczątka długopisem.</div></div>';
     h += '<div class="dol"><button class="btn gotowe" onclick="przDrukuj()">' + I('print', 1) + 'Drukuj / PDF</button>' +
       '<button class="btn gotowe" id="prWy" onclick="przZapiszSystem()">' + I('check', 1) + (p.wyslany ? 'Zapisany ' + dt(p.wyslany.slice(0, 10)) : 'Zapisz w systemie') + '</button></div>' +
-      '<div class="dol"><button class="btn2" style="color:var(--red)" onclick="przUsun(\'' + p.id + '\')">' + I('trash', 1) + 'Usuń z telefonu</button></div>' +
+      '<div class="dol"><button class="btn2" style="color:var(--red)" onclick="przUsun(\'' + p.id + '\')">' + I('trash', 1) + 'Usuń (też z chmury)</button></div>' +
       '<div class="note" style="border:0">„Zapisz w systemie” = jak skan przeglądu wysłany do bota (premia, termin następnego przeglądu, archiwum) + wiersz w arkuszu „Przeglądy”.</div></div>';
     setTimeout(() => { licznik(); podpisStart('prPodT', () => P().podpisT, d => { const q = P(); q.podpisT = d; zapisz(q); });
       podpisStart('prPodK', () => P().podpisK, d => { const q = P(); q.podpisK = d; zapisz(q); }); }, 0);
@@ -382,6 +449,7 @@
   // karta na zakładce Przeglądy: nowy przegląd + szkice
   window.przKarta = function () {
     const l = przSzkice(), lst = D ? D.myjnie.concat(D.inne) : [];
+    setTimeout(chSynchro, 0);
     return css + '<div class="card"><h3>' + I('shield', 1) + 'Przegląd w aplikacji</h3><select class="as-in" id="prNm"><option value="">— wybierz myjnię —</option>' +
       lst.map(w => '<option>' + esc(w.nazwa) + '</option>').join('') + '</select><button class="btn" onclick="przNowy(document.getElementById(\'prNm\').value)">Zacznij przegląd</button>' +
       (l.length ? '<div style="margin-top:10px">' + l.slice(0, 8).map(p => { const b = braki(p).length;

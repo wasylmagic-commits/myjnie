@@ -326,6 +326,12 @@
       case 'dokument': return { ok: true, wynik: /notes|notatnik/i.test(String(body.nazwa || '')) ? notes() : dokument() };
       case 'notatnik': return { ok: true, wynik: notes() };
       case 'przeglad': return { ok: true, wynik: { url: '#', typ: 'raport' } };
+      case 'przSzkic': { let Z; try { Z = JSON.parse(sessionStorage.getItem('demoSzkice') || '{}'); } catch (e) { Z = {}; } const a = body.akcja, zapisz = () => { try { sessionStorage.setItem('demoSzkice', JSON.stringify(Z)); } catch (e) { /* pełne */ } };
+        if (a === 'lista') return { ok: true, lista: Object.values(Z).map(z => z.x ? { id: z.id, zm: z.zm, x: 1 } : { id: z.id, myjnia: z.myjnia, data: z.data, zm: z.zm, ile: body.ile || 0, w: z.wyslany || '', x: 0 }) };
+        if (a === 'pobierz') return { ok: true, szkic: Z[body.id] && !Z[body.id].x ? Z[body.id] : { x: 1 } };
+        if (a === 'usun') { Z[body.id] = { id: body.id, x: 1, zm: new Date().toISOString() }; zapisz(); return { ok: true, wynik: { zm: Z[body.id].zm } }; }
+        if (a === 'zapisz') { const z = Z[body.szkic.id]; if (z && String(z.zm) > String(body.szkic.zm)) return { ok: true, wynik: { zapisano: false, zm: z.zm, x: z.x ? 1 : 0 } }; Z[body.szkic.id] = JSON.parse(JSON.stringify(body.szkic)); zapisz(); return { ok: true, wynik: { zapisano: true } }; }
+        return { ok: false, blad: 'Nieznana akcja' }; }
       case 'pdf': return { ok: true, wynik: 'ok' };
       case 'asystent': { try { return { ok: true, wynik: asystent(body) }; } catch (e) { return { ok: false, blad: e.message }; } }
       default: return { ok: false, blad: 'Nieznana akcja (demo): ' + api };
