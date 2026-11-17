@@ -375,14 +375,14 @@
   .hero small{color:var(--heroSm)}
   /* kolumna portalu */
   /* 17.11.2026: jak boczna kolumna portalu Christ (Foam Splash): czarna stójka z aluminiową krawędzią, u góry szeroki pas LED z dwóch segmentów, niżej cienkie pierścienie */
-  .hero>.pkol,.ladow>.pkol{container-type:size;position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:34px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
-    background:linear-gradient(90deg,#08090a 0%,#121417 55%,#1b1e22 86%,#3a3f45 94%,#8d949b 97%,#2a2e33 100%);pointer-events:none}
+  .hero>.pkol,.ladow>.pkol{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);container-type:size;position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:34px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
+    background:linear-gradient(90deg,#08090a 0%,#101216 60%,#15181c 100%);pointer-events:none}
   /* 17.11.2026 (3): wg zbliżenia kolumny: lewy bok karty prosty, góra panelu ścięta ukośnie, krótki segment + cienki ukośny szew,
      drugi segment przechodzi gradientem w czerń, pierścienie wpływają pod ten gradient i znikają */
   .mokro.pkol .led{display:block;position:absolute;left:0;right:0;top:0;height:64%;max-height:260px;border-radius:0;z-index:2;
     background:
       linear-gradient(180deg,var(--ledc) 0,var(--ledc) 29%,color-mix(in srgb,var(--ledc) 96%,transparent) 32%,color-mix(in srgb,var(--ledc) 86%,transparent) 35%,color-mix(in srgb,var(--ledc) 72%,transparent) 38%,color-mix(in srgb,var(--ledc) 56%,transparent) 41%,color-mix(in srgb,var(--ledc) 40%,transparent) 44%,color-mix(in srgb,var(--ledc) 26%,transparent) 47%,color-mix(in srgb,var(--ledc) 14%,transparent) 50%,color-mix(in srgb,var(--ledc) 6%,transparent) 53%,color-mix(in srgb,var(--ledc) 1%,transparent) 57%,transparent 62%),
-      linear-gradient(90deg,#08090a 0%,#121417 55%,#1b1e22 86%,#3a3f45 94%,#8d949b 97%,#2a2e33 100%);
+      linear-gradient(90deg,#08090a 0%,#101216 60%,#15181c 100%);
     box-shadow:none;animation:none;transition:background .6s}
   .pkol i{position:absolute;z-index:3;left:calc(46% + var(--o, 0px));bottom:-18px;width:var(--w);height:var(--w);margin-left:calc(var(--w) / -2);border:1.5px solid var(--ledc);border-radius:50%;
     box-shadow:0 0 5px var(--ledg),inset 0 0 3px var(--ledg);opacity:0;will-change:transform,opacity;animation:pier var(--t) linear var(--d) infinite}
@@ -1032,7 +1032,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v61</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v62</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
