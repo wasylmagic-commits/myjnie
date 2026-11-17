@@ -55,9 +55,10 @@
     const b = [];
     KL.forEach(k => { if (!p.odp[k]) b.push(['p' + k, 'punkt ' + nazwaPunktu(k)]); });
     if (!p.poz) b.push(['ppoz', 'Oczyszczalnia wody 8 – pozycja przełącznika']);
+    else if (p.poz !== '0' && !String(p.pozPow || '').trim()) b.push(['pozpow', 'Oczyszczalnia wody 8 – dlaczego przełącznik nie w pozycji 0']);
     if (!String(p.licznik || '').trim()) b.push(['licznik', 'Licznik myć']);
     if (!p.godzOd) b.push(['godzOd', 'Godzina rozpoczęcia']);
-    if (!p.start) b.push(['start', 'Mycia testowe – start z biletu czy z pulpitu']);
+    if (!p.start) b.push(['start', 'Mycia testowe – wybierz start (bilet albo pulpit)']);
     if (!p.godzDo) b.push(['godzDo', 'Godzina zakończenia']);
     return b;
   }
@@ -66,7 +67,7 @@
   function pusty(nazwa) {
     const w = myjnia(nazwa) || {};
     return { id: 'p' + Date.now(), myjnia: nazwa || '', model: w.model || '', licznik: String(w.licznik || '').replace(/\D/g, ''),
-      data: dzisIso(), godzOd: teraz(), godzDo: '', odp: {}, poz: '', uwagi: '', prog: {}, start: '', progInne: '', klient: '', podpisT: '', podpisK: '', zadania: {} };
+      data: dzisIso(), godzOd: teraz(), godzDo: '', odp: {}, poz: '', pozPow: '', uwagi: '', prog: {}, progS: {}, start: '', progInne: '', klient: '', podpisT: '', podpisK: '', zadania: {} };
   }
   window.przNowy = function (nazwa) {
     if (!nazwa) return toast('Wybierz myjnię');
@@ -101,28 +102,54 @@
   window.przPoz = function (v, btn) {
     const p = P(); p.poz = p.poz === v ? '' : v; zapisz(p);
     ustawTnd(btn.closest('.tnd'), p.poz === 'A' ? 'T' : p.poz === '0' ? 'N' : p.poz === 'B' ? 'D' : '');
+    const bx = document.getElementById('prPozPow'); if (bx) bx.innerHTML = pozPowHtml(p);
   };
-  // programy mycia testowego: P1…P6, klik = +1, „−” = −1
+  // 17.11.2026: przełącznik w pozycji A albo B (nie 0) → trzeba wpisać powód; idzie na wydruk i do uwag w arkuszu
+  function pozPowHtml(p) {
+    return p.poz && p.poz !== '0' ? '<label>Dlaczego przełącznik jest w pozycji ' + p.poz + ' (nie 0)?</label><textarea data-k="pozPow" oninput="przPole(this)" placeholder="Powód – co jest włączone i dlaczego">' + esc(p.pozPow || '') + '</textarea>' : '';
+  }
+  // 17.11.2026: programy mycia testowego: P1…P6, klik = +1 z AKTUALNIE wybranego startu (bilet / pulpit), „−” = −1; startu można używać na przemian
+  // p.progS = { n: { bilet: ile, pulpit: ile } }, p.prog[n] = suma (dla starych szkiców i arkusza); stary szkic: całość z p.start
+  const ZRODLA = ['pulpit', 'bilet'];
+  function progS(p) {
+    if (!p.progS) { p.progS = {}; Object.keys(p.prog || {}).forEach(n => { p.progS[n] = {}; p.progS[n][p.start || 'pulpit'] = p.prog[n]; }); }
+    return p.progS;
+  }
   window.przProg = function (n, d) {
-    const p = P(); p.prog[n] = Math.max(0, (p.prog[n] || 0) + d); if (!p.prog[n]) delete p.prog[n]; zapisz(p);
+    const p = P(); if (d > 0 && !p.start) { toast('Najpierw wybierz start: Bilet albo Pulpit'); const e = document.querySelector('[data-ob="start"]'); if (e) { e.scrollIntoView({ behavior: 'smooth', block: 'center' }); e.classList.remove('mig'); void e.offsetWidth; e.classList.add('mig'); } return; }
+    const S = progS(p), x = S[n] = S[n] || {};
+    if (d > 0) x[p.start] = (x[p.start] || 0) + 1;
+    else { const z = x[p.start] ? p.start : ZRODLA.find(q => x[q]); if (z) { x[z]--; if (!x[z]) delete x[z]; } }
+    const sum = (x.pulpit || 0) + (x.bilet || 0);
+    if (sum) p.prog[n] = sum; else { delete p.prog[n]; delete S[n]; }
+    zapisz(p);
     const el = document.getElementById('prProg'); if (el) el.innerHTML = chipy(p);
   };
+  const opisZrodel = x => ZRODLA.filter(q => x[q]).map(q => q + (ZRODLA.filter(r => x[r]).length > 1 ? ' ×' + x[q] : '')).join(' + ');
   function chipy(p) {
-    let h = '';
+    const S = progS(p); let h = '';
     for (let n = 1; n <= PROGRAMY; n++) {
       const c = p.prog[n] || 0;
-      h += '<div class="pg' + (c ? ' on' : '') + '"><button onclick="przProg(' + n + ',1)">P' + n + (c ? ' <b>×' + c + '</b>' : '') + '</button>' +
+      h += '<div class="pg' + (c ? ' on' : '') + '"><button onclick="przProg(' + n + ',1)">P' + n + (c ? ' <b>×' + c + '</b> <em>' + opisZrodel(S[n] || {}) + '</em>' : '') + '</button>' +
         (c ? '<button class="mn" onclick="przProg(' + n + ',-1)">−</button>' : '') + '</div>';
     }
     return h;
   }
-  // skąd uruchomione mycie testowe – obowiązkowe: bilet z terminala albo pulpit (tryb serwisowy)
+  // skąd uruchamiane są teraz mycia testowe – obowiązkowe: bilet z terminala albo pulpit (tryb serwisowy)
   const STARTY = [['bilet', 'Bilet (terminal)'], ['pulpit', 'Pulpit (tryb serwisowy)']];
   window.przStart = function (v) {
     const p = P(); p.start = p.start === v ? '' : v; zapisz(p);
     document.querySelectorAll('#prStart .pg').forEach(x => x.classList.toggle('on', x.dataset.v === p.start));
   };
-  const programyTxt = p => Object.keys(p.prog || {}).sort().map(n => 'P' + n + ' ×' + p.prog[n]).concat(String(p.progInne || '').trim() ? [String(p.progInne).trim()] : []).join(', ') + (p.start ? ' · ' + p.start : '');
+  // tekst na wydruk i do arkusza: wszystko z jednego startu → „P1 ×1, P3 ×2 · pulpit”; mieszane → „P1 ×1 pulpit, P2 ×1 bilet”
+  const programyTxt = p => {
+    const S = progS(p), nr = Object.keys(S).sort(), uz = {};
+    nr.forEach(n => ZRODLA.forEach(q => { if (S[n][q]) uz[q] = 1; }));
+    const inne = String(p.progInne || '').trim() ? [String(p.progInne).trim()] : [], jedno = Object.keys(uz).length <= 1;
+    const lista = [];
+    nr.forEach(n => ZRODLA.forEach(q => { if (S[n][q]) lista.push('P' + n + ' ×' + S[n][q] + (jedno ? '' : ' ' + q)); }));
+    return lista.concat(inne).join(', ') + (jedno ? (Object.keys(uz)[0] || p.start ? ' · ' + (Object.keys(uz)[0] || p.start) : '') : '');
+  };
 
   // „Nie” → zadanie na tej myjni (ta sama droga co notatka z karty myjni)
   function przyciskZadania(p, k) {
@@ -192,16 +219,16 @@
   }
 
   // ===== WYDRUK: dwie strony A4 jak formularz papierowy =====
-  const DRUK_CSS = '.pf{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9.5pt;width:180mm;margin:0 auto}' +
+  const DRUK_CSS = '.pf{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9pt;width:180mm;margin:0 auto}' +
     '.pf .str+.str{page-break-before:always;break-before:page}' +
-    '.pf h1{text-align:center;font-family:"Times New Roman",serif;font-size:16pt;margin:2mm 0 4mm}' +
-    '.pf table{width:100%;border-collapse:collapse;margin-bottom:3mm} .pf td,.pf th{border:1px solid #000;padding:.6mm 2mm;vertical-align:middle}' +
+    '.pf h1{text-align:center;font-family:"Times New Roman",serif;font-size:16pt;margin:1mm 0 2.5mm}' +
+    '.pf table{width:100%;border-collapse:collapse;margin-bottom:2mm} .pf td,.pf th{border:1px solid #000;padding:.35mm 2mm;line-height:1.15;vertical-align:middle}' +
     '.pf th{font-family:"Times New Roman",serif;font-size:12pt} .pf .lp{width:20mm} .pf .tn{width:13mm;text-align:center;font-weight:bold}' +
     '.pf .tn.th{font-family:"Times New Roman",serif;font-size:11pt} .pf .nd{float:right;font-weight:bold}' +
     '.pf .gl td{font-size:10.5pt} .pf .gl .et{font-weight:bold;width:32mm} .pf .gl .w{font-size:11pt}' +
     '.pf .abo{display:flex;font-weight:bold} .pf .abo span{flex:1;text-align:center;border-left:1px solid #000;padding:.6mm 0} .pf .abo span:first-child{border-left:0}' +
-    '.pf .uw{min-height:14mm;border-bottom:1px dotted #000;margin:1mm 0 4mm;white-space:pre-wrap;font-size:10.5pt}' +
-    '.pf .dol td{height:9mm} .pf img.pod{max-height:16mm;max-width:60mm;display:block}' +
+    '.pf .uw{min-height:9mm;border-bottom:1px dotted #000;margin:.5mm 0 2.5mm;white-space:pre-wrap;font-size:10.5pt}' +
+    '.pf .dol td{height:7mm;vertical-align:top} .pf .dol{page-break-inside:avoid;break-inside:avoid} .pf img.pod{max-height:11mm;max-width:50mm;display:block}' +
     '.pf .nr{text-align:right;font-weight:bold;margin-top:2mm}';
   function drukTresc(p) {
     const w = myjnia(p.myjnia) || {}, X = 'X';
@@ -211,7 +238,8 @@
       pp.forEach((t, i) => { const v = p.odp[s + '-' + i];
         h += '<tr><td class="lp">' + (i + 1) + '</td><td>' + esc(t) + (v === 'D' ? '<span class="nd">N/D</span>' : '') + '</td><td class="tn">' + (v === 'T' ? X : '') + '</td><td class="tn">' + (v === 'N' ? X : '') + '</td></tr>'; });
       if (s === OCZ) h += '<tr class="poz"><td class="lp">8</td><td style="font-size:9pt;font-weight:bold">' + POZ_TXT.toUpperCase() + '</td><td colspan="2" style="padding:0"><div class="abo">' +
-        ['A', '0', 'B'].map(v => '<span>' + v + (p.poz === v ? ' X' : '') + '</span>').join('') + '</div></td></tr>';
+        ['A', '0', 'B'].map(v => '<span>' + v + (p.poz === v ? ' X' : '') + '</span>').join('') + '</div></td></tr>' +
+        (p.poz && p.poz !== '0' && String(p.pozPow || '').trim() ? '<tr><td class="lp"></td><td colspan="3" style="font-size:9pt"><b>Powód pozycji ' + p.poz + ':</b> ' + esc(p.pozPow) + '</td></tr>' : '');
       return h + '</table>';
     };
     const img = s => s ? '<img class="pod" src="' + s + '">' : '';
@@ -224,10 +252,10 @@
     h += '<div class="nr">str. 1</div></div><div class="str">';
     for (let s = STR2; s < SEKCJE.length; s++) h += sekcja(s);
     h += '<div><b>Uwagi</b></div><div class="uw">' + esc(p.uwagi || '') + '</div>' +
-      '<table class="dol"><tr><td style="width:42%">Godzina rozpoczęcia: <b>' + esc(p.godzOd) + '</b><br><br>Godzina zakończenia: <b>' + esc(p.godzDo) + '</b><br><br>' +
+      '<table class="dol"><tr><td style="width:42%">Godzina rozpoczęcia: <b>' + esc(p.godzOd) + '</b><br>Godzina zakończenia: <b>' + esc(p.godzDo) + '</b><br>' +
         '<b>' + esc(dt(p.data)) + '</b>' + img(p.podpisT) + '<div style="font-size:9pt">data i podpis technika</div></td>' +
-        '<td>Potwierdzam zgodność wypełnienia raportu<br><br>Nazwisko i imię użytkownika: <b>' + esc(p.klient || '') + '</b>' + img(p.podpisK) +
-        '<br><br><div style="font-size:9pt;margin-top:2mm">pieczątka</div><div style="height:10mm"></div></td></tr>' +
+        '<td>Potwierdzam zgodność wypełnienia raportu<br>Nazwisko i imię użytkownika: <b>' + esc(p.klient || '') + '</b>' + img(p.podpisK) +
+        '<br><div style="font-size:9pt;margin-top:1mm">pieczątka</div><div style="height:6mm"></div></td></tr>' +
       '<tr><td style="text-align:center;font-weight:bold">Mycia testowe</td><td>Programy: <b>' + esc(programyTxt(p)) + '</b></td></tr>' +
       '<tr><td style="text-align:center;font-weight:bold">Sprawdzenie poprawności mycia</td><td>Podpis: ' + img(p.podpisT) + '</td></tr></table>' +
       '<div class="nr">str. 2</div></div></div>';
@@ -251,7 +279,7 @@
     const nie = [], nd = [];
     KL.forEach(k => { if (p.odp[k] === 'N') nie.push(nazwaPunktu(k) + ': ' + punkt(k)); if (p.odp[k] === 'D') nd.push(nazwaPunktu(k)); });
     return { myjnia: p.myjnia, model: p.model, licznik: p.licznik, data: p.data, od: p.godzOd, do: p.godzDo, nie: nie, nd: nd, poz: p.poz,
-      programy: programyTxt(p), uwagi: p.uwagi || '', klient: p.klient || '', odp: p.odp };
+      programy: programyTxt(p), uwagi: (p.uwagi || '') + (p.poz && p.poz !== '0' && String(p.pozPow || '').trim() ? (p.uwagi ? ' ' : '') + '[Przełącznik recyklingu: ' + p.poz + ' – ' + String(p.pozPow).trim() + ']' : ''), pozPow: p.pozPow || '', klient: p.klient || '', odp: p.odp };
   }
   window.przZapiszSystem = async function () {
     const p = P(); if (!p || stop(p)) return;
@@ -293,7 +321,7 @@
     '.pr .pg-w{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}' +
     '.pr .pg{display:flex;border-radius:999px;background:var(--fill);overflow:hidden;transition:background .25s} .pr .pg.on{background:var(--acc)}' +
     '.pr .pg button{border:0;background:none;font:inherit;font-size:15px;font-weight:600;padding:9px 15px;color:var(--ink)} .pr .pg.on button{color:#fff}' +
-    '.pr .pg .mn{padding:9px 12px 9px 6px;font-size:18px;line-height:1}' +
+    '.pr .pg .mn{padding:9px 12px 9px 6px;font-size:18px;line-height:1} .pr .pg button em{font-style:normal;font-size:12px;font-weight:600;opacity:.85;margin-left:2px}' +
     '.pr canvas{width:100%;height:150px;background:#fff;border-radius:16px;touch-action:none;display:block;box-shadow:inset 0 0 0 1px var(--line)}' +
     '.pr .dol{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0 14px} .pr .dol .btn{flex:1}' +
     '.pr .gotowe.wyl{opacity:.45}' +
@@ -326,13 +354,15 @@
           return '<div class="pr-p' + (v === 'N' ? ' nie' : '') + '" data-ob="p' + k + '" data-pk="' + k + '"><div class="tx"><i>' + (i + 1) + '</i>' + esc(t) + '</div>' + tnd(k, v, 'przOdp') +
             '<div class="pr-z">' + przyciskZadania(p, k) + '</div></div>'; }).join('') +
         (s === OCZ ? '<div class="pr-p" data-ob="ppoz"><div class="tx"><i>8</i>' + esc(POZ_TXT) + '</div>' +
-          tnd('', p.poz === 'A' ? 'T' : p.poz === '0' ? 'N' : p.poz === 'B' ? 'D' : '', 'przPoz') + '</div>' : '') + '</div>';
+          tnd('', p.poz === 'A' ? 'T' : p.poz === '0' ? 'N' : p.poz === 'B' ? 'D' : '', 'przPoz') + '</div>' +
+          '<div class="pole" data-ob="pozpow" id="prPozPow" style="margin-top:6px">' + pozPowHtml(p) + '</div>' : '') + '</div>';
     });
     h += '</div>';
     h += '<div class="card"><h3>' + I('pen', 1) + 'Uwagi</h3><textarea data-k="uwagi" oninput="przPole(this)" placeholder="Co zauważone, co do zrobienia następnym razem">' + esc(p.uwagi) + '</textarea></div>';
-    h += '<div class="card"><h3>' + I('clock', 1) + 'Mycia testowe i zakończenie</h3><label>Programy (klik = +1)</label><div class="pg-w" id="prProg">' + chipy(p) + '</div>' +
-      '<div class="pole" data-ob="start"><label>Start mycia testowego</label><div class="pg-w" id="prStart">' +
+    h += '<div class="card"><h3>' + I('clock', 1) + 'Mycia testowe i zakończenie</h3>' +
+      '<div class="pole" data-ob="start"><label>Start – skąd uruchamiasz teraz mycia (możesz zmieniać w trakcie)</label><div class="pg-w" id="prStart">' +
         STARTY.map(([v, t]) => '<div class="pg' + (p.start === v ? ' on' : '') + '" data-v="' + v + '"><button onclick="przStart(\'' + v + '\')">' + t + '</button></div>').join('') + '</div></div>' +
+      '<label>Programy (klik = +1 z wybranego startu)</label><div class="pg-w" id="prProg">' + chipy(p) + '</div>' +
       '<input class="as-in" data-k="progInne" placeholder="inne programy (opcjonalnie)" value="' + esc(p.progInne) + '" oninput="przPole(this)">' +
       '<div class="pole" data-ob="godzDo" style="margin-top:12px"><label>Godzina zakończenia</label><div class="gw"><input class="as-in" type="time" data-k="godzDo" value="' + esc(p.godzDo) + '" onchange="przPole(this)"><button class="btn2" onclick="przTeraz(\'godzDo\')">teraz</button></div></div></div>';
     h += '<div class="card"><h3>' + I('user', 1) + 'Podpisy <span class="nr">nieobowiązkowe</span></h3>' +
