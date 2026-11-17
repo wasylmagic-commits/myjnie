@@ -105,7 +105,9 @@
   .sw[aria-checked=true]{background:#34c759}
   #ark select.as-in,#ark input.as-in{font:inherit;font-size:16px;color:var(--ink);background:var(--fill);border:0;border-radius:14px;padding:10px 14px;margin:0;outline:none;color-scheme:light dark;-webkit-appearance:none;appearance:none}
   #ark select.as-in{width:100%;padding-right:36px;background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) 50%/16px}
-  #ark input[type=date].as-in{width:auto;min-width:150px;min-height:38px}
+  .edd{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:0 14px;border-radius:999px;background:var(--fill);color:var(--ink);font-size:14px;font-weight:600;overflow:hidden}
+  .edd .i{width:15px;height:15px}
+  .edd input{position:absolute;inset:0;width:100%;height:100%;opacity:0;margin:0;padding:0;border:0}
   #ark textarea{margin-bottom:0}
   .edl{color:var(--acc);font-weight:600;cursor:pointer} .edl .i{width:13px;height:13px;vertical-align:-2px}
   .sw.sw-r[aria-checked=false]{background:var(--red)} .sw.sw-o[aria-checked=false]{background:var(--org)}
@@ -677,7 +679,7 @@ function edRys() {
     '<textarea id="edO" rows="3" style="width:100%" oninput="ED.opis=this.value">' + esc(ED.opis) + '</textarea>' +
     '<div class="mute" style="font-size:13px;margin:12px 0 6px">Termin' + (ED.termin ? ': <b>' + dt(ED.termin) + '</b>' : ' (brak)') + '</div>' +
     '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' + qb('dziś', isoPlus(0)) + qb('jutro', isoPlus(1)) + qb('+7 dni', isoPlus(7)) + qb('bez terminu', '') +
-    '<input type="date" class="as-in" value="' + esc(ED.termin) + '" onchange="edUst(\'termin\',this.value)"></div>' +
+    '<label class="edd">' + I('cal', 1) + ' ' + (ED.termin ? dt(ED.termin) : 'wybierz datę') + '<input type="date" value="' + esc(ED.termin) + '" onchange="edUst(\'termin\',this.value)"></label></div>' +
     '<div class="mute" style="font-size:13px;margin:12px 0 6px">Kategoria</div><div class="seg" style="margin-bottom:6px">' +
     ED_KAT.map(x => '<button class="' + (ED.kat === x[0] ? 'on' : '') + '" onclick="edUst(\'kat\',\'' + x[0] + '\')">' + x[1] + '</button>').join('') + '</div>' +
     '<div class="mute" style="font-size:13px;margin:12px 0 6px">Myjnia</div>' +
@@ -1136,7 +1138,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v78</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v79</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
