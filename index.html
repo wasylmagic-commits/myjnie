@@ -411,7 +411,7 @@
     box-shadow:0 0 5px var(--ledg),inset 0 0 3px var(--ledg);opacity:0;will-change:transform,opacity;animation:pier var(--t) linear var(--d) infinite}
   @keyframes pier{0%{transform:translate3d(0,0,0);opacity:0}6%{opacity:1}55%{opacity:1}100%{transform:translate3d(var(--x),-104cqh,0);opacity:0}}
   .hero.stop .pkol i,.ladow.stop .pkol i{animation-play-state:paused}
-  .hero.stop .pkol .pas::before{animation-play-state:paused}
+  .hero.stop .pkol .pasy::before{animation-play-state:paused}
   /* światło stanu dnia */
   .hero[data-s=uwaga]{--ledc:#ff9f0a;--ledg:rgba(255,159,10,.65)}
   .hero[data-s=alarm]{--ledc:#ff453a;--ledg:rgba(255,69,58,.7)}
@@ -436,14 +436,16 @@
   .ladow .pkol i{animation-duration:2.6s!important}
   /* 17.11.2026: ładowanie – zamiast pierścieni paski jadą w prawo i chowają się, z lewej wjeżdżają kolejne (kolor zawsze turkus, stan dnia dopiero po załadowaniu) */
   /* paski widać tylko podczas ładowania/odświeżania (html.laduje) i na płycie .ladow; wtedy cała kolumna turkusowa, bez migania alarmu; po załadowaniu wracają pierścienie i kolor stanu */
-  .pkol .pas{display:none;position:absolute;left:0;right:0;height:3px;overflow:hidden;z-index:3}
-  .ladow .pkol .pas,html.laduje .hero .pkol .pas{display:block}
+  .pkol .pasy{display:none;position:absolute;left:0;right:0;top:98px;height:calc(100% - 115px);height:round(down,calc(100% - 115px),10px);overflow:hidden;z-index:3;
+    -webkit-mask-image:linear-gradient(#000 0,#000 4px,transparent 4px,transparent 10px);mask-image:linear-gradient(#000 0,#000 4px,transparent 4px,transparent 10px);
+    -webkit-mask-size:100% 10px;mask-size:100% 10px;-webkit-mask-repeat:repeat-y;mask-repeat:repeat-y}
+  .ladow .pkol .pasy,html.laduje .hero .pkol .pasy{display:block}
   html.laduje .hero .pkol i,.ladow .pkol i{display:none}
   html.laduje .hero{--ledc:#3fd6ff;--ledg:rgba(63,214,255,.7)}
   html.laduje .hero[data-s=alarm] .pkol .led{animation:none}
-  .pkol .pas::before{content:"";position:absolute;left:-24px;top:0;width:calc(100% + 24px);height:100%;background:repeating-linear-gradient(90deg,#3fd6ff 0,#3fd6ff 12px,transparent 12px,transparent 24px);animation:pasj 1.2s linear var(--d,0s) infinite;will-change:transform}
-  @keyframes pasj{to{transform:translateX(24px)}}
-  html.bezanim .pkol .pas::before{animation-play-state:paused!important}
+  .pkol .pasy::before{content:"";position:absolute;left:-27px;top:0;bottom:0;width:calc(100% + 27px);background:repeating-linear-gradient(90deg,#3fd6ff 0,#3fd6ff 18px,transparent 18px,transparent 27px);animation:pasj 1.3s linear infinite;will-change:transform}
+  @keyframes pasj{to{transform:translateX(27px)}}
+  html.bezanim .pkol .pasy::before{animation-play-state:paused!important}
   html.laduje .hero .pkol i{animation-duration:2.6s!important}
   /* bez animacji (przełącznik w „Więcej” albo ustawienie systemu) */
   /* tryb lekki (słaby telefon, włącza się sam): bez ruchomego rozmytego tła i bez rozmycia szkła */
@@ -452,7 +454,7 @@
   html.lekki .hero[data-s=alarm] .pkol .led,html.lekki .hero .hs div.s-r::after{animation:none}
   html.bezanim .pkol i{animation-play-state:paused!important}
   html.bezanim .hero[data-s=alarm] .pkol .led,html.bezanim .hero .hs div.s-r::after{animation:none}
-  @media (prefers-reduced-motion:reduce){.pkol i,.pkol .pas::before{animation-play-state:paused!important}}
+  @media (prefers-reduced-motion:reduce){.pkol i,.pkol .pasy::before{animation-play-state:paused!important}}
   /* przesuwanie zakładek: nic nie może poszerzać strony (inaczej przeglądarka przesuwa/zmniejsza widok razem z paskiem) */
   html,body{overflow-x:clip;max-width:100%}
   main{overflow-x:clip;touch-action:pan-y pinch-zoom}
@@ -650,7 +652,7 @@ function render() {
   ANIM = false;
 }
 // 16.11.2026: kolumna portalu Christ na kartach „hero”: LED u góry + pierścienie płynące w górę (tylko transform/opacity – lekkie)
-function pasyHtml() { let h = ''; for (let i = 0; i < 56; i++) h += '<b class="pas" style="top:' + (58 + i * 9) + 'px;--d:-' + ((i % 2) * 0.6 + (i % 3) * 0.1).toFixed(1) + 's"></b>'; return h; }
+function pasyHtml() { return '<b class="pasy"></b>'; }
 function mokro(tryb) {
   if (tryb === 'pasy') return '<div class="mokro pkol"><div class="led"></div>' + pasyHtml() + '</div>';
   const R = [[8, 16, 0, 1, 6], [15, 16, 2.7, -1, -3], [10, 16, 5.3, 0, 4], [7, 16, 8, 1, 2], [14, 16, 10.7, 0, -2], [10, 16, 13.3, -1, 1]];   // równe tempo, równe odstępy – pierścienie rozłożone po całej czarnej części, nie w kupce
@@ -1156,7 +1158,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v82</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v83</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
