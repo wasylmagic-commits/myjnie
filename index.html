@@ -781,7 +781,7 @@ function dzTile(ot, napr) {
 }
 // 17.11.2026: czerwony kafel → karta zleceń ląduje na ŚRODKU ekranu i na chwilę się podświetla (żeby było widać, dokąd przeniosło)
 function zlSkok() { const e = document.getElementById('zlk'); if (!e) return; e.scrollIntoView({ behavior: 'smooth', block: 'center' }); e.classList.add('mig'); setTimeout(() => e.classList.remove('mig'), 1800); }
-function dzGo(k) { if (k === 'zamow') return go('zamow'); OGF = k; go('ogony'); }
+function dzGo(k) { OGF = k; go('ogony'); }
 function dzis() {
   const ot = D.ogony.filter(open_), napr = ot.filter(o => kat(o) === 'naprawy');
   const prz = D.myjnie.filter(w => w.dni != null && w.dni <= 21).sort((a, b) => a.dni - b.dni);
@@ -1024,7 +1024,7 @@ function zaznacz() {
 
 /* ---------- Zadania ---------- */
 // 17.11.2026: dodawanie zadania prosto w zakładce – o typie decyduje wybrana podzakładka (Naprawy / Zakupy / Biuro)
-const ZAD = { naprawy: ['Nowa naprawa', 'ogon', 'np. na 1467 cieknie wąż, wymienić uszczelkę'], kupic: ['Nowy zakup', 'kupic', 'np. kupić manometry 2 szt.'], biuro: ['Nowe do wysłania', 'biuro', 'np. zawieźć protokół z SP 1467'] };
+const ZAD = { naprawy: ['Nowa naprawa', 'ogon', 'np. na 1467 cieknie wąż, wymienić uszczelkę'], kupic: ['Nowy zakup', 'kupic', 'np. kupić manometry 2 szt.'], biuro: ['Nowe do wysłania', 'biuro', 'np. zawieźć protokół z SP 1467 albo wysłać pompę do naprawy'] };
 function zadForm() {
   const z = ZAD[OGF]; if (!z) return '';
   return '<div class="card"><h3>' + I('plus', 1) + z[0] + '</h3><textarea id="zdn" placeholder="' + z[2] + ' (możesz dyktować)"></textarea>' +
@@ -1041,17 +1041,18 @@ function zadDodaj() {
   }).catch(e => { koniec(); toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
 }
 function ogony() {
-  const naz = { naprawy: ['wrench', 'Naprawy'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Do wysłania'], zamkniete: ['check', 'Zamknięte'] };
+  const naz = { naprawy: ['wrench', 'Naprawy'], zamow: ['box', 'Zamówienia'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Do wysłania'], zamkniete: ['check', 'Zamknięte'] };
   const ot = D.ogony.filter(open_);
-  const cnt = k => k === 'zamkniete' ? '' : ' (' + (k === 'biuro' ? doWysl(ot).length : ot.filter(o => kat(o) === k).length) + ')';
+  const cnt = k => k === 'zamkniete' ? '' : ' (' + (k === 'biuro' ? doWysl(ot).length : k === 'zamow' ? (window.zamLiczba ? zamLiczba() : 0) : ot.filter(o => kat(o) === k).length) + ')';
   let h = '<div class="seg">' + Object.keys(naz).map(k => '<button class="' + (OGF === k ? 'on' : '') + '" onclick="OGF=\'' + k + '\';render()">' + I(naz[k][0], 1) + naz[k][1] + cnt(k) + '</button>').join('') + '</div>';
+  setTimeout(() => { const b = document.querySelector('#main .seg button.on'); if (b) b.parentNode.scrollLeft = Math.max(0, b.offsetLeft - (b.parentNode.clientWidth - b.offsetWidth) / 2); }, 0);   // aktywna podzakładka zawsze widoczna
   if (OGF === 'zamkniete') {
     const z = D.ogony.filter(o => !open_(o) && o.typ !== 'fakt').sort((a, b) => (b.zamkn || b.d).localeCompare(a.zamkn || a.d)).slice(0, 50);
     return h + '<div class="card">' + (z.length ? z.map(o => ogonRow(o, true)).join('') : '<div class="empty">pusto</div>') + '</div>';
   }
+  if (OGF === 'zamow') return h + (window.zamTresc ? zamTresc() : '<div class="empty">Ładuję…</div>');
   h += zadForm();
   const l = OGF === 'biuro' ? doWysl(ot) : ot.filter(o => kat(o) === OGF);
-  if (OGF === 'biuro' && window.zamLista && zamLista().length) h += '<div class="card" style="cursor:pointer" onclick="go(\'zamow\')"><div class="row" style="border:0"><div class="g">' + I('box', 1) + ' <b>Zamówienia (' + zamLista().length + ')</b> <span class="mute">— zamawiasz w osobnym ekranie</span></div><span class="pill o">otwórz</span></div></div>';
   if (!l.length) return h + '<div class="empty">Nic do zrobienia</div>';
   if (OGF !== 'naprawy') return h + '<div class="card">' + l.sort((a, b) => (a.termin || '9').localeCompare(b.termin || '9')).map(o => ogonRow(o, true)).join('') + '</div>';
   const g = {};
@@ -1074,13 +1075,12 @@ function wiecej() {
     k('raport', 'doc', 'Raport', 'raport prac na jednym ekranie') +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
-    k('zamow', 'cart', 'Zamówienia', 'tekst SMS do magazyniera') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
     k('druk', 'print', 'Druki', 'formularze i BHP') +
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v71</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v72</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

@@ -129,9 +129,11 @@
       '<div class="zl"><button class="ib" onclick="zamIle(\'' + jsq(x.k) + '\',-1)">−</button><b>' + x.ilosc + '</b><button class="ib" onclick="zamIle(\'' + jsq(x.k) + '\',1)">+</button></div></div>';
   }
 
-  function widok() {
+  function widok(wewn) {
     const l = zamLista(), wyb = l.filter(x => !x.skr), w = wDrodze(), ukr = l.length - wyb.length;
-    let h = naglowek('box', 'Zamówienia', 'tekst do magazyniera');
+    // 17.11.2026: zamówienia mają własną podzakładkę w Zadania (wewn = bez nagłówka „wstecz”, z kartą „Nowe zamówienie” u góry)
+    let h = wewn ? '<div class="card"><h3>' + I('plus', 1) + 'Nowe zamówienie</h3><div class="mute" style="margin-bottom:8px">Własnymi słowami albo z podpowiedzi (numer z magazynu / słownika).</div>' +
+      '<button class="btn" style="width:100%;justify-content:center" onclick="zamDodaj()">+ Dodaj pozycję</button></div>' : naglowek('box', 'Zamówienia', 'tekst do magazyniera');
     if (ST.kopia && ST.kopia.poz && ST.kopia.poz.length) {
       const d = new Date(ST.kopia.t);
       h += '<div class="card zkop"><h3>' + I('clock', 1) + 'Tekst skopiowany ' + d.toLocaleDateString('pl-PL') + ' ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0') +
@@ -142,7 +144,7 @@
       (wyb.length ? wyb.map(wiersz).join('') + '<div class="mute" style="font-size:13px;margin-top:6px">' + I('trash', 1) + ' albo − przy 1 szt. = usuń z tego zamówienia (wróci przy następnym). Dotknij nazwy, żeby ją poprawić.</div>'
         : '<div class="empty">Nic do zamówienia – magazyn w komplecie</div>') +
       (ukr ? '<button class="btn2" style="width:100%;justify-content:center;margin-top:8px" onclick="zamPrzywroc()">Przywróć usunięte (' + ukr + ')</button>' : '') +
-      '<button class="btn2" style="width:100%;justify-content:center;margin-top:10px" onclick="zamDodaj()">+ Dodaj pozycję</button></div>';
+      (wewn ? '' : '<button class="btn2" style="width:100%;justify-content:center;margin-top:10px" onclick="zamDodaj()">+ Dodaj pozycję</button>') + '</div>';
     if (wyb.length) {
       h += '<div class="card"><h3>' + I('doc', 1) + 'Tekst SMS (' + wyb.length + ' poz.)</h3>' +
         '<div class="zod"><span>Do:</span><input class="as-in" value="' + esc(imie()) + '" onchange="zamUstaw(\'imie\',this.value)"><span>Podpis:</span><input class="as-in" value="' + esc(podpis()) + '" onchange="zamUstaw(\'podpis\',this.value)"></div>' +
@@ -359,5 +361,7 @@
   document.head.appendChild(css);
 
   window.MODULY = window.MODULY || {};
-  window.MODULY.zamow = { widok: widok };
+  window.MODULY.zamow = { widok: () => widok(false) };
+  window.zamTresc = () => widok(true);   // zawartość podzakładki Zadania → Zamówienia
+  window.zamLiczba = () => zamLista().filter(x => !x.skr).length;
 })();
