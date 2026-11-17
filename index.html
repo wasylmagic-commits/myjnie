@@ -436,14 +436,14 @@
   .ladow .pkol i{animation-duration:2.6s!important}
   /* 17.11.2026: ładowanie – zamiast pierścieni paski jadą w prawo i chowają się, z lewej wjeżdżają kolejne (kolor zawsze turkus, stan dnia dopiero po załadowaniu) */
   /* paski widać tylko podczas ładowania/odświeżania (html.laduje) i na płycie .ladow; wtedy cała kolumna turkusowa, bez migania alarmu; po załadowaniu wracają pierścienie i kolor stanu */
-  .pkol .pasy{display:none;position:absolute;left:0;right:0;top:148px;height:calc(100% - 165px);height:round(down,calc(100% - 165px),10px);overflow:hidden;z-index:3;
+  .pkol .pasy{display:none;position:absolute;left:0;right:0;top:148px;height:calc(100% - 165px);height:calc(round(down,calc(100% - 165px),10px) - 2px);overflow:hidden;z-index:3;
     -webkit-mask-image:linear-gradient(#000 0,#000 4px,transparent 4px,transparent 10px);mask-image:linear-gradient(#000 0,#000 4px,transparent 4px,transparent 10px);
     -webkit-mask-size:100% 10px;mask-size:100% 10px;-webkit-mask-repeat:repeat-y;mask-repeat:repeat-y}
   .ladow .pkol .pasy,html.laduje .hero .pkol .pasy{display:block}
   html.laduje .hero .pkol i,.ladow .pkol i{display:none}
   html.laduje .hero{--ledc:#3fd6ff;--ledg:rgba(63,214,255,.7)}
   html.laduje .hero[data-s=alarm] .pkol .led{animation:none}
-  .pkol .pasy::before{content:"";position:absolute;left:-34px;top:0;bottom:0;width:calc(100% + 34px);background:repeating-linear-gradient(90deg,#3fd6ff 0,#3fd6ff 21px,transparent 21px,transparent 34px);animation:pasj 1.5s linear infinite;will-change:transform}
+  .pkol .pasy::before{content:"";position:absolute;left:-34px;top:0;bottom:0;width:calc(100% + 34px);background:repeating-linear-gradient(90deg,#3fd6ff 0,#3fd6ff 25px,transparent 25px,transparent 34px);animation:pasj 1.5s linear infinite;will-change:transform}
   @keyframes pasj{to{transform:translateX(34px)}}
   html.bezanim .pkol .pasy::before{animation-play-state:paused!important}
   html.laduje .hero .pkol i{animation-duration:2.6s!important}
@@ -1158,7 +1158,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v85</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v86</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
