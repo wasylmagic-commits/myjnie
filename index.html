@@ -375,7 +375,7 @@
   .hero small{color:var(--heroSm)}
   /* kolumna portalu */
   /* 17.11.2026: jak boczna kolumna portalu Christ (Foam Splash): czarna stójka z aluminiową krawędzią, u góry szeroki pas LED z dwóch segmentów, niżej cienkie pierścienie */
-  .hero>.pkol,.ladow>.pkol{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 58%,rgba(0,0,0,.55) 82%,transparent 100%);container-type:size;position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:34px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
+  .hero>.pkol,.ladow>.pkol{-webkit-mask-image:linear-gradient(90deg,#000 0,#000 84%,transparent 100%);mask-image:linear-gradient(90deg,#000 0,#000 84%,transparent 100%);container-type:size;position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:34px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
     background:linear-gradient(90deg,#08090a 0%,#101216 60%,#15181c 100%);pointer-events:none}
   /* 17.11.2026 (3): wg zbliżenia kolumny: lewy bok karty prosty, góra panelu ścięta ukośnie, krótki segment + cienki ukośny szew,
      drugi segment przechodzi gradientem w czerń, pierścienie wpływają pod ten gradient i znikają */
@@ -1032,7 +1032,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v62</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v63</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
