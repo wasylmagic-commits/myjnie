@@ -592,8 +592,13 @@ function pillDni(d) {
 
 function load() {
   if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację swoim osobistym linkiem. Potem już zawsze z ikony.</div>'; setUpd('brak klucza'); return; }
-  setUpd('odświeżam…'); document.getElementById('odsw').classList.add('spin'); document.documentElement.classList.add('laduje');
+  // 17.11.2026: start z pamięci – pokazujemy dane z poprzedniego razu od razu, świeże dociągają się w tle (ekran przerysuje się tylko, gdy coś się zmieniło)
+  if (!D) { try { const c = JSON.parse(LS.get('cacheD' + location.pathname) || 'null'); if (c && c.dane && c.dane.myjnie) { D = c.dane; ANIM = true; render(); setUpd('z pamięci z ' + (c.dane.teraz || '') + ' · odświeżam…'); } } catch (e) {} }
+  else setUpd('odświeżam…');
+  if (!D) setUpd('odświeżam…');
+  document.getElementById('odsw').classList.add('spin'); document.documentElement.classList.add('laduje');
   api('dane').then(j => {
+      try { LS.set('cacheD' + location.pathname, JSON.stringify({ dane: j.dane })); } catch (e) {}
       // 15.11.2026: bez migania – ekran przerysowujemy tylko gdy dane naprawdę się zmieniły, animacja wejścia tylko przy pierwszym ładowaniu
       const klucz = d => JSON.stringify(Object.assign({}, d, { teraz: '' }));
       const bylo = D ? klucz(D) : null;
@@ -1138,7 +1143,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v79</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v80</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
