@@ -169,6 +169,8 @@
   .hero .hs div:active{transform:scale(.95)}
   .hero .hs b{display:block;font:700 30px/1.05 var(--fr);letter-spacing:0}
   .hero .hs span{font-size:12px;opacity:.9;font-weight:500}
+  @keyframes migot{0%,100%{box-shadow:0 0 0 0 rgba(255,59,48,0)}30%{box-shadow:0 0 0 4px rgba(255,59,48,.55)}}
+  .card.mig{animation:migot 1.6s ease}
   .hero .hs div.dz{flex:1 1 100%;cursor:default;display:flex;flex-direction:column;gap:2px}
   .hero .hs .dr{display:flex;align-items:baseline;gap:10px;font-size:14px;padding:3px 0;cursor:pointer;opacity:1}
   .hero .hs .dr em{font:700 24px/1 var(--fr);font-style:normal;min-width:26px}
@@ -777,6 +779,8 @@ function dzTile(ot, napr) {
   return '<div class="dz">' + '<span class="pt">Do zrobienia</span>' + w.map(r =>
     '<span class="dr' + (r[3] ? ' u' : '') + (r[2] ? '' : ' z') + '" onclick="dzGo(\'' + r[0] + '\')"><em>' + r[2] + '</em>' + r[1] + (r[3] ? '<i>' + r[3] + ' pilne</i>' : '') + '</span>').join('') + '</div>';
 }
+// 17.11.2026: czerwony kafel → karta zleceń ląduje na ŚRODKU ekranu i na chwilę się podświetla (żeby było widać, dokąd przeniosło)
+function zlSkok() { const e = document.getElementById('zlk'); if (!e) return; e.scrollIntoView({ behavior: 'smooth', block: 'center' }); e.classList.add('mig'); setTimeout(() => e.classList.remove('mig'), 1800); }
 function dzGo(k) { if (k === 'zamow') return go('zamow'); OGF = k; go('ogony'); }
 function dzis() {
   const ot = D.ogony.filter(open_), napr = ot.filter(o => kat(o) === 'naprawy');
@@ -797,7 +801,7 @@ function dzis() {
     (poTer ? '<span class="pw po"><em>' + poTer + '</em>po terminie</span>' : '') + '</div>' +
     (zadPo ? '<div class="s-o" onclick="go(\'ogony\')"><b>' + zadPo + '</b><span>zadania po terminie</span></div>' : '') +
     (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') +
-    (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
+    (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="zlSkok()"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
   if (window.zleceniaKarta) h += zleceniaKarta();
   h += terminyRozliczen();
   h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';   // 17.11.2026: kafel Zamówienia (zamow.js) – kolor kafla, nie światła
@@ -1076,7 +1080,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v68</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v69</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
