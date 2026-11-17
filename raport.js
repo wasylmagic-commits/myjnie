@@ -101,6 +101,19 @@
     if (typeof zamknijDet === 'function') zamknijDet();
     go('raport');
   };
+  // 17.11.2026: raport prosto z karty „Nowe zlecenia” (sms.js): numer i rodzaj z zlecenia, myjnia z karty; jeśli szkic do tego zlecenia już jest – otwiera go
+  const szkicZl = nr => Object.values(wszystkie()).find(r => !r.demo && nr && r.szl === nr);
+  window.rapJest = nr => !!szkicZl(nr);
+  window.rapZZlecenia = function (nr, nazwa) {
+    const jest = szkicZl(nr);
+    if (jest) { ST.id = jest.id; if (typeof zamknijDet === 'function') zamknijDet(); go('raport'); window.scrollTo(0, 0); toast('Szkic raportu do tego zlecenia'); return; }
+    const p = ((D && D.prace) || []).find(x => x.nr === nr), r = pusty(nazwa || '');
+    const m = String(nr || '').match(/^(SZ[LP])\//); r.szlTyp = m ? m[1] : 'SZL'; r.szlWpis = nr; r.szl = pelnyNr(r.szlTyp, nr);
+    const rod = String((p && p.rodzaj) || '').toUpperCase(); if (rod && (RODZAJE_GL.indexOf(rod) >= 0 || RODZAJE_RESZTA.indexOf(rod) >= 0)) r.rodzaj = rod;
+    zapisz(r, 1); ST.id = r.id;
+    if (typeof zamknijDet === 'function') zamknijDet();
+    go('raport'); window.scrollTo(0, 0);
+  };
   window.rapOtworz = id => { ST.id = id; render(); window.scrollTo(0, 0); };
   // kontynuacja (jak „Kontynuuj akcję serwisową” w WebCon): nowy szkic na kolejny wyjazd – to samo zlecenie i myjnia, pusty czas/opis/materiały
   window.rapKontynuacja = function () {
@@ -506,7 +519,7 @@
     if (r.demo) h += '<div class="demo">Raport pokazowy – dane przykładowe, nic nie trafia do karty myjni ani do arkusza.</div>';
 
     h += '<div class="card"><h3>' + I('wrench', 1) + 'Urządzenie <span class="nr">1</span></h3><div class="siatka">' +
-      '<div class="pole"><label>Myjnia</label><select class="as-in" data-k="myjnia" onchange="rapPole(this)">' + lst.map(x => '<option' + (x.nazwa === r.myjnia ? ' selected' : '') + '>' + esc(x.nazwa) + '</option>').join('') + '</select></div>' +
+      '<div class="pole"><label>Myjnia</label><select class="as-in" data-k="myjnia" onchange="rapPole(this)">' + (r.myjnia && !lst.some(x => x.nazwa === r.myjnia) ? '<option selected>' + esc(r.myjnia) + '</option>' : '') + lst.map(x => '<option' + (x.nazwa === r.myjnia ? ' selected' : '') + '>' + esc(x.nazwa) + '</option>').join('') + '</select></div>' +
       '<div class="pole"><label>Nr zlecenia</label><div class="nrw"><div class="wyb">' +
         ['SZL', 'SZP'].map(t => '<button class="' + ((r.szlTyp || 'SZL') === t ? 'on' : '') + '" onclick="rapNrTyp(\'' + t + '\')">' + t + '</button>').join('') + '</div>' +
         '<input class="as-in" inputmode="numeric" placeholder="11/600" value="' + esc(r.szlWpis != null ? r.szlWpis : (r.szl || '')) + '" oninput="rapNr(this)"></div>' +

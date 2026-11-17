@@ -53,6 +53,7 @@
         (awk && do8h(p) ? '<div style="margin-top:3px"><span class="pill r">8 h → ' + do8h(p) + '</span></div>' : '') +
         (p.opis ? '<div style="font-size:14px;margin-top:2px">' + esc(p.opis) + '</div>' : '') +
         '<div class="ab" style="margin-top:8px"><button class="btn" onclick="zlJedz(\'' + jsq(p.nr) + '\')">' + I('route', 1) + ' Jedź</button>' +
+        '<button class="btn" onclick="zlRaport(\'' + jsq(p.nr) + '\')">' + I('pen', 1) + (window.rapJest && rapJest(p.nr) ? ' Raport · szkic' : ' Raport') + '</button>' +
         '<button class="btn2" onclick="zlOdrzuc(\'' + jsq(p.nr) + '\',this)">Odrzuć</button></div></div></div>';
     }).join('') + (z.length > 5 ? '<button class="btn2" style="margin-top:8px" onclick="zlWszystkie()">' + (WSZYSTKIE ? 'Pokaż mniej' : 'Pokaż wszystkie (' + z.length + ')') + '</button>' : '') + '</div>';
   };
@@ -65,6 +66,16 @@
     if (w) { przedWyjazdem(w.nazwa); return; }
     const adr = adresZl(p) || p.miejsce;
     if (adr) window.open('https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(adr), '_blank');
+  };
+
+  // 17.11.2026: „Raport” z karty zlecenia – nazwa myjni jak w Jedź (lista → baza Stacje → adres z SMS)
+  window.zlRaport = function (nr) {
+    const p = D.prace.find(x => x.nr === nr); if (!p) return;
+    const w = myjniaZl(p), st = w ? null : stacjaZl(p);
+    let nazwa = w ? w.nazwa : '';
+    if (!nazwa && st) { const m = D.myjnie.concat(D.inne).find(x => x.klucz && (st.klucz === x.klucz || st.klucz === 'SP' + x.klucz)); nazwa = m ? m.nazwa : stEt(st); }
+    if (!nazwa) nazwa = adresZl(p) || p.miejsce || '';
+    if (window.rapZZlecenia) rapZZlecenia(nr, nazwa);
   };
 
   window.zlOdrzuc = function (nr, el) {
