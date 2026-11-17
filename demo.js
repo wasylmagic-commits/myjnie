@@ -140,7 +140,10 @@
   S.magazyn.forEach(m => { const p = S.plan.find(x => x.kod === m.kod); if (p && !m.min) m.min = String(p.klasa === 'krytyczna' || p.docelowo <= 4 ? p.docelowo : Math.ceil(p.docelowo * 0.6)); });
   const zd = n => { const d = new Date(DZIS); d.setDate(d.getDate() - n); return iso(d); };
   S.zamowienia = [{ id: '1', d: zd(5), kod: '1100622', nazwa: 'Odbiornik fotokomórki 24 V', ilosc: 2, dost: 1, zadanie: '' },
-    { id: '2', d: zd(35), kod: '', nazwa: 'Wąż ssący pompy dozującej 2 m', ilosc: 1, dost: 0, zadanie: '' }];
+    { id: '2', d: zd(35), kod: '', nazwa: 'Wąż ssący pompy dozującej 2 m', ilosc: 1, dost: 0, zadanie: '' },
+    { id: '3', d: zd(6), kod: '', nazwa: 'Dźwignia dysz wahadłowych', ilosc: 1, dost: 0, zadanie: '' }];
+  S.slownik = [{ slowa: 'Głowica oczyszczalni', kod: 'PA00055120', nazwa: 'Głowica sterująca oczyszczalni BIO' }];
+  S.nowosci = [{ kod: 'PA00061844', nazwa: 'Dźwignia dyszy wahadłowej HD lewa', d: zd(2), n: 1 }];
 
   const zal = (dni, nr, za, kw, miej) => { const d = new Date(DZIS); d.setDate(d.getDate() - dni); return { d: iso(d), za: za, kwota: kw, mies: d.getFullYear() * 100 + d.getMonth() + 1, nr: nr, miejsce: miej, id: '' }; };
   S.zaliczka = [zal(11, 'FV/118/11/2026', 'Wąż wysokociśnieniowy DN16 – 3 m', 186.5, 'Orlen SP 4137 Kobylnica'), zal(6, 'FV/9021/2026', 'Odbiornik fotokomórki 24 V', 412, 'Orlen SP 1528 Luboń'),
@@ -301,6 +304,7 @@
         return { ok: true, wynik: { zapisane: poz.length } }; }
       case 'mgPrzyszlo': { const z = S.zamowienia.find(x => x.id === String(p.id)); if (!z) return { ok: false, blad: 'Nie ma zamówienia' }; z.dost = Math.min(z.ilosc, z.dost + (+p.n || 0));
         const m = z.kod && S.magazyn.find(x => x.kod === z.kod); if (m) m.ilosc = String((+m.ilosc || 0) + (+p.n || 0)); if (z.dost >= z.ilosc) S.zamowienia = S.zamowienia.filter(x => x !== z); return { ok: true, wynik: { dost: z.dost } }; }
+      case 'mgPolacz': { const z = S.zamowienia.find(x => x.id === String(p.id)); if (z) { z.kod = p.kod; S.slownik.push({ slowa: z.nazwa, kod: p.kod, nazwa: p.nazwa }); } return { ok: true, wynik: { dost: 0 } }; }
       case 'mgAnuluj': S.zamowienia = S.zamowienia.filter(x => x.id !== String(p.id)); return { ok: true, wynik: true };
       case 'mgPlan': { S.plan = S.plan.filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: +p.docelowo }]); const m = S.magazyn.find(x => x.kod === p.kod); if (m) m.min = String(p.prog); return { ok: true, wynik: true }; }
       case 'odrzuc': { const x = S.prace.find(y => y.nr === p.nr); if (x) x.status = p.cofnij === '1' ? 'zlecenie' : 'anulowane'; return { ok: true, wynik: true }; }

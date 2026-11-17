@@ -374,13 +374,16 @@
   .hero::after{display:none}
   .hero small{color:var(--heroSm)}
   /* kolumna portalu */
-  .hero>.pkol,.ladow>.pkol{position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:30px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
-    background:linear-gradient(90deg,#0d0f11,#1c1f23 70%,#2a2e33);pointer-events:none}
-  .mokro.pkol .led{display:block;position:absolute;left:7px;right:7px;top:14px;height:30%;max-height:120px;border-radius:4px;
-    background:linear-gradient(180deg,#fff 0%,var(--ledc) 30%,var(--ledc));box-shadow:0 0 10px var(--ledc),0 0 24px var(--ledg);transition:background .6s,box-shadow .6s}
-  .pkol i{position:absolute;left:50%;bottom:-18px;width:var(--w);height:var(--w);margin-left:calc(var(--w) / -2);border:2px solid var(--ledc);border-radius:50%;
-    box-shadow:0 0 6px var(--ledg);opacity:0;will-change:transform,opacity;animation:pier var(--t) linear var(--d) infinite}
-  @keyframes pier{0%{transform:translate3d(0,0,0);opacity:0}10%{opacity:1}65%{opacity:.85}100%{transform:translate3d(var(--x),-260px,0);opacity:0}}
+  /* 17.11.2026: jak boczna kolumna portalu Christ (Foam Splash): czarna stójka z aluminiową krawędzią, u góry szeroki pas LED z dwóch segmentów, niżej cienkie pierścienie */
+  .hero>.pkol,.ladow>.pkol{position:absolute;left:0;top:0;bottom:0;right:auto;inset:0 auto 0 0;width:34px;z-index:2;overflow:hidden;border-radius:26px 0 0 26px;
+    background:linear-gradient(90deg,#08090a 0%,#121417 55%,#1b1e22 86%,#3a3f45 94%,#8d949b 97%,#2a2e33 100%);pointer-events:none}
+  .mokro.pkol .led{display:block;position:absolute;left:5px;right:9px;top:12px;height:40%;max-height:170px;border-radius:5px 5px 2px 2px;
+    background:linear-gradient(90deg,rgba(255,255,255,.55),rgba(255,255,255,0) 45%,rgba(0,0,0,.12)),
+      linear-gradient(180deg,#e6fbff 0,var(--ledc) 7%,var(--ledc) 56%,#050607 56%,#050607 calc(56% + 3px),var(--ledc) calc(56% + 3px),var(--ledc) 97%,rgba(0,0,0,.25) 100%);
+    box-shadow:0 0 8px var(--ledc),0 0 22px var(--ledg),2px 0 18px var(--ledg);transition:box-shadow .6s}
+  .pkol i{position:absolute;left:46%;bottom:-18px;width:var(--w);height:var(--w);margin-left:calc(var(--w) / -2);border:1.5px solid var(--ledc);border-radius:50%;
+    box-shadow:0 0 5px var(--ledg),inset 0 0 3px var(--ledg);opacity:0;will-change:transform,opacity;animation:pier var(--t) linear var(--d) infinite}
+  @keyframes pier{0%{transform:translate3d(0,0,0);opacity:0}12%{opacity:1}60%{opacity:.9}85%{opacity:0}100%{transform:translate3d(var(--x),-210px,0);opacity:0}}
   .hero.stop .pkol i,.ladow.stop .pkol i{animation-play-state:paused}
   /* światło stanu dnia */
   .hero[data-s=uwaga]{--ledc:#ff9f0a;--ledg:rgba(255,159,10,.65)}
@@ -603,7 +606,7 @@ function render() {
 }
 // 16.11.2026: kolumna portalu Christ na kartach „hero”: LED u góry + pierścienie płynące w górę (tylko transform/opacity – lekkie)
 function mokro() {
-  const R = [[12, 7, 0, 2], [8, 9, 2.5, -2], [14, 8, 4.6, 1], [6, 6, 1.3, 0], [10, 10, 6.2, -1], [7, 7.5, 3.7, 2]];
+  const R = [[13, 7, 0, 3], [9, 9, 2.5, -2], [15, 8, 4.6, 1], [6, 6, 1.3, -1], [11, 10, 6.2, 2], [7, 7.5, 3.7, 0], [10, 8.5, 5.4, -3]];
   return '<div class="mokro pkol"><div class="led"></div>' + R.map(([w, t, d, x]) => '<i style="--w:' + w + 'px;--t:' + t + 's;--d:-' + d + 's;--x:' + x + 'px"></i>').join('') + '</div>';
 }
 // animacja stoi, gdy karta nie jest na ekranie
@@ -1026,7 +1029,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v56</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v57</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
