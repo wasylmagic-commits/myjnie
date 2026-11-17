@@ -77,7 +77,7 @@
     });
     zamowienia().filter(z => !z.kod && zalegle(z)).forEach(z => out.push({ k: 'z:' + z.id, kod: '', nazwa: z.nazwa, ilosc: Math.max(1, z.ilosc - z.dost), klasa: '',
       nieDotarlo: true, ponow: [z.id] }));
-    (D.ogony || []).filter(o => open_(o) && kat(o) === 'biuro' && !NIE_ZAMOWIENIE.test(pl(o.opis))).forEach(o => {
+    (D.ogony || []).filter(o => open_(o) && window.czyZamowienie(o)).forEach(o => {
       const ile = +((String(o.czesci || '').match(/×\s*(\d+)/) || [])[1]) || 1;
       const t = o.termin ? dni(o.termin) : null;
       const nz = String(o.opis || '').replace(/^\s*(zam[oó]wienie|zam[oó]wi[cć]|zam[oó]w|zakaza[tć]\S*|закаж\S*|заказ\S*)(\s*:\s*|\s+)/i, '').replace(/[.\s]+$/, '');
@@ -92,7 +92,8 @@
       (KOL[a.klasa] ?? 3) - (KOL[b.klasa] ?? 3) || String(a.nazwa).localeCompare(String(b.nazwa)));
   };
 
-  window.czyZamowienie = o => kat(o) === 'biuro' && !NIE_ZAMOWIENIE.test(pl(o.opis));
+  // 17.11.2026: typ ręczny (edycja zadania): „do zamówienia” = zawsze zamówienie, „do wysłania” = nigdy; „do biura” – po słowach jak dotąd
+  window.czyZamowienie = o => o.typ === 'do zamówienia' || (o.typ !== 'do wysłania' && kat(o) === 'biuro' && !NIE_ZAMOWIENIE.test(pl(o.opis)));
 
   const wDrodze = () => zamowienia().filter(z => z.dost < z.ilosc);
 
@@ -121,7 +122,7 @@
     return '<div class="row zr' + (x.skr ? ' skr' : '') + (wt ? ' wt' : '') + '">' +
       '<button class="zk zx" aria-label="Usuń z listy" onclick="zamUsun(\'' + jsq(x.k) + '\')">' + I('trash', 1) + '</button>' +
       '<div class="g"><b onclick="zamNazwa(\'' + jsq(x.k) + '\')" style="cursor:text">' + esc(x.nazwa) + '</b>' +
-      '<div class="mute">' + (x.kod && !x.dodane ? esc(x.kod) + ' · ' : '') + (x.zadanie ? 'zadanie #' + esc(x.zadanie) + (x.myjnia ? ' · ' + esc(skrot(x.myjnia)) : '') : x.dodane ? (x.kod ? esc(x.kod) + ' · ' : '') + 'dodane ręcznie' : x.kod && x.doc ? 'jest ' + x.stan + ' z ' + x.doc : 'zamówione wcześniej – nie przyszło') +
+      '<div class="mute">' + (x.kod && !x.dodane ? esc(x.kod) + ' · ' : '') + (x.zadanie ? '<span class="edl" onclick="edytujZad(\'' + jsq(x.zadanie) + '\')">' + I('edit', 1) + ' zadanie #' + esc(x.zadanie) + '</span>' + (x.myjnia ? ' · ' + esc(skrot(x.myjnia)) : '') : x.dodane ? (x.kod ? esc(x.kod) + ' · ' : '') + 'dodane ręcznie' : x.kod && x.doc ? 'jest ' + x.stan + ' z ' + x.doc : 'zamówione wcześniej – nie przyszło') +
       (x.termin ? ' · termin ' + dt(x.termin) : '') + '</div>' +
       '<div class="zp">' + (x.pilne ? '<span class="pill r">pilne</span>' : x.zero ? '<span class="pill r">brak w aucie</span>' : '') +
       (kl ? '<span class="pill ' + kl[0] + '">' + kl[1] + '</span>' : '') + (x.nieDotarlo ? '<span class="pill o">nie dotarło?</span>' : '') +

@@ -285,6 +285,9 @@
       case 'zamknij': { const o = znajdzOg(p.id); if (o && o.status === 'otwarty') { o.status = 'zamknięty'; o.zamkn = iso(DZIS); } return { ok: true, wynik: !!o }; }
       case 'otworz': { const o = znajdzOg(p.id); if (o) { o.status = 'otwarty'; o.zamkn = ''; } return { ok: true, wynik: !!o }; }
       case 'usun': { const i = S.ogony.findIndex(o => o.id === String(p.id)); if (i >= 0) S.ogony.splice(i, 1); return { ok: true, wynik: i >= 0 }; }
+      case 'edytuj': { const o = znajdzOg(p.id); if (!o) return { ok: false, blad: 'Nie ma zadania' };
+        if (p.opis !== undefined) o.opis = p.opis; if (p.termin !== undefined) o.termin = p.termin; if (p.myjnia !== undefined) o.myjnia = p.myjnia;
+        if (p.typ) o.typ = { ogon: 'do zrobienia', kupic: 'do kupienia', biuro: 'do wysłania', zamow: 'do zamówienia' }[p.typ] || o.typ; return { ok: true, wynik: { id: String(p.id) } }; }
       case 'notatka': return { ok: true, wynik: 'ok' };
       case 'notatkaDzis':
       case 'notatkaMyjni': {

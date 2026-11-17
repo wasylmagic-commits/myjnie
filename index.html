@@ -103,6 +103,7 @@
   .sw{border:0;position:relative;width:51px;height:31px;border-radius:999px;background:var(--fill);flex:0 0 auto;padding:0;margin:0;cursor:pointer;transition:background .25s;box-shadow:inset 0 0 0 .5px var(--line);-webkit-tap-highlight-color:transparent}
   .sw i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 3px 1px rgba(0,0,0,.06);transition:transform .4s var(--spring)}
   .sw[aria-checked=true]{background:#34c759}
+  .edl{color:var(--acc);font-weight:600;cursor:pointer} .edl .i{width:13px;height:13px;vertical-align:-2px}
   .sw.sw-r[aria-checked=false]{background:var(--red)} .sw.sw-o[aria-checked=false]{background:var(--org)}
   .sw[aria-checked=true] i{transform:translateX(20px)}
   .swl{display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11px;color:var(--mute,#8e8e93);font-weight:600}
@@ -542,6 +543,7 @@ const IC = {
   moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
   half: '<circle cx="12" cy="12" r="9"/><path d="M12 3v18"/><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"/>'
 };
+IC.edit = '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>';
 Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
@@ -565,7 +567,8 @@ const toastAkcja = (t, nazwa, fn) => { const e = document.getElementById('toast'
 const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 2600); };
 const open_ = o => o.status === 'otwarty';
 const doWysl = l => l.filter(o => kat(o) === 'biuro' && !(window.czyZamowienie && czyZamowienie(o)));
-const kat = o => o.typ === 'do kupienia' ? 'kupic' : o.typ === 'do biura' ? 'biuro' : 'naprawy';
+// 17.11.2026: typy ręczne z edycji zadania: „do wysłania” (zawsze Do wysłania) i „do zamówienia” (zawsze Zamówienia); „do biura” rozdziela się po słowach (czyZamowienie)
+const kat = o => o.typ === 'do kupienia' ? 'kupic' : (o.typ === 'do biura' || o.typ === 'do wysłania' || o.typ === 'do zamówienia') ? 'biuro' : 'naprawy';
 const skrot = n => String(n || '').replace('Orlen SP ', 'SP ');
 
 // czy tekst (myjnia z zadania / firma z Dane) to ta myjnia
@@ -640,11 +643,57 @@ function naglowek(ic, t, sub) {
 // 17.11.2026: kolor wyłączonego przełącznika „Wykonane”: czerwony = termin minął, pomarańczowy = termin ≤ 2 dni, reszta szara
 const swPil = o => { const n = o.termin ? dni(o.termin) : null; return n == null ? '' : n < 0 ? ' sw-r' : n <= 2 ? ' sw-o' : ''; };
 function ogonRow(o, zNazwa) {
-  return '<div class="row"><div class="g">' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
+  const ed = open_(o) ? ' onclick="edytujZad(\'' + jsq(o.id) + '\')" style="cursor:pointer"' : '';
+  return '<div class="row"><div class="g"' + ed + '>' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
     (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
-    '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + '</div></div>' +
+    '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + (open_(o) ? ' · <span class="edl">' + I('edit', 1) + ' edytuj</span>' : '') + '</div></div>' +
     (open_(o) ? '<div class="swl"><button class="sw' + swPil(o) + '" role="switch" aria-checked="false" aria-label="Wykonane" onclick="wykonane(\'' + jsq(o.id) + '\',this)"><i></i></button>Wykonane</div>'
               : '<span class="mute">' + dt(o.zamkn) + '</span>' + (OGF === 'zamkniete' && TAB === 'ogony' ? '<div class="swl" style="margin-left:8px"><button class="sw" role="switch" aria-checked="true" aria-label="Wykonane – otwórz ponownie" onclick="otworz(\'' + jsq(o.id) + '\',this)"><i></i></button>Wykonane</div><button class="ib" style="margin-left:6px;color:var(--red)" aria-label="Usuń" onclick="usunPytaj(\'' + jsq(o.id) + '\')">' + I('trash', 1) + '</button>' : '')) + '</div>';
+}
+// 17.11.2026: edycja otwartego zadania – treść (gdy bot źle usłyszał), termin, kategoria (Naprawa / Zamówienie / Zakup / Do wysłania), myjnia. Zapis: api=edytuj (łatka bota 2026-11-17_edytuj)
+let ED = null;
+const ED_KAT = [['ogon', 'Naprawa'], ['zamow', 'Zamówienie'], ['kupic', 'Zakup'], ['biuro', 'Do wysłania']];
+const ED_TYP = { ogon: 'do zrobienia', kupic: 'do kupienia', biuro: 'do wysłania', zamow: 'do zamówienia' };
+const ED_TAB = { ogon: 'naprawy', zamow: 'zamow', kupic: 'kupic', biuro: 'biuro' };
+const isoPlus = n => { const t = new Date(); t.setDate(t.getDate() + n); return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0'); };
+function edytujZad(id) {
+  const o = D.ogony.find(x => String(x.id) === String(id)); if (!o || !open_(o)) return;
+  const k = kat(o), k0 = k === 'biuro' ? (window.czyZamowienie && czyZamowienie(o) ? 'zamow' : 'biuro') : k === 'kupic' ? 'kupic' : 'ogon';
+  ED = { id: o.id, opis: o.opis || '', termin: o.termin || '', kat: k0, kat0: k0, myj: o.myjnia || '' };
+  edRys();
+}
+function edRys() {
+  const a = document.getElementById('ark'); if (!a || !ED) return;
+  const nazwy = [];
+  D.myjnie.concat(D.inne || []).forEach(w => { if (w.nazwa && nazwy.indexOf(w.nazwa) < 0) nazwy.push(w.nazwa); });
+  if (ED.myj && nazwy.indexOf(ED.myj) < 0) nazwy.unshift(ED.myj);
+  const qb = (t, v) => '<button class="btn2" style="min-height:34px;font-size:13px;padding:0 12px' + (ED.termin === v ? ';outline:2px solid var(--acc)' : '') + '" onclick="edUst(\'termin\',\'' + v + '\')">' + t + '</button>';
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:90vh;overflow:auto"><h4>' + I('edit', 1) + ' Edytuj zadanie #' + esc(ED.id) + '</h4>' +
+    '<div class="mute" style="font-size:13px;margin:4px 0 6px">Treść (popraw, jeśli bot źle usłyszał)</div>' +
+    '<textarea id="edO" rows="3" style="width:100%" oninput="ED.opis=this.value">' + esc(ED.opis) + '</textarea>' +
+    '<div class="mute" style="font-size:13px;margin:12px 0 6px">Termin' + (ED.termin ? ': <b>' + dt(ED.termin) + '</b>' : ' (brak)') + '</div>' +
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' + qb('dziś', isoPlus(0)) + qb('jutro', isoPlus(1)) + qb('+7 dni', isoPlus(7)) + qb('bez terminu', '') +
+    '<input type="date" class="as-in" value="' + esc(ED.termin) + '" onchange="edUst(\'termin\',this.value)" style="width:auto;min-height:34px"></div>' +
+    '<div class="mute" style="font-size:13px;margin:12px 0 6px">Kategoria</div><div class="seg" style="margin-bottom:6px">' +
+    ED_KAT.map(x => '<button class="' + (ED.kat === x[0] ? 'on' : '') + '" onclick="edUst(\'kat\',\'' + x[0] + '\')">' + x[1] + '</button>').join('') + '</div>' +
+    '<div class="mute" style="font-size:13px;margin:12px 0 6px">Myjnia</div>' +
+    '<select class="as-in" style="width:100%" onchange="ED.myj=this.value"><option value="">— bez myjni —</option>' + nazwy.map(n => '<option value="' + esc(n) + '"' + (n === ED.myj ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>' +
+    '<div class="ab" style="margin-top:14px"><button class="btn" id="edOk" onclick="edZapisz()">' + I('check', 1) + ' Zapisz</button><button class="btn2" onclick="arkZamknij()">Anuluj</button></div></div>';
+  a.classList.add('on');
+}
+function edUst(p, v) { if (!ED) return; ED[p] = v; edRys(); }
+function edZapisz() {
+  if (!ED) return;
+  const t = String(ED.opis || '').trim(); if (t.length < 2) return toast('Wpisz treść');
+  const o = D.ogony.find(x => String(x.id) === String(ED.id)); if (!o) return arkZamknij();
+  const b = document.getElementById('edOk'); if (b) b.disabled = true;
+  const par = { id: ED.id, opis: t, termin: ED.termin || '', myjnia: ED.myj || '' };
+  const zmKat = ED.kat !== ED.kat0; if (zmKat) par.typ = ED.kat;
+  api('edytuj', par).then(() => {
+    o.opis = t; o.termin = par.termin; o.myjnia = par.myjnia; if (zmKat) o.typ = ED_TYP[ED.kat];
+    if (zmKat && TAB === 'ogony') OGF = ED_TAB[ED.kat];
+    ED = null; arkZamknij(); render(); toast(zmKat ? 'Zapisane – przeniesione' : 'Zapisane');
+  }).catch(e => { if (b) b.disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
 }
 // 15.11.2026: usunięcie zamkniętego zadania (np. czego nie pokazywać szefowi) – serwer przenosi wiersz do ukrytego arkusza „Ogony — usunięte”
 function usunPytaj(id) {
@@ -818,7 +867,7 @@ function dzis() {
     }).join('') + '</div>';
   if (akty.length) h += '<div class="card"><h3>' + I('doc', 1) + 'Dokumenty</h3>' + akty.map(p => '<div class="row"><div class="g">' + esc(p.nr) + ' · ' + esc(p.firma) +
       '<div class="mute">' + dt(p.d) + ' · ' + esc(statusPl(p.status)) + '</div></div></div>').join('') + '</div>';
-  const kup = ot.filter(o => kat(o) === 'kupic'), bi = ot.filter(o => kat(o) === 'biuro');
+  const kup = ot.filter(o => kat(o) === 'kupic'), bi = doWysl(ot);
   if (kup.length) h += '<div class="card"><h3>' + I('cart', 1) + 'Do kupienia</h3>' + kup.map(o => ogonRow(o, true)).join('') + '</div>';
   if (bi.length) h += '<div class="card"><h3>' + I('office', 1) + 'Biuro / wysyłka</h3>' + bi.map(o => ogonRow(o, true)).join('') + '</div>';
   // 17.11.2026: „Magazyn poniżej minimum” → kafel Zamówienia u góry (zamow.js)
@@ -1083,7 +1132,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v76</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v77</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
