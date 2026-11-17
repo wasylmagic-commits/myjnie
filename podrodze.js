@@ -91,14 +91,27 @@
     if (!navigator.geolocation) { rysuj(null); return; }
     navigator.geolocation.getCurrentPosition(p => rysuj([p.coords.latitude, p.coords.longitude]), () => rysuj(null), { enableHighAccuracy: false, timeout: 7000, maximumAge: 300000 });
   };
+  window.pdAkt = promien;
   window.pdStart = function () { if (D) { scal(); uzupelnij(); } };
 
   // ---------- ustawienie zasięgu ----------
+  (function () {
+    const st = document.createElement('style');
+    st.textContent = '.pdr{-webkit-appearance:none;appearance:none;width:100%;height:32px;margin:0;padding:0;border:0;background:transparent;outline:none;--p:0%}' +
+      '.pdr::-webkit-slider-runnable-track{height:10px;border-radius:5px;background:linear-gradient(90deg,var(--led) 0,var(--led) var(--p),var(--line) var(--p),var(--line) 100%);box-shadow:inset 0 0 0 1px rgba(128,128,128,.25)}' +
+      '.pdr::-moz-range-track{height:10px;border-radius:5px;background:var(--line)}.pdr::-moz-range-progress{height:10px;border-radius:5px;background:var(--led)}' +
+      '.pdr::-webkit-slider-thumb{-webkit-appearance:none;width:30px;height:30px;margin-top:-10px;border-radius:50%;background:#fff;border:3px solid var(--led);box-shadow:0 2px 8px rgba(0,0,0,.35)}' +
+      '.pdr::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid var(--led);box-shadow:0 2px 8px rgba(0,0,0,.35)}' +
+      '.pdpm{flex:0 0 auto;width:40px;height:40px;border-radius:50%;border:1px solid var(--line);background:var(--kaf,#eee);font-size:24px;line-height:1;font-weight:700;color:inherit;padding:0}';
+    document.head.appendChild(st);
+  })();
+  const wypelnij = e => { if (e) e.style.setProperty('--p', ((+e.value - 1) / (MAXR - 1) * 100) + '%'); };
   let wyslijT = null;
   window.pdZmien = function (v) {
     v = Math.max(1, Math.min(MAXR, Math.round(+v || DEF))); const ts = Date.now();
     LS.set('pdR', String(v)); LS.set('pdRts', String(ts));
     const e = document.getElementById('pdRv'); if (e) e.textContent = v + ' km';
+    const sl = document.getElementById('pdRs'); if (sl) { sl.value = v; wypelnij(sl); }
     clearTimeout(wyslijT);
     wyslijT = setTimeout(() => { api('mgUst', { k: 'promien', v: String(v), t: String(ts) }).catch(() => {}); }, 800);
   };
@@ -106,9 +119,11 @@
     scal(); const a = document.getElementById('ark');
     a.innerHTML = '<div class="tlo" onclick="pdGotowe()"></div><div class="ar"><h4>' + I('route', 1) + ' Po drodze</h4>' +
       '<div class="mute">W oknie „Przed wyjazdem” pokazuję myjnie z otwartymi naprawami i przeglądami, które leżą nie dalej niż tyle od trasy do celu.</div>' +
-      '<div style="display:flex;align-items:center;gap:12px;margin:16px 0"><input type="range" min="1" max="' + MAXR + '" step="1" value="' + promien() + '" oninput="pdZmien(this.value)" style="flex:1;padding:0;background:transparent;border:0;height:30px;accent-color:var(--led)"><b id="pdRv" style="min-width:48px;text-align:right">' + promien() + ' km</b></div>' +
+      '<div style="text-align:center;margin:14px 0 2px"><b id="pdRv" style="font-size:28px">' + promien() + ' km</b></div>' +
+      '<div style="display:flex;align-items:center;gap:10px;margin:6px 0 2px"><button class="pdpm" onclick="pdZmien(pdAkt() - 1)" aria-label="mniej">&minus;</button><input id="pdRs" class="pdr" type="range" min="1" max="' + MAXR + '" step="1" value="' + promien() + '" oninput="pdZmien(this.value)"><button class="pdpm" onclick="pdZmien(pdAkt() + 1)" aria-label="więcej">+</button></div>' +
+      '<div class="mute" style="display:flex;justify-content:space-between;padding:0 50px"><span>1 km</span><span>30 km</span></div>' +
       '<div class="ab"><button class="btn" onclick="pdGotowe()">Gotowe</button></div></div>';
-    a.classList.add('on');
+    a.classList.add('on'); wypelnij(document.getElementById('pdRs'));
   };
   window.pdGotowe = function () { arkZamknij(); if (TAB === 'wiecej') render(); };
   window.pdKafel = function () { scal(); return '<button onclick="pdUstaw()"><div class="ch">' + I('route') + '</div><b>Po drodze</b><span>zasięg ' + promien() + ' km</span></button>'; };
