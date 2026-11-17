@@ -103,6 +103,10 @@
   .sw{border:0;position:relative;width:51px;height:31px;border-radius:999px;background:var(--fill);flex:0 0 auto;padding:0;margin:0;cursor:pointer;transition:background .25s;box-shadow:inset 0 0 0 .5px var(--line);-webkit-tap-highlight-color:transparent}
   .sw i{position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 3px 1px rgba(0,0,0,.06);transition:transform .4s var(--spring)}
   .sw[aria-checked=true]{background:#34c759}
+  #ark select.as-in,#ark input.as-in{font:inherit;font-size:16px;color:var(--ink);background:var(--fill);border:0;border-radius:14px;padding:10px 14px;margin:0;outline:none;color-scheme:light dark;-webkit-appearance:none;appearance:none}
+  #ark select.as-in{width:100%;padding-right:36px;background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) 50%/16px}
+  #ark input[type=date].as-in{width:auto;min-width:150px;min-height:38px}
+  #ark textarea{margin-bottom:0}
   .edl{color:var(--acc);font-weight:600;cursor:pointer} .edl .i{width:13px;height:13px;vertical-align:-2px}
   .sw.sw-r[aria-checked=false]{background:var(--red)} .sw.sw-o[aria-checked=false]{background:var(--org)}
   .sw[aria-checked=true] i{transform:translateX(20px)}
@@ -673,11 +677,11 @@ function edRys() {
     '<textarea id="edO" rows="3" style="width:100%" oninput="ED.opis=this.value">' + esc(ED.opis) + '</textarea>' +
     '<div class="mute" style="font-size:13px;margin:12px 0 6px">Termin' + (ED.termin ? ': <b>' + dt(ED.termin) + '</b>' : ' (brak)') + '</div>' +
     '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">' + qb('dziś', isoPlus(0)) + qb('jutro', isoPlus(1)) + qb('+7 dni', isoPlus(7)) + qb('bez terminu', '') +
-    '<input type="date" class="as-in" value="' + esc(ED.termin) + '" onchange="edUst(\'termin\',this.value)" style="width:auto;min-height:34px"></div>' +
+    '<input type="date" class="as-in" value="' + esc(ED.termin) + '" onchange="edUst(\'termin\',this.value)"></div>' +
     '<div class="mute" style="font-size:13px;margin:12px 0 6px">Kategoria</div><div class="seg" style="margin-bottom:6px">' +
     ED_KAT.map(x => '<button class="' + (ED.kat === x[0] ? 'on' : '') + '" onclick="edUst(\'kat\',\'' + x[0] + '\')">' + x[1] + '</button>').join('') + '</div>' +
     '<div class="mute" style="font-size:13px;margin:12px 0 6px">Myjnia</div>' +
-    '<select class="as-in" style="width:100%" onchange="ED.myj=this.value"><option value="">— bez myjni —</option>' + nazwy.map(n => '<option value="' + esc(n) + '"' + (n === ED.myj ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>' +
+    '<select class="as-in" onchange="ED.myj=this.value"><option value="">— bez myjni —</option>' + nazwy.map(n => '<option value="' + esc(n) + '"' + (n === ED.myj ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select>' +
     '<div class="ab" style="margin-top:14px"><button class="btn" id="edOk" onclick="edZapisz()">' + I('check', 1) + ' Zapisz</button><button class="btn2" onclick="arkZamknij()">Anuluj</button></div></div>';
   a.classList.add('on');
 }
@@ -1132,7 +1136,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v77</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v78</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
