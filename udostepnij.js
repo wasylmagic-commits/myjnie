@@ -27,7 +27,7 @@
           try { j = JSON.parse(t); } catch (e) { throw new Error('serwer nie odpowiedział poprawnie'); }
           if (!j.ok) throw new Error(j.blad || 'błąd serwera');
           await c.delete(req);
-          pokaz('Przyjęte: ' + nazwa + ' – odpowiedź bota w Telegramie');
+          pokaz('Przyjęte: ' + nazwa + '');
         } catch (e) {
           pokaz(/Nieznana|akcja|poprawnie/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj) – plik czeka w telefonie'
             : 'Nie wysłano (' + e.message + ') – spróbuję przy następnym otwarciu');

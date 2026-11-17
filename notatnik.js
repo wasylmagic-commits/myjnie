@@ -24,7 +24,7 @@
     h += (ST.trwa ? '<div class="nt-dwa"><label class="btn nt-foto dis">' + I('cal', 1) + 'Czytam stronę…</label></div>' :
       '<div class="nt-dwa"><label class="btn nt-foto"><input type="file" accept="image/*" capture="environment" hidden onchange="notatnikPlik(this)">' + I('cal', 1) + 'Zrób zdjęcie</label>' +
       '<label class="btn2 nt-foto"><input type="file" accept="image/*" hidden onchange="notatnikPlik(this)">' + I('plus', 1) + 'Z galerii</label></div>') +
-      '<div class="note" style="text-align:center;margin-top:6px">' + (ST.trwa ? 'zwykle 20–60 sekund, możesz zostać na tym ekranie' : 'cała strona razem z datą u góry · zapis jak w bocie, bez Telegrama') + '</div></div>';
+      '<div class="note" style="text-align:center;margin-top:6px">' + (ST.trwa ? 'zwykle 20–60 sekund, możesz zostać na tym ekranie' : 'cała strona razem z datą u góry') + '</div></div>';
     return h;
   };
 

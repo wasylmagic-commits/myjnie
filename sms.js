@@ -11,7 +11,7 @@
 
   window.zleceniaKarta = function () {
     const z = zleceniaNowe();
-    if (!z.length) return '';
+    if (!z.length) return '<div class="card" id="zlk"><h3>' + I('alert', 1) + 'Nowe zlecenia</h3><div class="mute">Brak nowych zleceń</div></div>';
     const widoczne = WSZYSTKIE ? z : z.slice(0, 5);
     return '<div class="card" id="zlk"><h3>' + I('alert', 1) + 'Nowe zlecenia (' + z.length + ')</h3>' + widoczne.map(p => {
       const w = myjniaZl(p), adr = adresZl(p);
@@ -51,7 +51,7 @@
   window.smsUstaw = function () {
     const a = document.getElementById('ark');
     a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar" style="max-height:86vh;overflow:auto"><h4>' + I('phone', 1) + ' SMS z WebCon → system</h4>' +
-      '<div class="mute" style="font-size:14px">MacroDroid wysyła każdy SMS od Corrimex do bota. Nowe zlecenie pojawia się na Dziś, a w telefonie wyskakuje powiadomienie. Bez Telegrama.</div>' +
+      '<div class="mute" style="font-size:14px">MacroDroid wysyła każdy SMS od Corrimex do bota. Nowe zlecenie pojawia się na Dziś, a w telefonie wyskakuje powiadomienie.</div>' +
       '<h4 style="margin:14px 0 4px;font-size:15px">Adres dla MacroDroid (URL)</h4>' +
       '<div style="word-break:break-all;font-size:12px;padding:8px;border-radius:10px;background:var(--solid)">' + esc(adresMD()) + '</div>' +
       '<div class="ab" style="margin-top:8px"><button class="btn" onclick="smsKopiuj()">Kopiuj adres</button><button class="btn2" onclick="smsTest()">Test</button></div>' +
@@ -64,7 +64,7 @@
   window.smsTest = function () {
     const out = document.getElementById('smsWynik'); out.textContent = 'Sprawdzam…';
     fetch(adresMD() + '&test=1&t=' + encodeURIComponent(PROBKA), { redirect: 'follow' }).then(r => r.text()).then(t => {
-      if (/^\s*\{/.test(t) && /Nieznana akcja/.test(t)) t = 'Bot jeszcze bez aktualizacji – wyślij /aktualizuj w Telegramie.';
+      if (/^\s*\{/.test(t) && /Nieznana akcja/.test(t)) t = 'Bot jeszcze bez aktualizacji – zainstaluj aktualizację (/aktualizuj).';
       out.textContent = t || '(pusta odpowiedź)';
     }).catch(e => { out.textContent = 'Błąd: ' + e.message; });
   };

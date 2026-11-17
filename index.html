@@ -565,7 +565,7 @@ function pillDni(d) {
 }
 
 function load() {
-  if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację linkiem z bota: napisz <b>/aplikacja</b> w Telegramie i kliknij link. Potem już zawsze z ikony.</div>'; setUpd('brak klucza'); return; }
+  if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację swoim osobistym linkiem. Potem już zawsze z ikony.</div>'; setUpd('brak klucza'); return; }
   setUpd('odświeżam…'); document.getElementById('odsw').classList.add('spin'); document.documentElement.classList.add('laduje');
   api('dane').then(j => {
       // 15.11.2026: bez migania – ekran przerysowujemy tylko gdy dane naprawdę się zmieniły, animacja wejścia tylko przy pierwszym ładowaniu
@@ -699,7 +699,7 @@ function notatkaMyjni() {
   }).catch(e => {
     if (/Nieznana akcja/.test(e.message)) {
       api('notatka', { t: 'Myjnia ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ': ' + t })
-        .then(() => { NTM[w.nazwa] = ''; el.value = ''; koniec(); toast('Wysłane — potwierdź w Telegramie'); })
+        .then(() => { NTM[w.nazwa] = ''; el.value = ''; koniec(); toast('Wysłane'); })
         .catch(e2 => { koniec(); toast('Błąd: ' + e2.message); });
     } else { koniec(); toast('Błąd: ' + e.message); }
   });
@@ -726,7 +726,7 @@ function notatka() {
     el.value = ''; koniec(); pokazZapisane(j.wynik || {}); load();
   }).catch(e => {
     if (/Nieznana akcja/.test(e.message)) {
-      api('notatka', { t: t }).then(() => { el.value = ''; koniec(); toast('Wysłane — potwierdź w Telegramie'); })
+      api('notatka', { t: t }).then(() => { el.value = ''; koniec(); toast('Wysłane'); })
         .catch(e2 => { koniec(); toast('Błąd: ' + e2.message); });
     } else { koniec(); toast('Błąd: ' + e.message); }
   });
@@ -768,8 +768,8 @@ function dzis() {
   const stanDnia = awk ? 'alarm' : poTer ? 'uwaga' : 'ok';
   let h = '<div class="hero" data-s="' + stanDnia + '"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
-    '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
-    (poTer ? '<div class="s-o" onclick="go(\'przeglady\')"><b>' + poTer + '</b><span>po terminie</span></div>' : '') +
+    '<div' + (poTer ? ' class="s-o"' : '') + ' onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni >= 0 && w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span>' +
+    (poTer ? '<span style="display:block;margin-top:3px;font-weight:700;opacity:1">+ ' + poTer + ' po terminie</span>' : '') + '</div>' +
     (zadPo ? '<div class="s-o" onclick="go(\'ogony\')"><b>' + zadPo + '</b><span>zadania po terminie</span></div>' : '') +
     (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') +
     (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
@@ -977,7 +977,7 @@ function licznikZapisz(nazwa) {
   }
   document.getElementById('lcb').disabled = true;
   api('notatka', { t: 'Fakt: licznik myć na myjni ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ' = ' + n + ', stan na ' + dt(d) })
-    .then(() => { w.licznik = n.toLocaleString('pl-PL'); if (w.odWymiany !== '' && stary) w.odWymiany = Math.max(0, +w.odWymiany + n - stary); arkZamknij(); toast('Licznik ' + n + ' wysłany — potwierdź w Telegramie'); if (DW) pokazMyjnie(DW, 1); })
+    .then(() => { w.licznik = n.toLocaleString('pl-PL'); if (w.odWymiany !== '' && stary) w.odWymiany = Math.max(0, +w.odWymiany + n - stary); arkZamknij(); toast('Licznik ' + n + ' wysłany'); if (DW) pokazMyjnie(DW, 1); })
     .catch(e => { document.getElementById('lcb').disabled = false; toast('Błąd: ' + e.message); });
 }
 
@@ -1032,7 +1032,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v63</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v64</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

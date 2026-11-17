@@ -263,7 +263,7 @@
       const txt = await res.text(); let j; try { j = JSON.parse(txt); } catch (e) { throw new Error('Nieznana akcja'); }
       if (!j.ok) throw new Error(j.blad || 'błąd serwera');
       p.wyslany = new Date().toISOString(); p.plik = (j.wynik || {}).url || ''; zapisz(p, 1);
-      const typ = (j.wynik || {}).typ; toast(typ && !/raport|protokol/.test(typ) ? 'Zapisany, ale bot rozpoznał jako „' + typ + '” – sprawdź w Telegramie' : 'Przegląd zapisany – potwierdzenie jak dla skanu'); render();
+      const typ = (j.wynik || {}).typ; toast(typ && !/raport|protokol/.test(typ) ? 'Zapisany, ale bot rozpoznał jako „' + typ + '” – sprawdź w systemie' : 'Przegląd zapisany – potwierdzenie jak dla skanu'); render();
       if (typeof load === 'function') setTimeout(load, 1500);
     } catch (e) {
       toast(/Nieznana|akcja|Unknown/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Zapis: ' + e.message);
