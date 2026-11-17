@@ -111,6 +111,8 @@
   });
   // nowe zlecenia z SMS (karta „Nowe zlecenia” na Dziś)
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Poznań', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00431', opis: 'Praca na sucho – zgłoszenie z SMS', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: WLOSCIANSKA 6, 60-681 POZNAN (BP Piątka) | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 07:12 | Biuro' });
+  S.stacje = [{ klucz: 'SP4046', firma: 'Orlen 4046', siec: 'Orlen', ulica: 'Bałtycka 4a', kod: '61-013', miasto: 'Poznań' }];
+  S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Poznan', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00446', opis: 'Brak dawkowania aktywnej piany podczas mycia. Prosze o sprawdzenie i kalibracje.', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Baltycka 4a, 61-013 Poznan | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 14:05 | Biuro' });
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Kobylnica', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00432', opis: 'Portal stanął w trakcie programu, błąd na panelu', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Poznańska, Kobylnica (Orlen SP 4137) | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 08:03 | Biuro' });
 
   S.obce.push({ d: iso(rob(14)), firma: 'Orlen SP 1466', kto: 'Kowalski Marek', nr: 'SZL/2026/10/00811', p: 0, opis: 'Wymieniono uszkodzoną dyszę wodną.', zal: '' });

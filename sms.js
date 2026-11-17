@@ -5,6 +5,26 @@
   const adresZl = p => ((String(p.kl || '').match(/^SMS: ([^|]+)/) || [])[1] || '').trim();
   const myjniaZl = p => p.firma ? D.myjnie.concat(D.inne).find(w => sama(p.firma, w)) : null;
   const nrKr = nr => String(nr || '').split('/').pop();
+  // 17.11.2026: stacja po adresie z bazy Stacje (api dane → D.stacje) – SMS z WebCon nie zawiera numeru SP
+  const stacjaZl = p => {
+    const a = pl(adresZl(p)); if (!a || !D || !D.stacje) return null;
+    let best = null;
+    D.stacje.forEach(s => {
+      const u = pl(s.ulica).trim(), m = pl(s.miasto).trim(); if (!u || a.indexOf(u) < 0) return;
+      if (!/\d/.test(u) && !(m && a.indexOf(m) >= 0) && !(s.kod && a.indexOf(s.kod) >= 0)) return;
+      if (!best || u.length > best.n) best = { s: s, n: u.length };
+    });
+    return best && best.s;
+  };
+  const stEt = s => { const m = String(s.klucz || '').match(/^SP(\d{4})/); return m ? 'Orlen SP ' + m[1] : (s.firma || s.klucz); };
+  // „zgł. 17.11 14:05” z pola Klient → { dd, mm, godz }
+  const zglZl = p => { const m = String(p.kl || '').match(/zgł\. (\d\d)\.(\d\d)(?: (\d\d:\d\d))?/); return m ? { dd: m[1], mm: m[2], godz: m[3] || '' } : null; };
+  const do8h = p => {
+    const z = zglZl(p); if (!z || !z.godz) return '';
+    const r = +String(p.d || '').slice(0, 4) || new Date().getFullYear(), t = new Date(r, +z.mm - 1, +z.dd, +z.godz.slice(0, 2), +z.godz.slice(3, 5) + 480);
+    const g = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    return (t.getDate() !== +z.dd ? String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' : '') + g;
+  };
   let WSZYSTKIE = false;
 
   window.zleceniaNowe = () => (D && D.prace ? D.prace.filter(p => p.status === 'zlecenie') : []).sort((a, b) => (b.d || '').localeCompare(a.d || '') || String(b.nr).localeCompare(String(a.nr)));
@@ -14,11 +34,13 @@
     if (!z.length) return '<div class="card" id="zlk"><h3>' + I('alert', 1) + 'Nowe zlecenia</h3><div class="mute">Brak nowych zleceń</div></div>';
     const widoczne = WSZYSTKIE ? z : z.slice(0, 5);
     return '<div class="card" id="zlk"><h3>' + I('alert', 1) + 'Nowe zlecenia (' + z.length + ')</h3>' + widoczne.map(p => {
-      const w = myjniaZl(p), adr = adresZl(p);
-      const kto = w ? skrot(w.nazwa) : (adr || p.miejsce || 'myjnia spoza listy');
+      const w = myjniaZl(p), adr = adresZl(p), st = w ? null : stacjaZl(p), zg = zglZl(p), awk = /AWK|nieczynna/i.test(p.rodzaj || '');
+      const kto = w ? skrot(w.nazwa) : st ? stEt(st) : (adr || p.miejsce || 'myjnia spoza listy');
       return '<div class="row" style="align-items:flex-start"><div class="g"><b>' + esc(kto) + '</b>' +
         (p.rodzaj ? ' <span class="pill ' + (/AWK|nieczynna/i.test(p.rodzaj) ? 'r' : 'o') + '">' + esc(p.rodzaj) + '</span>' : '') +
-        '<div class="mute">' + esc(nrKr(p.nr)) + ' · ' + dt(p.d) + (w && adr ? ' · ' + esc(adr) : '') + '</div>' +
+        '<div class="mute">' + esc(p.nr) + ' · zgłoszono ' + (zg ? zg.dd + '.' + zg.mm + (zg.godz ? ' ' + zg.godz : '') : dt(p.d)) + '</div>' +
+        (adr && (w || st) ? '<div class="mute">' + esc(adr) + '</div>' : '') +
+        (awk && do8h(p) ? '<div style="margin-top:3px"><span class="pill r">8 h → ' + do8h(p) + '</span></div>' : '') +
         (p.opis ? '<div style="font-size:14px;margin-top:2px">' + esc(p.opis) + '</div>' : '') +
         '<div class="ab" style="margin-top:8px"><button class="btn" onclick="zlJedz(\'' + jsq(p.nr) + '\')">' + I('route', 1) + ' Jedź</button>' +
         '<button class="btn2" onclick="zlOdrzuc(\'' + jsq(p.nr) + '\',this)">Odrzuć</button></div></div></div>';
