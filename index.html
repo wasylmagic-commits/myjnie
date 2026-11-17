@@ -451,6 +451,7 @@
 <script src="udostepnij.js"></script>
 <script src="sms.js"></script>
 <script src="notatnik.js"></script>
+<script src="zamow.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -523,7 +524,7 @@ Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
 const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['wydatki','money','Wydatki'],['wiecej','grid','Więcej']];
-const WIECEJ = { asystent: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
+const WIECEJ = { zamow: 1, asystent: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -754,10 +755,11 @@ function dzis() {
   const mies = new Date().getFullYear() * 100 + new Date().getMonth() + 1;
   const g = new Date().getHours(), pora = g < 11 ? 'Dzień dobry' : g < 18 ? 'Cześć' : 'Dobry wieczór';
   const poTer = D.myjnie.filter(w => w.dni != null && w.dni < 0).length;
-  // 16.11.2026: światło stanu dnia w kolumnie: alarm = nowe zlecenie AWK / myjnia nieczynna, uwaga = coś po terminie
+  // 16.11.2026: światło stanu dnia w kolumnie: alarm = nowe zlecenie AWK / myjnia nieczynna, uwaga = przegląd po terminie
+  // 17.11.2026: na żółto świecą TYLKO przeglądy po terminie; zadania po terminie i magazyn mają swoje kafle, światła nie ruszają
   const zN = window.zleceniaNowe ? zleceniaNowe() : [], awk = zN.some(p => /AWK|nieczynna/i.test(p.rodzaj || ''));
   const zadPo = ot.filter(o => /^\d{4}-\d\d-\d\d/.test(String(o.termin || '')) && String(o.termin).slice(0, 10) < dzisIso()).length;
-  const stanDnia = awk ? 'alarm' : (poTer || zadPo) ? 'uwaga' : 'ok';
+  const stanDnia = awk ? 'alarm' : poTer ? 'uwaga' : 'ok';
   let h = '<div class="hero" data-s="' + stanDnia + '"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
     '<div onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span></div>' +
@@ -767,7 +769,7 @@ function dzis() {
     (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
   if (window.zleceniaKarta) h += zleceniaKarta();
   h += terminyRozliczen();
-  h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';
+  h += '<div class="tiles">' + kafelRaport() + kafelPremia() + (window.kafelZamow ? kafelZamow() : '') + '</div>';   // 17.11.2026: kafel Zamówienia (zamow.js) – kolor kafla, nie światła
   if (window.notatnikKarta) h += notatnikKarta();   // 16.11.2026: strona notesu zdjęciem (notatnik.js)
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
        '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">zapisze się od razu</span></div>';
@@ -781,8 +783,7 @@ function dzis() {
   const kup = ot.filter(o => kat(o) === 'kupic'), bi = ot.filter(o => kat(o) === 'biuro');
   if (kup.length) h += '<div class="card"><h3>' + I('cart', 1) + 'Do kupienia</h3>' + kup.map(o => ogonRow(o, true)).join('') + '</div>';
   if (bi.length) h += '<div class="card"><h3>' + I('office', 1) + 'Biuro / wysyłka</h3>' + bi.map(o => ogonRow(o, true)).join('') + '</div>';
-  const mal = D.magazyn.filter(m => m.min && +String(m.ilosc).replace(',', '.') < +String(m.min).replace(',', '.'));
-  if (mal.length) h += '<div class="card"><h3>' + I('box', 1) + 'Magazyn poniżej minimum</h3>' + mal.map(m => '<div class="row"><div class="g">' + esc(m.nazwa) + '<div class="mute">' + esc(m.kod) + '</div></div><span class="pill r">' + esc(m.ilosc) + ' / ' + esc(m.min) + '</span></div>').join('') + '</div>';
+  // 17.11.2026: „Magazyn poniżej minimum” → kafel Zamówienia u góry (zamow.js)
   const sz = D.myjnie.filter(w => /łys|lys/i.test(w.szczotki) || +w.odWymiany >= 45000);
   if (sz.length) h += '<div class="card"><h3>' + I('brush', 1) + 'Szczotki</h3>' + sz.map(w => '<div class="row"><div class="g">' + esc(skrot(w.nazwa)) + '</div><span class="pill ' + (+w.odWymiany >= 50000 || /łys|lys/i.test(w.szczotki) ? 'r' : 'y') + '">' + (w.odWymiany ? esc(w.odWymiany) + ' myć' : esc(w.szczotki)) + '</span></div>').join('') + '</div>';
   if (D.dyzury.length) h += '<div class="card"><h3>' + I('phone', 1) + 'Dyżury</h3>' + D.dyzury.map(x => '<div class="row"><div class="g">Tydzień ' + x.tydz + (x.swieto ? ' <span class="pill o">święto</span>' : '') + '</div><span class="mute">' + x.od + '–' + x.do + '</span></div>').join('') + '</div>';
@@ -1019,12 +1020,13 @@ function wiecej() {
     k('raport', 'doc', 'Raport', 'raport prac na jednym ekranie') +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
+    k('zamow', 'cart', 'Zamówienia', 'tekst SMS do magazyniera') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
     k('druk', 'print', 'Druki', 'formularze i BHP') +
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v53</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v54</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
@@ -1044,7 +1046,7 @@ function magLista() {
   const l = D.magazyn.filter(m => !q.length || m.kod.toLowerCase().replace(/[\s\-.\/]/g, '').indexOf(qn) >= 0 || q.every(w => pl(m.nazwa + ' ' + m.kod).indexOf(w.slice(0, 5)) >= 0));
   return '<div class="card">' + (l.length ? l.slice(0, 150).map(m => {
     const il = +String(m.ilosc).replace(',', '.'), mn = +String(m.min || 0).replace(',', '.');
-    return '<div class="row"><div class="g">' + esc(m.nazwa) + '<div class="mute">' + esc(m.kod) + (m.min ? ' · min. ' + esc(m.min) : '') + '</div></div><span class="pill ' + (il <= 0 ? 'r' : mn && il < mn ? 'y' : 'ok') + '">' + esc(m.ilosc) + ' szt.</span></div>';
+    return '<div class="row" style="cursor:pointer" onclick="window.zamPlanEdytuj&&zamPlanEdytuj(\'' + jsq(m.kod) + '\')"><div class="g">' + esc(m.nazwa) + '<div class="mute">' + esc(m.kod) + (m.min ? ' · zamów poniżej ' + esc(m.min) : '') + '</div>' + (window.zamZnaczek ? '<div style="margin-top:3px">' + zamZnaczek(m) + '</div>' : '') + '</div><span class="pill ' + (il <= 0 ? 'r' : mn && il < mn ? 'y' : 'ok') + '">' + esc(m.ilosc) + ' szt.</span></div>';
   }).join('') : '<div class="empty">Brak w magazynie</div>') + '</div>';
 }
 
