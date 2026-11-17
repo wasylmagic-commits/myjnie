@@ -17,7 +17,26 @@
   // stan lokalny: skreślenia, ilości, skopiowany tekst, odbiorca, podpis
   const ST = (() => { try { return JSON.parse(LS.get('zam') || '{}'); } catch (e) { return {}; } })();
   ST.skr = ST.skr || {}; ST.ile = ST.ile || {}; ST.dod = ST.dod || [];
-  const zapisz = () => LS.set('zam', JSON.stringify(ST));
+  // 17.11.2026: stan listy (skreślone, ilości, dopisane, skopiowany tekst) wspólny dla wszystkich urządzeń – api=mgStan (Zamowienia.gs, łatka zam_stan)
+  let wyslijT = null, bezStanu = false, widziany = '';
+  const zapisz = () => {
+    ST.ts = Date.now(); LS.set('zam', JSON.stringify(ST));
+    if (bezStanu) return;
+    clearTimeout(wyslijT);
+    wyslijT = setTimeout(() => {
+      const k = ST.kopia && ST.kopia.poz ? { t: ST.kopia.t, poz: ST.kopia.poz } : undefined;
+      api('mgStan', { s: JSON.stringify({ ts: ST.ts, skr: ST.skr, ile: ST.ile, dod: ST.dod, naz: ST.naz, kopia: k, imie: ST.imie, podpis: ST.podpis }) })
+        .catch(e => { if (/Nieznana|akcja/i.test(e.message)) bezStanu = true; });
+    }, 1200);
+  };
+  function scal() {
+    const s = D && D.zamStan; if (!s || s === widziany) return; widziany = s;
+    let r; try { r = JSON.parse(s); } catch (e) { return; }
+    if (!r || (+r.ts || 0) <= (+ST.ts || 0)) return;
+    ['skr', 'ile', 'dod', 'naz', 'kopia', 'imie', 'podpis'].forEach(k => { if (r[k] === undefined) delete ST[k]; else ST[k] = r[k]; });
+    ST.skr = ST.skr || {}; ST.ile = ST.ile || {}; ST.dod = ST.dod || []; ST.ts = r.ts;
+    LS.set('zam', JSON.stringify(ST));
+  }
   const imie = () => ST.imie || 'Andrzej';
   const podpis = () => ST.podpis || 'Wasyl Tomczakowski';
 
@@ -40,6 +59,7 @@
 
   // co trzeba zamówić teraz
   window.zamLista = function () {
+    scal();
     if (!D) return [];
     const out = [], czeka = {}, stare = {};
     zamowienia().forEach(z => {
@@ -230,6 +250,7 @@
   };
   // 17.11.2026: po powrocie z SMS-a aplikacja sama pyta „Zamówione?” (raz na skopiowany tekst)
   function pytaj() {
+    scal();
     const k = ST.kopia; if (!k || !k.poz || !k.poz.length || k.pyt || Date.now() - k.t < 8000 || Date.now() - k.t > 36e5 * 24) return;
     const a = document.getElementById('ark'); if (!a) return;
     k.pyt = 1; zapisz();
@@ -239,7 +260,7 @@
     a.classList.add('on');
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (ST.kopia && !ST.kopia.pyt) ST.kopia.ukryte = 1; zapisz(); } else if (ST.kopia && ST.kopia.ukryte) setTimeout(pytaj, 600); });
-  setTimeout(() => { if (ST.kopia) pytaj(); }, 3500);
+  setTimeout(pytaj, 3500); setTimeout(pytaj, 9000);
   window.zamNieWyslane = () => { delete ST.kopia; zapisz(); render(); toast('OK, lista bez zmian'); };
 
   const blad = e => toast(/Nieznana|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
