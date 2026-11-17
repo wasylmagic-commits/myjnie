@@ -219,16 +219,17 @@
   }
 
   // ===== WYDRUK: dwie strony A4 jak formularz papierowy =====
-  const DRUK_CSS = '.pf{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:9pt;width:180mm;margin:0 auto}' +
+  const DRUK_CSS = '.pf{font-family:Arial,Helvetica,sans-serif;color:#000;font-size:10pt;width:180mm;margin:0 auto}' +
     '.pf .str+.str{page-break-before:always;break-before:page}' +
-    '.pf h1{text-align:center;font-family:"Times New Roman",serif;font-size:16pt;margin:1mm 0 2.5mm}' +
-    '.pf table{width:100%;border-collapse:collapse;margin-bottom:2mm} .pf td,.pf th{border:1px solid #000;padding:.35mm 2mm;line-height:1.15;vertical-align:middle}' +
+    '.pf .str:first-child td,.pf .str:first-child th{padding-top:1.05mm;padding-bottom:1.05mm} .pf .str:first-child table{margin-bottom:3mm}' +
+    '.pf h1{text-align:center;font-family:"Times New Roman",serif;font-size:16pt;margin:3mm 0 5mm}' +
+    '.pf table{width:100%;border-collapse:collapse;margin-bottom:2.5mm} .pf td,.pf th{border:1px solid #000;padding:.55mm 2mm;line-height:1.2;vertical-align:middle}' +
     '.pf th{font-family:"Times New Roman",serif;font-size:12pt} .pf .lp{width:20mm} .pf .tn{width:13mm;text-align:center;font-weight:bold}' +
     '.pf .tn.th{font-family:"Times New Roman",serif;font-size:11pt} .pf .nd{float:right;font-weight:bold}' +
     '.pf .gl td{font-size:10.5pt} .pf .gl .et{font-weight:bold;width:32mm} .pf .gl .w{font-size:11pt}' +
     '.pf .abo{display:flex;font-weight:bold} .pf .abo span{flex:1;text-align:center;border-left:1px solid #000;padding:.6mm 0} .pf .abo span:first-child{border-left:0}' +
-    '.pf .uw{min-height:9mm;border-bottom:1px dotted #000;margin:.5mm 0 2.5mm;white-space:pre-wrap;font-size:10.5pt}' +
-    '.pf .dol td{height:7mm;vertical-align:top} .pf .dol{page-break-inside:avoid;break-inside:avoid} .pf img.pod{max-height:11mm;max-width:50mm;display:block}' +
+    '.pf .uw{min-height:12mm;border-bottom:1px dotted #000;margin:.5mm 0 2.5mm;white-space:pre-wrap;font-size:10.5pt}' +
+    '.pf .dol td{height:7mm;vertical-align:top} .pf .dol{page-break-inside:avoid;break-inside:avoid} .pf img.pod{max-height:13mm;max-width:55mm;display:block}' +
     '.pf .nr{text-align:right;font-weight:bold;margin-top:2mm}';
   function drukTresc(p) {
     const w = myjnia(p.myjnia) || {}, X = 'X';
