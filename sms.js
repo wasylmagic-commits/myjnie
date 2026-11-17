@@ -19,11 +19,21 @@
   const stEt = s => { const m = String(s.klucz || '').match(/^SP(\d{4})/); return m ? 'Orlen SP ' + m[1] : (s.firma || s.klucz); };
   // „zgł. 17.11 14:05” z pola Klient → { dd, mm, godz }
   const zglZl = p => { const m = String(p.kl || '').match(/zgł\. (\d\d)\.(\d\d)(?: (\d\d:\d\d))?/); return m ? { dd: m[1], mm: m[2], godz: m[3] || '' } : null; };
+  // 8 godzin na reakcję; zegar stoi od 22:00 do 6:00 (np. zgłoszenie 19:00 → 3 h do 22:00 + 5 h od 6:00 = 11:00 następnego dnia)
   const do8h = p => {
     const z = zglZl(p); if (!z || !z.godz) return '';
-    const r = +String(p.d || '').slice(0, 4) || new Date().getFullYear(), t = new Date(r, +z.mm - 1, +z.dd, +z.godz.slice(0, 2), +z.godz.slice(3, 5) + 480);
-    const g = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
-    return (t.getDate() !== +z.dd ? String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' : '') + g;
+    const r = +String(p.d || '').slice(0, 4) || new Date().getFullYear();
+    let t = new Date(r, +z.mm - 1, +z.dd, +z.godz.slice(0, 2), +z.godz.slice(3, 5)), ile = 480;
+    for (let n = 0; n < 6 && ile > 0; n++) {
+      const g = t.getHours() * 60 + t.getMinutes();
+      if (g < 360) { t = new Date(t.getFullYear(), t.getMonth(), t.getDate(), 6, 0); continue; }
+      if (g >= 1320) { t = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1, 6, 0); continue; }
+      const wolne = 1320 - g;
+      if (ile <= wolne) { t = new Date(t.getTime() + ile * 60000); ile = 0; }
+      else { ile -= wolne; t = new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1, 6, 0); }
+    }
+    const hm = String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+    return (t.getDate() !== +z.dd || t.getMonth() + 1 !== +z.mm ? String(t.getDate()).padStart(2, '0') + '.' + String(t.getMonth() + 1).padStart(2, '0') + ' ' : '') + hm;
   };
   let WSZYSTKIE = false;
 
