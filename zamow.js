@@ -99,7 +99,7 @@
   function wiersz(x) {
     const kl = KLASY[x.klasa], wt = ST.kopia && (ST.kopia.poz || []).some(p => p.k === x.k);
     return '<div class="row zr' + (x.skr ? ' skr' : '') + (wt ? ' wt' : '') + '">' +
-      (x.dodane ? '<button class="zk zx" aria-label="Usuń" onclick="zamUsunDod(\'' + jsq(x.k) + '\')">×</button>' : '<button class="zk" aria-label="' + (x.skr ? 'Przywróć' : 'Skreśl') + '" onclick="zamSkresl(\'' + jsq(x.k) + '\')">' + I(x.skr ? 'refresh' : 'check', 1) + '</button>') +
+      '<button class="zk zx" aria-label="Usuń z listy" onclick="zamUsun(\'' + jsq(x.k) + '\')">' + I('trash', 1) + '</button>' +
       '<div class="g"><b onclick="zamNazwa(\'' + jsq(x.k) + '\')" style="cursor:text">' + esc(x.nazwa) + '</b>' +
       '<div class="mute">' + (x.kod && !x.dodane ? esc(x.kod) + ' · ' : '') + (x.zadanie ? 'zadanie #' + esc(x.zadanie) + (x.myjnia ? ' · ' + esc(skrot(x.myjnia)) : '') : x.dodane ? (x.kod ? esc(x.kod) + ' · ' : '') + 'dodane ręcznie' : x.kod && x.doc ? 'jest ' + x.stan + ' z ' + x.doc : 'zamówione wcześniej – nie przyszło') +
       (x.termin ? ' · termin ' + dt(x.termin) : '') + '</div>' +
@@ -110,7 +110,7 @@
   }
 
   function widok() {
-    const l = zamLista(), wyb = l.filter(x => !x.skr), w = wDrodze();
+    const l = zamLista(), wyb = l.filter(x => !x.skr), w = wDrodze(), ukr = l.length - wyb.length;
     let h = naglowek('box', 'Zamówienia', 'tekst do magazyniera');
     if (ST.kopia && ST.kopia.poz && ST.kopia.poz.length) {
       const d = new Date(ST.kopia.t);
@@ -118,9 +118,10 @@
         ' · ' + ST.kopia.poz.length + ' poz.</h3><div class="mute" style="margin-bottom:10px">Wysłałeś SMS do magazyniera? Potwierdź – te pozycje przejdą do „W drodze”.</div>' +
         '<div class="ab"><button class="btn" id="zamOk" onclick="zamZamowione()">' + I('check', 1) + ' Zamówione</button><button class="btn2" onclick="zamNieWyslane()">Nie wysłałem</button></div></div>';
     }
-    h += '<div class="card"><h3>' + I('cart', 1) + 'Do zamówienia (' + l.length + ')</h3>' +
-      (l.length ? l.map(wiersz).join('') + '<div class="mute" style="font-size:13px;margin-top:6px">' + I('check', 1) + ' = skreśl z tego zamówienia (wróci przy następnym). Ilość: − / +. Dotknij nazwy, żeby ją poprawić.</div>'
+    h += '<div class="card"><h3>' + I('cart', 1) + 'Do zamówienia (' + wyb.length + ')</h3>' +
+      (wyb.length ? wyb.map(wiersz).join('') + '<div class="mute" style="font-size:13px;margin-top:6px">' + I('trash', 1) + ' albo − przy 1 szt. = usuń z tego zamówienia (wróci przy następnym). Dotknij nazwy, żeby ją poprawić.</div>'
         : '<div class="empty">Nic do zamówienia – magazyn w komplecie</div>') +
+      (ukr ? '<button class="btn2" style="width:100%;justify-content:center;margin-top:8px" onclick="zamPrzywroc()">Przywróć usunięte (' + ukr + ')</button>' : '') +
       '<button class="btn2" style="width:100%;justify-content:center;margin-top:10px" onclick="zamDodaj()">+ Dodaj pozycję</button></div>';
     if (wyb.length) {
       h += '<div class="card"><h3>' + I('doc', 1) + 'Tekst SMS (' + wyb.length + ' poz.)</h3>' +
@@ -147,15 +148,18 @@
 
   // + Dodaj pozycję: własnymi słowami albo z podpowiedzi (Magazyn, słownik); dopisana do skopiowanego tekstu, jeśli czeka na „Zamówione”
   let SZ = { q: '', ile: 1, kod: '', nazwa: '', cel: null };
+  // 17.11.2026: dopasowanie słów po początku wyrazu (dysz ~ dyszy, pomp ~ pompa); wynik = ile słów pasuje, najlepsze na górze
+  const traf = (q, t) => { const T = pl(t).split(/[^a-z0-9]+/).filter(Boolean); return pl(q).split(/[^a-z0-9]+/).filter(w => w.length >= 3)
+    .filter(w => T.some(x => x.indexOf(w) === 0 || w.indexOf(x) === 0 && x.length >= 4 || (w.length >= 4 && x.length >= 4 && w.slice(0, 4) === x.slice(0, 4)))).length; };
   function kandydaci(q) {
     if (pl(q).trim().length < 2) return [];
     const l = [], wid = {};
-    const dodaj = (kod, nazwa, zr) => { if (!kod || wid[kod]) return; wid[kod] = 1; l.push({ kod: kod, nazwa: nazwa, zr: zr }); };
+    const dodaj = (kod, nazwa, zr, sc) => { if (!kod || wid[kod]) return; wid[kod] = 1; l.push({ kod: kod, nazwa: nazwa, zr: zr, sc: sc || 0 }); };
     const qn = q.toLowerCase().replace(/[\s.\/-]/g, '');
-    slownik().forEach(x => { if (podobne(q, x.slowa + ' ' + x.nazwa) || (qn.length >= 4 && x.kod.toLowerCase().indexOf(qn) >= 0)) dodaj(x.kod, x.nazwa || x.slowa, 'słownik'); });
-    ((D && D.magazyn) || []).forEach(m => { if (podobne(q, m.nazwa) || (qn.length >= 4 && m.kod.toLowerCase().replace(/[\s.\/-]/g, '').indexOf(qn) >= 0)) dodaj(m.kod, m.nazwa, 'magazyn'); });
-    ((D && D.nowosci) || []).forEach(n => { if (podobne(q, n.nazwa)) dodaj(n.kod, n.nazwa, 'przyszło'); });
-    return l.slice(0, 8);
+    slownik().forEach(x => { const s = traf(q, x.slowa + ' ' + x.nazwa); if (s || (qn.length >= 4 && x.kod.toLowerCase().indexOf(qn) >= 0)) dodaj(x.kod, x.nazwa || x.slowa, 'słownik', s + 0.5); });
+    ((D && D.magazyn) || []).forEach(m => { const s = traf(q, m.nazwa); if (s || (qn.length >= 4 && m.kod.toLowerCase().replace(/[\s.\/-]/g, '').indexOf(qn) >= 0)) dodaj(m.kod, m.nazwa, 'magazyn', s); });
+    ((D && D.nowosci) || []).forEach(n => { const s = traf(q, n.nazwa); if (s) dodaj(n.kod, n.nazwa, 'przyszło', s); });
+    return l.sort((a, b) => b.sc - a.sc).slice(0, 8);
   }
   function arkDodaj() {
     const a = document.getElementById('ark'), wyb = SZ.cel;
@@ -193,7 +197,19 @@
   };
 
   window.zamSkresl = k => { if (ST.skr[k]) delete ST.skr[k]; else ST.skr[k] = 1; zapisz(); render(); };
-  window.zamIle = (k, d) => { const x = zamLista().find(y => y.k === k); if (!x) return; ST.ile[k] = Math.max(1, x.ilosc + d); zapisz(); render(); };
+  window.zamIle = (k, d) => { const x = zamLista().find(y => y.k === k); if (!x) return; if (x.ilosc + d < 1) return zamUsun(k); ST.ile[k] = x.ilosc + d; zapisz(); render(); };
+  // 17.11.2026: kosz (i − przy 1 szt.) = pozycja znika z listy; zadanie/zapas nie jest zamykane, „Przywróć usunięte” cofa
+  window.zamUsun = function (k) {
+    const x = zamLista().find(y => y.k === k); if (!x) return;
+    if (x.dodane || (x.dod || []).length) {
+      const rm = [k].concat(x.dod || []);
+      ST.dod = ST.dod.filter(d => rm.indexOf(d.k) < 0);
+      if (ST.kopia && ST.kopia.poz) ST.kopia.poz = ST.kopia.poz.filter(p => p.k !== k);
+    }
+    if (!x.dodane) ST.skr[k] = 1;
+    delete ST.ile[k]; zapisz(); render(); toast('Usunięto z listy');
+  };
+  window.zamPrzywroc = () => { ST.skr = {}; zapisz(); render(); };
   // 17.11.2026: dotknij nazwy → popraw (np. Pompa głębinowa zamiast Pompy głębinowej); zapamiętane do Zamówione
   window.zamNazwa = k => { const x = zamLista().find(y => y.k === k); if (!x) return; const v = prompt('Nazwa w SMS:', x.nazwa); if (v == null) return; ST.naz = ST.naz || {}; if (v.trim()) ST.naz[k] = v.trim(); else delete ST.naz[k]; zapisz(); render(); };
   window.zamUstaw = (pole, v) => { ST[pole] = String(v || '').trim(); zapisz(); render(); };
@@ -212,6 +228,18 @@
       toast(ok ? 'Skopiowane – wklej w SMS do ' + imie() : 'Zaznaczone – skopiuj ręcznie (przytrzymaj)');
     });
   };
+  // 17.11.2026: po powrocie z SMS-a aplikacja sama pyta „Zamówione?” (raz na skopiowany tekst)
+  function pytaj() {
+    const k = ST.kopia; if (!k || !k.poz || !k.poz.length || k.pyt || Date.now() - k.t < 8000 || Date.now() - k.t > 36e5 * 24) return;
+    const a = document.getElementById('ark'); if (!a) return;
+    k.pyt = 1; zapisz();
+    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('cart', 1) + ' Wysłałeś SMS do ' + esc(imie()) + '?</h4>' +
+      '<div class="mute" style="margin-bottom:10px">Skopiowany tekst: ' + k.poz.length + ' poz. Potwierdź, żeby na innych telefonach zamówienie nie wisiało.</div>' +
+      '<div class="ab"><button class="btn" onclick="arkZamknij();zamZamowione()">' + I('check', 1) + ' Zamówione</button><button class="btn2" onclick="arkZamknij();zamNieWyslane()">Nie wysłałem</button><button class="btn2" onclick="arkZamknij()">Później</button></div></div>';
+    a.classList.add('on');
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') { if (ST.kopia && !ST.kopia.pyt) ST.kopia.ukryte = 1; zapisz(); } else if (ST.kopia && ST.kopia.ukryte) setTimeout(pytaj, 600); });
+  setTimeout(() => { if (ST.kopia) pytaj(); }, 3500);
   window.zamNieWyslane = () => { delete ST.kopia; zapisz(); render(); toast('OK, lista bez zmian'); };
 
   const blad = e => toast(/Nieznana|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);

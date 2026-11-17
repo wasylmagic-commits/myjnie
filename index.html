@@ -771,7 +771,7 @@ function pokazPremie() {
 // 17.11.2026: długa płytka „Do zrobienia” – naprawy / do wysłania do biura / do zamówienia / do kupienia (pilne = termin za ≤ 2 dni)
 function dzTile(ot, napr) {
   const pil = l => l.filter(o => o.termin && dni(o.termin) <= 2).length;
-  const wys = doWysl(ot), kup = ot.filter(o => kat(o) === 'kupic'), zl = window.zamLista ? zamLista() : [];
+  const wys = doWysl(ot), kup = ot.filter(o => kat(o) === 'kupic'), zl = window.zamLista ? zamLista().filter(x => !x.skr) : [];
   const w = [['naprawy', 'na myjniach', napr.length, pil(napr)], ['biuro', 'do wysłania do biura', wys.length, pil(wys)],
     ['zamow', 'do zamówienia', zl.length, zl.filter(x => x.pilne).length], ['kupic', 'do kupienia', kup.length, pil(kup)]];
   return '<div class="dz">' + '<span class="pt">Do zrobienia</span>' + w.map(r =>
@@ -800,7 +800,7 @@ function dzis() {
     (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
   if (window.zleceniaKarta) h += zleceniaKarta();
   h += terminyRozliczen();
-  h += '<div class="tiles">' + kafelRaport() + kafelPremia() + (window.kafelZamow ? kafelZamow() : '') + '</div>';   // 17.11.2026: kafel Zamówienia (zamow.js) – kolor kafla, nie światła
+  h += '<div class="tiles">' + kafelRaport() + kafelPremia() + '</div>';   // 17.11.2026: kafel Zamówienia (zamow.js) – kolor kafla, nie światła
   if (window.notatnikKarta) h += notatnikKarta();   // 16.11.2026: strona notesu zdjęciem (notatnik.js)
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka do systemu</h3><textarea id="nt" placeholder="Co gdzie zrobić, co kupić, albo fakt: „na 1467 wymieniono szczotki 12.10”"></textarea>' +
        '<button class="btn" id="ntb" onclick="notatka()">Wyślij</button> <span class="mute">zapisze się od razu</span></div>';
@@ -1076,7 +1076,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v66</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v67</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
