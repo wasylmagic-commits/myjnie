@@ -245,18 +245,20 @@
       (z.szkicStatus ? '<div class="mute">szkic ' + esc(z.szkicStatus) + ' → „Do przeglądu”' + (z.ogon ? ' · kontrola ' + esc(z.ogon) : '') + '</div>' : '') + '</div>' +
       (z.szkicUrl ? '<a class="btn2" href="' + esc(z.szkicUrl) + '" target="_blank">' + I('doc', 1) + 'Otwórz</a>' : '') +
       '<button class="ib" aria-label="Ukryj" onclick="asOstatnioX()">×</button></div></div>';
-    h += '<div class="hero"><small>Asystent serwisowy</small><h2>Nowa diagnoza</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Myjnia, objaw, kody — dostaniesz hipotezy i cały plan sprawdzeń.</div></div>';
+    h += '<div class="hero"><small>Asystent serwisowy</small><h2>Nowa diagnoza</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Myjnia, objaw, zdjęcie błędu — dostaniesz hipotezy i cały plan sprawdzeń.</div></div>';
     if (kol.length) h += '<div class="card"><div class="row"><div class="g">W kolejce bez zasięgu: <b>' + kol.length + '</b></div><button class="btn2" onclick="asKolejka()">Wyślij teraz</button></div></div>';
     const l = listaMyjni();
     h += '<div class="card"><h3>' + I('pin', 1) + 'Myjnia</h3>' +
       (l.length ? '<select class="as-in" id="as-myj" onchange="asPole(\'myjnia\',this.value)"><option value="">— wybierz —</option>' +
         l.map(n => '<option' + (n === ST.myjnia ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__inna"' + (ST.myjnia === '__inna' ? ' selected' : '') + '>Inna (wpiszę)…</option></select>' : '') +
       (!l.length || ST.myjnia === '__inna' ? '<input class="as-in" id="as-myj2" placeholder="np. Orlen SP 4040 Kalisz, Quantus" value="' + esc(ST.myjniaInna || '') + '" oninput="asPole(\'myjniaInna\',this.value)">' : '') +
-      '<h3 style="margin-top:6px">' + I('alert', 1) + 'Kody / komunikaty na wyświetlaczu</h3>' +
-      '<input class="as-in" id="as-kody" placeholder="np. F138, błąd 70, „łączenie”" value="' + esc(ST.kody) + '" oninput="asPole(\'kody\',this.value)">' +
+      '<h3 style="margin-top:6px">' + I('camera', 1) + 'Ekran z błędem</h3>' +
+      '<div class="as-bar" style="gap:8px"><label class="btn" style="flex:1;justify-content:center;cursor:pointer">' + I('camera', 1) + 'Zrób zdjęcie ekranu z błędem<input type="file" accept="image/*" capture="environment" style="display:none" onchange="asZdj(this)"></label>' +
+      '<label class="btn2" style="cursor:pointer">Z galerii<input type="file" accept="image/*" multiple style="display:none" onchange="asZdj(this)"></label></div>' +
+      '<div class="mute" style="font-size:13px;margin:4px 0 2px">Kod i komunikat odczyta system ze zdjęcia – nie musisz go przepisywać.</div>' + miniatury() +
       '<h3 style="margin-top:6px">' + I('pen', 1) + 'Co się dzieje</h3>' +
-      '<textarea id="as-objaw" placeholder="Objaw, od kiedy, co już sprawdzone… (możesz dyktować)" oninput="asPole(\'objaw\',this.value)">' + esc(ST.objaw) + '</textarea>' +
-      miniatury() + narzedzia('as-objaw') +
+      '<textarea id="as-objaw" placeholder="Objaw, kody błędów, od kiedy, co już sprawdzone… (możesz dyktować)" oninput="asPole(\'objaw\',this.value)">' + esc(ST.objaw) + '</textarea>' +
+      narzedzia('as-objaw') +
       '<h3 style="margin-top:12px">' + I('star', 1) + 'Poziom serwisanta</h3>' +
       '<select class="as-in" id="as-poziom" onchange="asPoziom(this.value)"><option value="">domyślny (z Ustawień)</option>' +
       '<option value="doswiadczony"' + (ST.poziom === 'doswiadczony' ? ' selected' : '') + '>Doświadczony — cały plan, miękka kontrola końca</option>' +
@@ -384,7 +386,7 @@
   window.asStart = () => {
     const myj = ST.myjnia === '__inna' || !ST.myjnia ? (ST.myjniaInna || '').trim() : ST.myjnia;
     if (!myj) { toast('Wybierz myjnię'); return; }
-    if (!ST.objaw.trim() && !ST.kody.trim() && !ST.zdj.length) { toast('Opisz objaw, kody albo dodaj zdjęcie'); return; }
+    if (!ST.objaw.trim() && !ST.kody.trim() && !ST.zdj.length) { toast('Opisz objaw albo dodaj zdjęcie'); return; }
     const ost = (LSG('as_ost_myjnie') || []).filter(n => n !== myj); ost.unshift(myj); LSS('as_ost_myjnie', ost.slice(0, 5));
     const dane = { myjnia: myj, objaw: ST.objaw, kody: ST.kody, trudny: ST.trudny, poziom: ST.poziom || undefined, zdjecia: ST.zdj.map(z => ({ b64: z.b64, mime: z.mime })) };
     const lok = { id: '?', myjnia: { nazwa: myj }, odp: { podsumowanie: 'Zgłoszenie zapisane — czeka na zasięg.' }, runda: 1,

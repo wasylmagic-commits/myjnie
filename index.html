@@ -169,6 +169,12 @@
   .hero .hs div:active{transform:scale(.95)}
   .hero .hs b{display:block;font:700 30px/1.05 var(--fr);letter-spacing:0}
   .hero .hs span{font-size:12px;opacity:.9;font-weight:500}
+  .hero .hs div.pz{flex:1 1 100%;order:9;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:22px}
+  .hero .hs .pt{display:block;flex-basis:100%;font-size:13px;font-weight:600}
+  .hero .hs .pw{display:flex;align-items:baseline;gap:7px;margin-top:5px;line-height:1.15;white-space:nowrap}
+  .hero .hs .pw em{font:700 26px/1 var(--fr);font-style:normal;min-width:20px}
+  .hero .hs .pw.po{font-weight:800;font-size:13px;opacity:1}
+  .hero .hs .pw.po em{font-size:30px}
 
   /* widżety */
   .tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
@@ -768,8 +774,9 @@ function dzis() {
   const stanDnia = awk ? 'alarm' : poTer ? 'uwaga' : 'ok';
   let h = '<div class="hero" data-s="' + stanDnia + '"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
     '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
-    '<div' + (poTer ? ' class="s-o"' : '') + ' onclick="go(\'przeglady\')"><b>' + prz.filter(w => w.dni >= 0 && w.dni <= 14).length + '</b><span>przeglądy w 14 dni</span>' +
-    (poTer ? '<span style="display:block;margin-top:3px;font-weight:700;opacity:1">+ ' + poTer + ' po terminie</span>' : '') + '</div>' +
+    '<div class="pz' + (poTer ? ' s-o' : '') + '"' + ' onclick="go(\'przeglady\')"><span class="pt">Przeglądy</span>' +
+    '<span class="pw"><em>' + prz.filter(w => w.dni >= 0 && w.dni <= 14).length + '</em>najbliższe 14 dni</span>' +
+    (poTer ? '<span class="pw po"><em>' + poTer + '</em>po terminie</span>' : '') + '</div>' +
     (zadPo ? '<div class="s-o" onclick="go(\'ogony\')"><b>' + zadPo + '</b><span>zadania po terminie</span></div>' : '') +
     (akty.length ? '<div><b>' + akty.length + '</b><span>dokumenty czekają</span></div>' : '') +
     (zN.length ? '<div' + (awk ? ' class="s-r"' : '') + ' onclick="document.getElementById(\'zlk\').scrollIntoView({behavior:\'smooth\'})"><b>' + zN.length + '</b><span>nowe zlecenia' + (awk ? ' · AWK' : '') + '</span></div>' : '') + '</div></div>';
@@ -994,6 +1001,23 @@ function zaznacz() {
 }
 
 /* ---------- Zadania ---------- */
+// 17.11.2026: dodawanie zadania prosto w zakładce – o typie decyduje wybrana podzakładka (Naprawy / Zakupy / Biuro)
+const ZAD = { naprawy: ['Nowa naprawa', 'ogon', 'np. na 1467 cieknie wąż, wymienić uszczelkę'], kupic: ['Nowy zakup', 'kupic', 'np. kupić manometry 2 szt.'], biuro: ['Nowe do biura', 'biuro', 'np. zamówić pompę głębinową'] };
+function zadForm() {
+  const z = ZAD[OGF]; if (!z) return '';
+  return '<div class="card"><h3>' + I('plus', 1) + z[0] + '</h3><textarea id="zdn" placeholder="' + z[2] + ' (możesz dyktować)"></textarea>' +
+    '<button class="btn" id="zdb" style="width:100%;justify-content:center;margin-top:8px" onclick="zadDodaj()">Dodaj</button></div>';
+}
+function zadDodaj() {
+  const z = ZAD[OGF], el = document.getElementById('zdn'), b = document.getElementById('zdb');
+  const t = el.value.trim();
+  if (!z || t.length < 5) return toast('Napisz trochę więcej');
+  b.disabled = true; b.textContent = 'Zapisuję…';
+  const koniec = () => { b.disabled = false; b.textContent = 'Dodaj'; };
+  api('notatkaDzis', { t: '[Typ wpisu: ' + z[1] + ' – wszystkie pozycje poniżej są tego typu] ' + t }).then(j => {
+    el.value = ''; koniec(); pokazZapisane(j.wynik || {}); load();
+  }).catch(e => { koniec(); toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
+}
 function ogony() {
   const naz = { naprawy: ['wrench', 'Naprawy'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Biuro'], zamkniete: ['check', 'Zamknięte'] };
   const ot = D.ogony.filter(open_);
@@ -1003,6 +1027,7 @@ function ogony() {
     const z = D.ogony.filter(o => !open_(o) && o.typ !== 'fakt').sort((a, b) => (b.zamkn || b.d).localeCompare(a.zamkn || a.d)).slice(0, 50);
     return h + '<div class="card">' + (z.length ? z.map(o => ogonRow(o, true)).join('') : '<div class="empty">pusto</div>') + '</div>';
   }
+  h += zadForm();
   const l = ot.filter(o => kat(o) === OGF);
   if (!l.length) return h + '<div class="empty">Nic do zrobienia</div>';
   if (OGF !== 'naprawy') return h + '<div class="card">' + l.sort((a, b) => (a.termin || '9').localeCompare(b.termin || '9')).map(o => ogonRow(o, true)).join('') + '</div>';
@@ -1032,7 +1057,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v64</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v65</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
