@@ -111,6 +111,11 @@
   });
   // nowe zlecenia z SMS (karta „Nowe zlecenia” na Dziś)
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Poznań', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00431', opis: 'Praca na sucho – zgłoszenie z SMS', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: WLOSCIANSKA 6, 60-681 POZNAN (BP Piątka) | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 07:12 | Biuro' });
+  // 17.11.2026: położenie przykładowych myjni (Po drodze); część celowo bez współrzędnych
+  S.geo = [['Orlen SP 0232', 52.80, 17.20], ['Orlen SP 0303', 52.31, 16.12], ['Orlen SP 0422', 52.41, 16.89], ['Orlen SP 1149', 52.39, 16.90], ['Orlen SP 1366', 52.37, 16.95], ['Orlen SP 1368', 52.45, 16.98],
+    ['Orlen SP 1466', 52.43, 16.80], ['Orlen SP 1467', 52.40, 16.84], ['Orlen SP 4137', 52.42, 16.83], ['Orlen SP 4142', 52.47, 16.90], ['Orlen SP 4576', 52.52, 16.95], ['BP Przygoda', 52.43, 16.91], ['BP Piątka', 52.39, 16.87], ['BP Mieszko', 52.40, 16.94]]
+    .map(x => ({ n: x[0], lat: x[1], lng: x[2] }));
+  S.ust = {};
   S.stacje = [{ klucz: 'SP4046', firma: 'Orlen 4046', siec: 'Orlen', ulica: 'Bałtycka 4a', kod: '61-013', miasto: 'Poznań' }];
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Poznan', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00446', opis: 'Brak dawkowania aktywnej piany podczas mycia. Prosze o sprawdzenie i kalibracje.', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Baltycka 4a, 61-013 Poznan | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 14:05 | Biuro' });
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Kobylnica', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00432', opis: 'Portal stanął w trakcie programu, błąd na panelu', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Poznańska, Kobylnica (Orlen SP 4137) | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 08:03 | Biuro' });
@@ -310,6 +315,8 @@
       case 'mgPrzyszlo': { const z = S.zamowienia.find(x => x.id === String(p.id)); if (!z) return { ok: false, blad: 'Nie ma zamówienia' }; z.dost = Math.min(z.ilosc, z.dost + (+p.n || 0));
         const m = z.kod && S.magazyn.find(x => x.kod === z.kod); if (m) m.ilosc = String((+m.ilosc || 0) + (+p.n || 0)); if (z.dost >= z.ilosc) S.zamowienia = S.zamowienia.filter(x => x !== z); return { ok: true, wynik: { dost: z.dost } }; }
       case 'mgPolacz': { const z = S.zamowienia.find(x => x.id === String(p.id)); if (z) { z.kod = p.kod; S.slownik.push({ slowa: z.nazwa, kod: p.kod, nazwa: p.nazwa }); } return { ok: true, wynik: { dost: 0 } }; }
+      case 'mgGeo': return { ok: true, wynik: { dodane: [], pozostalo: 0 } };
+      case 'mgUst': S.ust.promien = { v: +p.v, ts: +p.t }; return { ok: true, wynik: { zapisano: true } };
       case 'mgAnuluj': S.zamowienia = S.zamowienia.filter(x => x.id !== String(p.id)); return { ok: true, wynik: true };
       case 'mgPlan': { S.plan = S.plan.filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: +p.docelowo }]); const m = S.magazyn.find(x => x.kod === p.kod); if (m) m.min = String(p.prog); return { ok: true, wynik: true }; }
       case 'odrzuc': { const x = S.prace.find(y => y.nr === p.nr); if (x) x.status = p.cofnij === '1' ? 'zlecenie' : 'anulowane'; return { ok: true, wynik: true }; }
