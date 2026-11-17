@@ -57,7 +57,7 @@
       const nz = String(o.opis || '').replace(/^\s*(zam[oó]wienie|zam[oó]wi[cć]|zam[oó]w|zakaza[tć]\S*|закаж\S*|заказ\S*)(\s*:\s*|\s+)/i, '').replace(/[.\s]+$/, '');
       out.push({ k: 'o:' + o.id, kod: '', nazwa: nz ? nz.charAt(0).toUpperCase() + nz.slice(1) : o.opis, ilosc: ile, klasa: '', zadanie: o.id, myjnia: o.myjnia, termin: o.termin, pilne: t != null && t <= 2 });
     });
-    out.forEach(x => { if (ST.ile[x.k]) x.ilosc = ST.ile[x.k]; x.skr = !!ST.skr[x.k]; });
+    out.forEach(x => { if (ST.ile[x.k]) x.ilosc = ST.ile[x.k]; if (ST.naz && ST.naz[x.k]) x.nazwa = ST.naz[x.k]; x.skr = !!ST.skr[x.k]; });
     return out.sort((a, b) => (b.pilne ? 1 : 0) - (a.pilne ? 1 : 0) || (a.zadanie ? 1 : 0) - (b.zadanie ? 1 : 0) ||
       (KOL[a.klasa] ?? 3) - (KOL[b.klasa] ?? 3) || String(a.nazwa).localeCompare(String(b.nazwa)));
   };
@@ -66,7 +66,7 @@
 
   function tekst(l) {
     const NL = '\n';
-    return 'Cześć ' + imie() + ',' + NL + 'proszę o zamówienie:' + NL +
+    return 'Cześć ' + imie() + ',' + NL + 'proszę o wysłanie:' + NL +
       l.map((x, i) => (i + 1) + '. ' + (x.kod ? x.kod + ' – ' : '') + x.nazwa + ' – ' + x.ilosc + ' szt.' + (x.pilne ? ' – PILNE' : '')).join(NL) +
       NL + NL + 'Pozdrawiam' + NL + podpis();
   }
@@ -88,7 +88,7 @@
     const kl = KLASY[x.klasa], wt = ST.kopia && (ST.kopia.poz || []).some(p => p.k === x.k);
     return '<div class="row zr' + (x.skr ? ' skr' : '') + (wt ? ' wt' : '') + '">' +
       '<button class="zk" aria-label="' + (x.skr ? 'Przywróć' : 'Skreśl') + '" onclick="zamSkresl(\'' + jsq(x.k) + '\')">' + I(x.skr ? 'refresh' : 'check', 1) + '</button>' +
-      '<div class="g"><b>' + esc(x.nazwa) + '</b>' +
+      '<div class="g"><b onclick="zamNazwa(\'' + jsq(x.k) + '\')" style="cursor:text">' + esc(x.nazwa) + '</b>' +
       '<div class="mute">' + (x.kod ? esc(x.kod) + ' · ' : '') + (x.zadanie ? 'zadanie #' + esc(x.zadanie) + (x.myjnia ? ' · ' + esc(skrot(x.myjnia)) : '') : x.kod ? 'jest ' + x.stan + ' z ' + x.doc : 'zamówione wcześniej – nie przyszło') +
       (x.termin ? ' · termin ' + dt(x.termin) : '') + '</div>' +
       '<div class="zp">' + (x.pilne ? '<span class="pill r">pilne</span>' : x.zero ? '<span class="pill r">brak w aucie</span>' : '') +
@@ -107,7 +107,7 @@
         '<div class="ab"><button class="btn" id="zamOk" onclick="zamZamowione()">' + I('check', 1) + ' Zamówione</button><button class="btn2" onclick="zamNieWyslane()">Nie wysłałem</button></div></div>';
     }
     h += '<div class="card"><h3>' + I('cart', 1) + 'Do zamówienia (' + l.length + ')</h3>' +
-      (l.length ? l.map(wiersz).join('') + '<div class="mute" style="font-size:13px;margin-top:6px">' + I('check', 1) + ' = skreśl z tego zamówienia (wróci przy następnym). Ilość: − / +.</div>'
+      (l.length ? l.map(wiersz).join('') + '<div class="mute" style="font-size:13px;margin-top:6px">' + I('check', 1) + ' = skreśl z tego zamówienia (wróci przy następnym). Ilość: − / +. Dotknij nazwy, żeby ją poprawić.</div>'
         : '<div class="empty">Nic do zamówienia – magazyn w komplecie</div>') + '</div>';
     if (wyb.length) {
       h += '<div class="card"><h3>' + I('doc', 1) + 'Tekst SMS (' + wyb.length + ' poz.)</h3>' +
@@ -126,6 +126,8 @@
 
   window.zamSkresl = k => { if (ST.skr[k]) delete ST.skr[k]; else ST.skr[k] = 1; zapisz(); render(); };
   window.zamIle = (k, d) => { const x = zamLista().find(y => y.k === k); if (!x) return; ST.ile[k] = Math.max(1, x.ilosc + d); zapisz(); render(); };
+  // 17.11.2026: dotknij nazwy → popraw (np. Pompa głębinowa zamiast Pompy głębinowej); zapamiętane do Zamówione
+  window.zamNazwa = k => { const x = zamLista().find(y => y.k === k); if (!x) return; const v = prompt('Nazwa w SMS:', x.nazwa); if (v == null) return; ST.naz = ST.naz || {}; if (v.trim()) ST.naz[k] = v.trim(); else delete ST.naz[k]; zapisz(); render(); };
   window.zamUstaw = (pole, v) => { ST[pole] = String(v || '').trim(); zapisz(); render(); };
 
   function kopiuj(t) {
@@ -155,7 +157,7 @@
       D.zamowienia = (D.zamowienia || []).filter(z => ponow.indexOf(z.id) < 0)
         .concat(poz.map((x, i) => ({ id: 'n' + Date.now() + i, d: d, kod: x.kod, nazwa: x.nazwa, ilosc: x.ilosc, dost: 0, zadanie: x.zadanie })));
       poz.forEach(x => { if (!x.zadanie) return; const o = D.ogony.find(y => String(y.id) === String(x.zadanie)); if (o) { o.status = 'zamknięty'; o.zamkn = d; } });
-      k.poz.forEach(x => { delete ST.skr[x.k]; delete ST.ile[x.k]; });
+      k.poz.forEach(x => { delete ST.skr[x.k]; delete ST.ile[x.k]; if (ST.naz) delete ST.naz[x.k]; });
       delete ST.kopia; ST.skr = {}; zapisz(); render();
       toast('Zamówione: ' + poz.length + ' poz. – czekam na dostawę');
     }).catch(e => { if (b) b.disabled = false; blad(e); });
