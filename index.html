@@ -169,6 +169,13 @@
   .hero .hs div:active{transform:scale(.95)}
   .hero .hs b{display:block;font:700 30px/1.05 var(--fr);letter-spacing:0}
   .hero .hs span{font-size:12px;opacity:.9;font-weight:500}
+  .hero .hs div.dz{flex:1 1 100%;cursor:default;display:flex;flex-direction:column;gap:2px}
+  .hero .hs .dr{display:flex;align-items:baseline;gap:10px;font-size:14px;padding:3px 0;cursor:pointer;opacity:1}
+  .hero .hs .dr em{font:700 24px/1 var(--fr);font-style:normal;min-width:26px}
+  .hero .hs .dr em{color:#6fe6ff}
+  .hero .hs .dr.u em{color:#ffb84d}
+  .hero .hs .dr.z{opacity:.55}
+  .hero .hs .dr i{font-style:normal;font-weight:800;font-size:12px;padding:1px 8px;border-radius:99px;background:#ff9f1a;color:#2a1700;margin-left:auto}
   .hero .hs div.pz{flex:1 1 100%;order:9;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:22px}
   .hero .hs .pt{display:block;flex-basis:100%;font-size:13px;font-weight:600}
   .hero .hs .pw{display:flex;align-items:baseline;gap:7px;margin-top:5px;line-height:1.15;white-space:nowrap}
@@ -554,6 +561,7 @@ const toastAkcja = (t, nazwa, fn) => { const e = document.getElementById('toast'
   b.onclick = () => { e.classList.remove('on'); clearTimeout(TT); fn(); }; e.appendChild(b); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 5000); };
 const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 2600); };
 const open_ = o => o.status === 'otwarty';
+const doWysl = l => l.filter(o => kat(o) === 'biuro' && !(window.czyZamowienie && czyZamowienie(o)));
 const kat = o => o.typ === 'do kupienia' ? 'kupic' : o.typ === 'do biura' ? 'biuro' : 'naprawy';
 const skrot = n => String(n || '').replace('Orlen SP ', 'SP ');
 
@@ -760,6 +768,16 @@ function pokazPremie() {
     '<div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zamknij</button></div></div>';
   a.classList.add('on');
 }
+// 17.11.2026: długa płytka „Do zrobienia” – naprawy / do wysłania do biura / do zamówienia / do kupienia (pilne = termin za ≤ 2 dni)
+function dzTile(ot, napr) {
+  const pil = l => l.filter(o => o.termin && dni(o.termin) <= 2).length;
+  const wys = doWysl(ot), kup = ot.filter(o => kat(o) === 'kupic'), zl = window.zamLista ? zamLista() : [];
+  const w = [['naprawy', 'na myjniach', napr.length, pil(napr)], ['biuro', 'do wysłania do biura', wys.length, pil(wys)],
+    ['zamow', 'do zamówienia', zl.length, zl.filter(x => x.pilne).length], ['kupic', 'do kupienia', kup.length, pil(kup)]];
+  return '<div class="dz">' + '<span class="pt">Do zrobienia</span>' + w.map(r =>
+    '<span class="dr' + (r[3] ? ' u' : '') + (r[2] ? '' : ' z') + '" onclick="dzGo(\'' + r[0] + '\')"><em>' + r[2] + '</em>' + r[1] + (r[3] ? '<i>' + r[3] + ' pilne</i>' : '') + '</span>').join('') + '</div>';
+}
+function dzGo(k) { if (k === 'zamow') return go('zamow'); OGF = k; go('ogony'); }
 function dzis() {
   const ot = D.ogony.filter(open_), napr = ot.filter(o => kat(o) === 'naprawy');
   const prz = D.myjnie.filter(w => w.dni != null && w.dni <= 21).sort((a, b) => a.dni - b.dni);
@@ -773,7 +791,7 @@ function dzis() {
   const zadPo = ot.filter(o => /^\d{4}-\d\d-\d\d/.test(String(o.termin || '')) && String(o.termin).slice(0, 10) < dzisIso()).length;
   const stanDnia = awk ? 'alarm' : poTer ? 'uwaga' : 'ok';
   let h = '<div class="hero" data-s="' + stanDnia + '"><small>Serwis myjni · ' + (LS.get('d') === '1' ? 'DEMO · ' : '') + esc(UPD) + '</small><h2>' + pora + ', ' + esc(imieSerw()) + '</h2><div class="hs">' +
-    '<div onclick="go(\'ogony\')"><b>' + napr.length + '</b><span>otwarte naprawy</span></div>' +
+    dzTile(ot, napr) +
     '<div class="pz' + (poTer ? ' s-o' : '') + '"' + ' onclick="go(\'przeglady\')"><span class="pt">Przeglądy</span>' +
     '<span class="pw"><em>' + prz.filter(w => w.dni >= 0 && w.dni <= 14).length + '</em>najbliższe 14 dni</span>' +
     (poTer ? '<span class="pw po"><em>' + poTer + '</em>po terminie</span>' : '') + '</div>' +
@@ -1002,7 +1020,7 @@ function zaznacz() {
 
 /* ---------- Zadania ---------- */
 // 17.11.2026: dodawanie zadania prosto w zakładce – o typie decyduje wybrana podzakładka (Naprawy / Zakupy / Biuro)
-const ZAD = { naprawy: ['Nowa naprawa', 'ogon', 'np. na 1467 cieknie wąż, wymienić uszczelkę'], kupic: ['Nowy zakup', 'kupic', 'np. kupić manometry 2 szt.'], biuro: ['Nowe do biura', 'biuro', 'np. zamówić pompę głębinową'] };
+const ZAD = { naprawy: ['Nowa naprawa', 'ogon', 'np. na 1467 cieknie wąż, wymienić uszczelkę'], kupic: ['Nowy zakup', 'kupic', 'np. kupić manometry 2 szt.'], biuro: ['Nowe do wysłania', 'biuro', 'np. zawieźć protokół z SP 1467'] };
 function zadForm() {
   const z = ZAD[OGF]; if (!z) return '';
   return '<div class="card"><h3>' + I('plus', 1) + z[0] + '</h3><textarea id="zdn" placeholder="' + z[2] + ' (możesz dyktować)"></textarea>' +
@@ -1019,16 +1037,17 @@ function zadDodaj() {
   }).catch(e => { koniec(); toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
 }
 function ogony() {
-  const naz = { naprawy: ['wrench', 'Naprawy'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Biuro'], zamkniete: ['check', 'Zamknięte'] };
+  const naz = { naprawy: ['wrench', 'Naprawy'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Do wysłania'], zamkniete: ['check', 'Zamknięte'] };
   const ot = D.ogony.filter(open_);
-  const cnt = k => k === 'zamkniete' ? '' : ' (' + ot.filter(o => kat(o) === k).length + ')';
+  const cnt = k => k === 'zamkniete' ? '' : ' (' + (k === 'biuro' ? doWysl(ot).length : ot.filter(o => kat(o) === k).length) + ')';
   let h = '<div class="seg">' + Object.keys(naz).map(k => '<button class="' + (OGF === k ? 'on' : '') + '" onclick="OGF=\'' + k + '\';render()">' + I(naz[k][0], 1) + naz[k][1] + cnt(k) + '</button>').join('') + '</div>';
   if (OGF === 'zamkniete') {
     const z = D.ogony.filter(o => !open_(o) && o.typ !== 'fakt').sort((a, b) => (b.zamkn || b.d).localeCompare(a.zamkn || a.d)).slice(0, 50);
     return h + '<div class="card">' + (z.length ? z.map(o => ogonRow(o, true)).join('') : '<div class="empty">pusto</div>') + '</div>';
   }
   h += zadForm();
-  const l = ot.filter(o => kat(o) === OGF);
+  const l = OGF === 'biuro' ? doWysl(ot) : ot.filter(o => kat(o) === OGF);
+  if (OGF === 'biuro' && window.zamLista && zamLista().length) h += '<div class="card" style="cursor:pointer" onclick="go(\'zamow\')"><div class="row" style="border:0"><div class="g">' + I('box', 1) + ' <b>Zamówienia (' + zamLista().length + ')</b> <span class="mute">— zamawiasz w osobnym ekranie</span></div><span class="pill o">otwórz</span></div></div>';
   if (!l.length) return h + '<div class="empty">Nic do zrobienia</div>';
   if (OGF !== 'naprawy') return h + '<div class="card">' + l.sort((a, b) => (a.termin || '9').localeCompare(b.termin || '9')).map(o => ogonRow(o, true)).join('') + '</div>';
   const g = {};
@@ -1057,7 +1076,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v65</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v66</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

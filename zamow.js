@@ -72,6 +72,8 @@
       (KOL[a.klasa] ?? 3) - (KOL[b.klasa] ?? 3) || String(a.nazwa).localeCompare(String(b.nazwa)));
   };
 
+  window.czyZamowienie = o => kat(o) === 'biuro' && !NIE_ZAMOWIENIE.test(pl(o.opis));
+
   const wDrodze = () => zamowienia().filter(z => z.dost < z.ilosc);
 
   function tekst(l) {
