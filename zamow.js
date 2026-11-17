@@ -12,7 +12,7 @@
   const KLASY = { krytyczna: ['r', 'krytyczna', 'zatrzyma myjnię'], 'częsta': ['o', 'częsta', 'często się zużywa'], 'zwykła': ['', 'zwykła', 'rzadko'] };
   const KOL = { krytyczna: 0, 'częsta': 1, 'zwykła': 2 };
   const num = s => +String(s == null ? '' : s).replace(/\s/g, '').replace(',', '.') || 0;
-  const NIE_ZAMOWIENIE = /wysla|wysyl|zawiez|zawioz|dokument|protokol|faktur|poczt|oddac|odebra|podpis|przekaz|rozlicz|druk/;
+  const NIE_ZAMOWIENIE = /wysla|wysyl|zawiez|zawioz|dokument|protokol|faktur|poczt|oddac|odda|odebra|podpis|przekaz|rozlicz|druk|przygotow|zdani|zdac|busa|samochod|przeglad auta/;
 
   // stan lokalny: skreślenia, ilości, skopiowany tekst, odbiorca, podpis
   const ST = (() => { try { return JSON.parse(LS.get('zam') || '{}'); } catch (e) { return {}; } })();
@@ -54,7 +54,7 @@
     (D.ogony || []).filter(o => open_(o) && kat(o) === 'biuro' && !NIE_ZAMOWIENIE.test(pl(o.opis))).forEach(o => {
       const ile = +((String(o.czesci || '').match(/×\s*(\d+)/) || [])[1]) || 1;
       const t = o.termin ? dni(o.termin) : null;
-      const nz = String(o.opis || '').replace(/^\s*(zam[oó]wi[cć]|zam[oó]w|zam[oó]wienie|zakaza[tć]\S*|закаж\S*|заказ\S*)\s*:?\s*/i, '');
+      const nz = String(o.opis || '').replace(/^\s*(zam[oó]wienie|zam[oó]wi[cć]|zam[oó]w|zakaza[tć]\S*|закаж\S*|заказ\S*)(\s*:\s*|\s+)/i, '').replace(/[.\s]+$/, '');
       out.push({ k: 'o:' + o.id, kod: '', nazwa: nz ? nz.charAt(0).toUpperCase() + nz.slice(1) : o.opis, ilosc: ile, klasa: '', zadanie: o.id, myjnia: o.myjnia, termin: o.termin, pilne: t != null && t <= 2 });
     });
     out.forEach(x => { if (ST.ile[x.k]) x.ilosc = ST.ile[x.k]; x.skr = !!ST.skr[x.k]; });
