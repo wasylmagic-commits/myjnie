@@ -233,10 +233,10 @@
   textarea{min-height:84px;resize:vertical}
   main select.as-in{padding-right:36px;background:var(--fill) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238e8e93' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M7 10l5 5 5-5'/%3E%3C/svg%3E") no-repeat calc(100% - 12px) 50%/16px}
   /* przełącznik iOS zamiast kwadratu */
-  input[type=checkbox]{-webkit-appearance:none;appearance:none;width:51px!important;height:31px!important;flex:0 0 auto;border-radius:999px;background:var(--fill);position:relative;margin:0;cursor:pointer;
+  input[type=checkbox],#ark input[type=checkbox]{padding:0;-webkit-appearance:none;appearance:none;width:51px!important;height:31px!important;flex:0 0 auto;border-radius:999px;background:var(--fill);position:relative;margin:0;cursor:pointer;
       transition:background .25s;box-shadow:inset 0 0 0 .5px var(--line)}
   input[type=checkbox]::after{content:"";position:absolute;top:2px;left:2px;width:27px;height:27px;border-radius:50%;background:#fff;box-shadow:0 3px 8px rgba(0,0,0,.15),0 3px 1px rgba(0,0,0,.06);transition:transform .4s var(--spring)}
-  input[type=checkbox]:checked{background:#34c759}
+  input[type=checkbox]:checked,#ark input[type=checkbox]:checked{background:#34c759}
   input[type=checkbox]:checked::after{transform:translateX(20px)}
 
   /* kontrolka segmentowa */
@@ -493,6 +493,7 @@
 <script src="raport.js"></script>
 <script src="przeglad.js"></script>
 <script src="udostepnij.js"></script>
+<script src="listaprz.js"></script>
 <script src="sms.js"></script>
 <script src="notatnik.js"></script>
 <script src="zamow.js"></script>
@@ -1148,7 +1149,7 @@ function ogony() {
 /* ---------- Przeglądy ---------- */
 function przeglady() {
   const l = D.myjnie.slice().sort((a, b) => (a.dni == null ? 9999 : a.dni) - (b.dni == null ? 9999 : b.dni));
-  return (window.przKarta ? przKarta() : '') + '<div class="card">' + l.map(w => '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
+  return (window.przKarta ? przKarta() : '') + (window.lpKarta ? lpKarta() : '') + '<div class="card">' + l.map(w => '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')"><div class="g"><b>' + esc(skrot(w.nazwa)) + '</b> <span class="mute">' + esc(w.miasto) + '</span>' +
     '<div class="mute">termin ' + esc(w.termin || '—') + (w.co ? ' · co ' + esc(w.co) + ' mies.' : '') + '</div></div>' + pillDni(w.dni) + '</div>').join('') + '</div>';
 }
 
@@ -1165,7 +1166,7 @@ function wiecej() {
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     (window.pdKafel ? pdKafel() : '') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v96</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v97</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

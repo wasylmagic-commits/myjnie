@@ -333,6 +333,11 @@
         if (a === 'usun') { Z[body.id] = { id: body.id, x: 1, zm: new Date().toISOString() }; zapisz(); return { ok: true, wynik: { zm: Z[body.id].zm } }; }
         if (a === 'zapisz') { const z = Z[body.szkic.id]; if (z && String(z.zm) > String(body.szkic.zm)) return { ok: true, wynik: { zapisano: false, zm: z.zm, x: z.x ? 1 : 0 } }; Z[body.szkic.id] = JSON.parse(JSON.stringify(body.szkic)); zapisz(); return { ok: true, wynik: { zapisano: true } }; }
         return { ok: false, blad: 'Nieznana akcja' }; }
+      case 'przLista': {   // 18.11.2026: lista przeglądów z biura (listaprz.js)
+        if (body.akcja === 'zapisz') { const zap = (body.wiersze || []).map(w => { const m = S.myjnie.find(x => x.nazwa === w.nazwa); if (m) m.termin = w.termin; return { nazwa: w.nazwa, termin: w.termin, nastepny: w.termin }; }); return { ok: true, wynik: { zapisane: zap, brak: [] } }; }
+        const m = S.myjnie.slice(0, 2);
+        return { ok: true, wynik: { wiersze: m.map((x, i) => ({ nr: (String(x.klucz).match(/\d{3,4}/) || [''])[0], stacja: x.nazwa, serwisant: 'Tomczakowski Wasyl', termin: '2026-12-1' + i, ostatni: '2026-09-1' + i })), niejasne: '' } };
+      }
       case 'pdf': return { ok: true, wynik: 'ok' };
       case 'asystent': { try { return { ok: true, wynik: asystent(body) }; } catch (e) { return { ok: false, blad: e.message }; } }
       default: return { ok: false, blad: 'Nieznana akcja (demo): ' + api };

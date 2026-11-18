@@ -17,6 +17,13 @@
       for (const req of kl) {
         const res = await c.match(req); if (!res) continue;
         const blob = await res.blob(), nazwa = decodeURIComponent(res.headers.get('X-Nazwa') || '') || 'plik', rid = req.url.split('/').pop();
+        // 18.11.2026: Excel z biura (lista przeglądów) – nie do bota jako dokument, tylko do karty „Lista z biura” (listaprz.js)
+        if (/sheet|excel/i.test(blob.type || '') || /\.xlsx?$/i.test(nazwa)) {
+          await c.delete(req);
+          const plik = new File([blob], nazwa, { type: blob.type || 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          const start = () => { if (typeof D !== 'undefined' && D && window.lpPlik) { go('przeglady'); lpPlik(plik); } else setTimeout(start, 500); };
+          start(); continue;
+        }
         pokaz('Wysyłam ' + nazwa + '…');
         try {
           const r = await fetch(API + '?api=pdf', {

@@ -39,6 +39,10 @@
           "name": "plik",
           "accept": [
             "application/pdf",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.ms-excel",
+            ".xlsx",
+            ".xls",
             ".pdf",
             "image/jpeg",
             "image/png",
