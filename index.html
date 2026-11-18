@@ -218,6 +218,8 @@
   .av svg{width:21px;height:21px;stroke-width:2.1}
   .mute{color:var(--mute);font-size:15px}
   .row .mute{font-size:14px;margin-top:1px}
+  .pill.serw{cursor:pointer;font-size:12px;padding:3px 9px}.pill.serw.cud{background:rgba(255,159,10,.16);color:var(--ora,#c77700)}
+  .serwf{display:flex;gap:8px;overflow-x:auto;margin:2px 0 10px;padding-bottom:2px}.serwf:empty{display:none}.serwf .chip{flex:0 0 auto;border:0;border-radius:999px;padding:7px 14px;font-size:14px;font-weight:600;background:var(--fill);color:var(--mute)}.serwf .chip.on{background:var(--acc);color:#fff}
   .pill{display:inline-block;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600;white-space:nowrap;background:var(--fill);color:var(--mute)}
   .r{background:var(--redbg);color:var(--red)} .o{background:var(--orgbg);color:var(--org)} .y{background:var(--yelbg);color:var(--yel)} .ok{background:var(--grnbg);color:var(--grn)}
 
@@ -495,6 +497,7 @@
 <script src="notatnik.js"></script>
 <script src="zamow.js"></script>
 <script src="podrodze.js"></script>
+<script src="cudze.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -607,16 +610,16 @@ function pillDni(d) {
 function load() {
   if (!K || !API) { document.getElementById('main').innerHTML = '<div class="card"><h3>' + I('alert', 1) + 'Brak dostępu</h3>Otwórz aplikację swoim osobistym linkiem. Potem już zawsze z ikony.</div>'; setUpd('brak klucza'); return; }
   // 17.11.2026: start z pamięci – pokazujemy dane z poprzedniego razu od razu, świeże dociągają się w tle (ekran przerysuje się tylko, gdy coś się zmieniło)
-  if (!D) { try { const c = JSON.parse(LS.get('cacheD' + location.pathname) || 'null'); if (c && c.dane && c.dane.myjnie) { D = c.dane; ANIM = true; render(); setUpd('z pamięci z ' + (c.dane.teraz || '') + ' · odświeżam…'); } } catch (e) {} }
+  if (!D) { try { const c = JSON.parse(LS.get('cacheD' + location.pathname) || 'null'); if (c && c.dane && c.dane.myjnie) { D = c.dane; if (window.cdScal) cdScal(D); ANIM = true; render(); setUpd('z pamięci z ' + (c.dane.teraz || '') + ' · odświeżam…'); } } catch (e) {} }
   else setUpd('odświeżam…');
   if (!D) setUpd('odświeżam…');
   document.getElementById('odsw').classList.add('spin'); document.documentElement.classList.add('laduje');
   api('dane').then(j => {
       try { LS.set('cacheD' + location.pathname, JSON.stringify({ dane: j.dane })); } catch (e) {}
       // 15.11.2026: bez migania – ekran przerysowujemy tylko gdy dane naprawdę się zmieniły, animacja wejścia tylko przy pierwszym ładowaniu
-      const klucz = d => JSON.stringify(Object.assign({}, d, { teraz: '' }));
+      const klucz = d => JSON.stringify(Object.assign({}, d, { teraz: '', inne: (d.inne || []).filter(w => !w.auto) }));
       const bylo = D ? klucz(D) : null;
-      D = j.dane; document.getElementById('odsw').classList.remove('spin'); document.documentElement.classList.remove('laduje'); setUpd('stan na ' + D.teraz); if (window.pdStart) setTimeout(pdStart, 1500);
+      D = j.dane; if (window.cdScal) cdScal(D); document.getElementById('odsw').classList.remove('spin'); document.documentElement.classList.remove('laduje'); setUpd('stan na ' + D.teraz); if (window.pdStart) setTimeout(pdStart, 1500);
       if (bylo === null) { ANIM = true; render(); }
       else if (bylo !== klucz(D)) { ANIM = false; render(); }
     })
@@ -945,17 +948,17 @@ function klientAv(w) {
 }
 function myjnie() {
   return '<input type="search" placeholder="Szukaj: numer, miasto, ulica" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'ml\').innerHTML=myjnieLista();zaznacz()">' +
-         '<div id="ml">' + myjnieLista() + '</div>';
+         '<div id="serwf">' + (window.serwFiltr ? serwFiltr() : '') + '</div><div id="ml">' + myjnieLista() + '</div>';
 }
 function myjnieLista() {
   const q = pl(Q), ot = D.ogony.filter(open_);
-  const lista = D.myjnie.concat(D.inne.map(x => Object.assign({ inna: 1 }, x))).filter(w => !q || pl(w.nazwa + ' ' + w.miasto + ' ' + w.adres + ' ' + w.klucz).indexOf(q) >= 0);
+  const lista = D.myjnie.concat(D.inne.map(x => Object.assign({ inna: 1 }, x))).filter(w => (!window.serwPasuje || serwPasuje(w)) && (!q || pl(w.nazwa + ' ' + w.miasto + ' ' + w.adres + ' ' + w.klucz).indexOf(q) >= 0));
   if (!lista.length) return '<div class="empty">Nic nie znaleziono</div>';
   return '<div class="card">' + lista.map(w => {
     const n = ot.filter(o => kat(o) === 'naprawy' && sama(o.myjnia, w)).length;
     const a90 = awarie(w, 90);
     const info = [n ? I('wrench', 1) + ' ' + n + ' zad.' : '', a90 ? I('alert', 1) + ' ' + a90 + ' ' + (a90 === 1 ? 'awaria' : a90 % 10 >= 2 && a90 % 10 <= 4 && (a90 % 100 < 12 || a90 % 100 > 14) ? 'awarie' : 'awarii') + ' / 90 dni' : ''].filter(Boolean).join(' · ');
-    return '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')">' + klientAv(w) + '<div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (w.inna ? ' <span class="pill">zastępstwo</span>' : '') +
+    return '<div class="row w" data-n="' + esc(w.nazwa) + '" onclick="pokazMyjnie(\'' + jsq(w.nazwa) + '\')">' + klientAv(w) + '<div class="g"><b>' + esc(skrot(w.nazwa)) + '</b>' + (window.serwPill ? ' ' + serwPill(w) : (w.inna ? ' <span class="pill">zastępstwo</span>' : '')) +
       '<div class="mute">' + esc([w.miasto, w.adres, w.model].filter(Boolean).join(' · ')) + '</div>' + (info ? '<div class="mute">' + info + '</div>' : '') + '</div>' + (w.inna ? '' : pillDni(w.dni)) + '</div>';
   }).join('') + '</div>';
 }
@@ -996,6 +999,7 @@ function pokazMyjnie(nazwa, bezAnim) {
          (!w.nrSeryjny && !w.nastawy && !lk ? '<div class="mute">uzupełni się z pierwszego raportu</div>' : '') + '</div></div>';
   }
   h += '<div class="row"><div class="g">Awarie w ostatnim roku: <b>' + awarie(w, 365) + '</b></div></div>';
+  if (window.serwPill) h += '<div class="row"><div class="g">Serwisant: ' + serwPill(w, true) + '</div></div>';
   if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';
   h += '</div>';
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka – ' + esc(skrot(w.nazwa)) + '</h3><textarea id="ntm" placeholder="Co tu zrobić, co kupić, co zrobione – myjnia jest już wpisana" oninput="NTM[DW]=this.value">' + esc(NTM[w.nazwa] || '') + '</textarea>' +
@@ -1161,7 +1165,7 @@ function wiecej() {
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     (window.pdKafel ? pdKafel() : '') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v92</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v93</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

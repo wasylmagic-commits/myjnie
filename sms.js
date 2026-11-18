@@ -16,6 +16,7 @@
     });
     return best && best.s;
   };
+  window.smsStacja = stacjaZl;
   const stEt = s => { const m = String(s.klucz || '').match(/^SP(\d{4})/); return m ? 'Orlen SP ' + m[1] : (s.firma || s.klucz); };
   // „zgł. 17.11 14:05” z pola Klient → { dd, mm, godz }
   const zglZl = p => { const m = String(p.kl || '').match(/zgł\. (\d\d)\.(\d\d)(?: (\d\d:\d\d))?/); return m ? { dd: m[1], mm: m[2], godz: m[3] || '' } : null; };
