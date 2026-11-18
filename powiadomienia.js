@@ -17,7 +17,8 @@
   window.pwOdswiez = function () {
     if (PW.brak || PW.trwa || typeof K === 'undefined' || !K || !API || LS.get('d') === '1') return Promise.resolve();
     PW.trwa = true;
-    return api('pwLista').then(j => {
+    return api('pwLista').then(r => {
+      const j = r.wynik || r;   // Api.gs zwraca {ok, wynik:{lista, nowe}}
       const stare = JSON.stringify(PW.lista);
       PW.lista = j.lista || []; PW.nowe = j.nowe || 0; PW.ok = true;
       if (stare !== JSON.stringify(PW.lista) && TAB === 'dzis' && typeof D !== 'undefined' && D) { ANIM = false; render(); }
@@ -84,7 +85,8 @@
     if (!btn) return;
     const box = b && b.parentNode; if (box) box.querySelectorAll('button').forEach(x => x.disabled = true);
     if (b) b.textContent = '…';
-    api('pwPrzycisk', { id: id, d: btn.d }).then(j => {
+    api('pwPrzycisk', { id: id, d: btn.d }).then(r => {
+      const j = r.wynik || r;
       p.status = 'zrobione'; p.odp = btn.t; p.przyciski = [];
       if (j.juz) { arkZamknij(); toast('Już odpowiedziane' + (j.odp ? ': ' + j.odp : '')); }
       else if (j.karta && window.notatnikPokaz) { arkZamknij(); notatnikPokaz(j.karta); }
@@ -110,7 +112,8 @@
     const inp = document.getElementById('pwT'), t = inp ? inp.value.trim() : '';
     if (!t) return toast('Wpisz tekst');
     b.disabled = true; b.textContent = '…';
-    api('pwTekst', { t: t }).then(j => {
+    api('pwTekst', { t: t }).then(r => {
+      const j = r.wynik || r;
       dolacz(j.nowe); wynik(j, 'Odpowiedź systemu'); render(); load();
     }).catch(e => { b.disabled = false; b.textContent = 'Wyślij'; toast('Błąd: ' + e.message); });
   };
