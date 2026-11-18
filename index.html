@@ -409,7 +409,8 @@
       linear-gradient(180deg,var(--ledc) 0,var(--ledc) 29%,color-mix(in srgb,var(--ledc) 96%,transparent) 32%,color-mix(in srgb,var(--ledc) 86%,transparent) 35%,color-mix(in srgb,var(--ledc) 72%,transparent) 38%,color-mix(in srgb,var(--ledc) 56%,transparent) 41%,color-mix(in srgb,var(--ledc) 40%,transparent) 44%,color-mix(in srgb,var(--ledc) 26%,transparent) 47%,color-mix(in srgb,var(--ledc) 14%,transparent) 50%,color-mix(in srgb,var(--ledc) 6%,transparent) 53%,color-mix(in srgb,var(--ledc) 1%,transparent) 57%,transparent 62%),
       linear-gradient(90deg,#08090a 0%,#101216 60%,#15181c 100%);
     box-shadow:none;animation:none;transition:background .6s}
-  .pkol i{position:absolute;z-index:3;left:calc(46% + var(--o, 0px));bottom:-18px;width:var(--w);height:var(--w);margin-left:calc(var(--w) / -2);border:1.5px solid var(--ledc);border-radius:50%;
+  .hero>.pkol.rg{-webkit-mask-image:none;mask-image:none;overflow:visible;background:none;border-radius:0}
+  .pkol i{position:absolute;z-index:3;left:calc(46% + var(--o, 0px));bottom:calc(var(--w) * -1 - 4px);width:var(--w);height:var(--w);margin-left:calc(var(--w) / -2);border:1.5px solid var(--ledc);border-radius:50%;
     box-shadow:0 0 5px var(--ledg),inset 0 0 3px var(--ledg);opacity:0;will-change:transform,opacity;animation:pier var(--t) linear var(--d) infinite}
   @keyframes pier{0%{transform:translate3d(0,0,0);opacity:0}6%{opacity:1}55%{opacity:1}100%{transform:translate3d(var(--x),-104cqh,0);opacity:0}}
   .hero.stop .pkol i,.ladow.stop .pkol i{animation-play-state:paused}
@@ -659,8 +660,8 @@ function render() {
 function pasyHtml() { return '<b class="pasy"></b>'; }
 function mokro(tryb) {
   if (tryb === 'pasy') return '<div class="mokro pkol"><div class="led"></div>' + pasyHtml() + '</div>';
-  const R = [[8, 14, 0, 1, 6], [11, 19, 1.1, -1, -3], [7, 16, 5.8, 0, 4], [13, 21, 6.9, 1, -2], [9, 13, 10.5, -1, 1], [10, 18, 13.8, 0, 5], [7, 15, 3.2, 1, -4], [12, 20, 16.4, 0, 2]];   // 18.11: niejednakie okresy (13–21 s) i nieregularne odstępy – raz parami, raz pojedynczo; wolno, ale chaotycznie
-  return '<div class="mokro pkol"><div class="led"></div>' + R.map(([w, t, d, x, o]) => '<i style="--w:' + w + 'px;--t:' + t + 's;--d:-' + d + 's;--x:' + x + 'px;--o:' + o + 'px"></i>').join('') + pasyHtml() + '</div>';
+  const R = [[8, 15, 0, 1, 6], [11, 18, 1.6, -1, -3], [20, 19, 2.5, 2, 3], [7, 16, 4.4, 0, 5], [9, 17, 5.6, 1, -4], [14, 20, 7.3, -1, 2], [8, 15.5, 8.5, 0, 7], [26, 21, 9.8, 3, 0], [10, 17.5, 11.4, -1, -2], [7, 16.5, 12.7, 1, 4], [16, 19.5, 14.2, 2, 6], [9, 18, 15.7, 0, -3], [12, 17, 17, 1, 2]];   // 18.11 (2): 13 pierścieni, okresy 15–21 s, odstępy równomiernie rozłożone; 3 duże (14–26 px), mogą wychodzić poza kolumnę na kartę
+  return '<div class="mokro pkol"><div class="led"></div>' + pasyHtml() + '</div><div class="mokro pkol rg">' + R.map(([w, t, d, x, o]) => '<i style="--w:' + w + 'px;--t:' + t + 's;--d:-' + d + 's;--x:' + x + 'px;--o:' + o + 'px"></i>').join('') + '</div>';
 }
 // animacja stoi, gdy karta nie jest na ekranie
 const OBS = 'IntersectionObserver' in window ? new IntersectionObserver(e => e.forEach(x => x.target.classList.toggle('stop', !x.isIntersecting))) : null;
@@ -1165,7 +1166,7 @@ function wiecej() {
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     (window.pdKafel ? pdKafel() : '') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v94</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v95</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
