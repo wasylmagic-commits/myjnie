@@ -1179,7 +1179,7 @@ function wiecej() {
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     (window.pdKafel ? pdKafel() : '') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v99</span></button>' +
+    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v100</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
@@ -1409,7 +1409,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
 })();
 /* ---------- 16.11.2026: przesuń palcem w lewo/prawo = sąsiednia zakładka dolnego paska ----------
  * Tylko na 6 głównych zakładkach (nie w modułach z „Więcej”, nie w formularzach), nie przy krawędziach (tam gest systemu),
- * nie na polach tekstowych i paskach przewijanych w bok. Ekran lekko jedzie za palcem; przełącza po ~22% szerokości albo szybkim smyrgnięciu. */
+ * nie na polach tekstowych i paskach przewijanych w bok. Ekran lekko jedzie za palcem; przełącza po ~12% szerokości albo szybkim smyrgnięciu. */
 (function () {
   const m = document.getElementById('main'); let x0 = null, y0 = 0, t0 = 0, dx = 0, kier = 0;
   const glowna = () => TABS.some(t => t[0] === TAB);
@@ -1436,9 +1436,9 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
   }, { passive: true });
   const koniec = e => {
     if (x0 == null || kier !== 1) { x0 = null; return; } x0 = null;
-    const szybko = Math.abs(dx) > 45 && Math.abs(dx) / Math.max(1, e.timeStamp - t0) > 0.5;
+    const szybko = Math.abs(dx) > 28 && Math.abs(dx) / Math.max(1, e.timeStamp - t0) > 0.4;
     const i = TABS.findIndex(x => x[0] === TAB), j = i + (dx < 0 ? 1 : -1), w = window.innerWidth;
-    if (!((Math.abs(dx) > w * 0.22 || szybko) && j >= 0 && j < TABS.length)) {   // za krótko: wróć na miejsce
+    if (!((Math.abs(dx) > w * 0.12 || szybko) && j >= 0 && j < TABS.length)) {   // za krótko: wróć na miejsce
       m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; m.style.transform = '';
       setTimeout(() => m.style.transition = '', 240); return; }
     if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
