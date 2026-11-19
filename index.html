@@ -509,6 +509,7 @@
 <script src="zamow.js"></script>
 <script src="podrodze.js"></script>
 <script src="cudze.js"></script>
+<script src="ustawienia.js"></script>
 <script>
 const LS = { get: k => { try { return localStorage.getItem(k) || ''; } catch (e) { return ''; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} } };
 (function () {
@@ -537,7 +538,7 @@ function ustawMotyw(m) {
 function motyw() { const k = Object.keys(MOTYWY), m = k[(k.indexOf(LS.get('motyw') || 'auto') + 1) % k.length]; ustawMotyw(m); toast('Motyw: ' + MOTYWY[m][0]); }
 let UPD = 'wczytuję…';
 function setUpd(t) { UPD = t; const e = document.getElementById('upd'); if (e) e.textContent = t; }
-let D = null, TAB = 'dzis', OGF = 'naprawy', Q = '', DW = null, ANIM = true;
+let D = null, TAB = (['myjnie', 'ogony'].indexOf(LS.get('u:start')) >= 0 ? LS.get('u:start') : 'dzis'), OGF = 'naprawy', Q = '', DW = null, ANIM = true;
 
 /* ---------- ikony (SVG, bez emoji) ---------- */
 const IC = {
@@ -572,6 +573,7 @@ const IC = {
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/>',
   send: '<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',
   plus: '<path d="M12 5v14M5 12h14"/>',
+  suwaki: '<path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
   moon: '<path d="M21 13A9 9 0 1 1 11 3a7 7 0 0 0 10 10z"/>',
@@ -582,7 +584,7 @@ Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
 const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['wydatki','money','Wydatki'],['wiecej','grid','Więcej']];
-const WIECEJ = { zamow: 1, asystent: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
+const WIECEJ = { ustawienia: 1, zamow: 1, asystent: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1177,9 +1179,8 @@ function wiecej() {
     k('druk', 'print', 'Druki', 'formularze i BHP') +
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
-    (window.pdKafel ? pdKafel() : '') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="animacje()"><div class="ch">' + I('spark') + '</div><b>Animacje</b><span>' + (LS.get('anim') === '0' ? 'wyłączone · dotknij, by włączyć' : 'włączone · dotknij, by wyłączyć') + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v101</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v102</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
@@ -1392,6 +1393,7 @@ document.getElementById('odsw').innerHTML = I('refresh');
 ustawMotyw(LS.get('motyw') || 'auto');
 if (LS.get('anim') === '0') document.documentElement.classList.add('bezanim');
 if (LS.get('lekki') === '1') document.documentElement.classList.add('lekki');
+if (window.ustZastosuj) ustZastosuj();
 const pk0 = document.getElementById('pk0'); if (pk0) pk0.outerHTML = mokro('pasy');
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
 document.addEventListener('visibilitychange', () => { if (!document.hidden && D) load(); });
@@ -1423,7 +1425,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
       if (el.scrollWidth > el.clientWidth + 2 && /auto|scroll/.test(getComputedStyle(el).overflowX)) return true; }
     return false; };
   m.addEventListener('touchstart', e => {
-    x0 = null; if (e.touches.length !== 1 || !D || !glowna()) return;
+    x0 = null; if (e.touches.length !== 1 || !D || !glowna() || LS.get('swipe') === '0') return;
     if (document.getElementById('ark').classList.contains('on') || document.getElementById('det').classList.contains('on') && !document.body.classList.contains('dw')) return;
     const t = e.touches[0]; if (t.clientX < 24 || t.clientX > window.innerWidth - 24 || blok(e.target)) return;
     x0 = t.clientX; y0 = t.clientY; t0 = e.timeStamp; dx = 0; kier = 0;
@@ -1441,7 +1443,7 @@ window.addEventListener('scroll', () => document.getElementById('hd').classList.
     if (!((Math.abs(dx) > w * 0.07 || szybko) && j >= 0 && j < TABS.length)) {   // za krótko: wróć na miejsce
       m.style.transition = 'transform .22s cubic-bezier(.2,.8,.2,1)'; m.style.transform = '';
       setTimeout(() => m.style.transition = '', 240); return; }
-    if (navigator.vibrate) try { navigator.vibrate(8); } catch (er) {}
+    if (navigator.vibrate && LS.get('wib') !== '0') try { navigator.vibrate(8); } catch (er) {}
     // jeden ruch na jednym elemencie: stary ekran wyjeżdża i gaśnie → podmiana treści → nowy wjeżdża z drugiej strony (bez animacji dzieci)
     const s0 = dx < 0 ? -1 : 1;
     if (lekki()) {   // słabszy telefon: jak przy dolnym przycisku (go() + jego animacja)

@@ -125,6 +125,6 @@
       '<div class="ab"><button class="btn" onclick="pdGotowe()">Gotowe</button></div></div>';
     a.classList.add('on'); wypelnij(document.getElementById('pdRs'));
   };
-  window.pdGotowe = function () { arkZamknij(); if (TAB === 'wiecej') render(); };
+  window.pdGotowe = function () { arkZamknij(); if (TAB === 'wiecej' || TAB === 'ustawienia') render(); };
   window.pdKafel = function () { scal(); return '<button onclick="pdUstaw()"><div class="ch">' + I('route') + '</div><b>Po drodze</b><span>zasięg ' + promien() + ' km</span></button>'; };
 })();
