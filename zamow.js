@@ -121,7 +121,7 @@
     const kl = KLASY[x.klasa], wt = ST.kopia && (ST.kopia.poz || []).some(p => p.k === x.k);
     return '<div class="row zr' + (x.skr ? ' skr' : '') + (wt ? ' wt' : '') + '">' +
       '<button class="zk zx" aria-label="Usuń z listy" onclick="zamUsun(\'' + jsq(x.k) + '\')">' + I('trash', 1) + '</button>' +
-      '<div class="g"><b onclick="zamNazwa(\'' + jsq(x.k) + '\')" style="cursor:text">' + esc(x.nazwa) + '</b>' +
+      '<div class="g"><b onclick="zamNazwa(\'' + jsq(x.k) + '\')" style="cursor:text">' + esc(x.nazwa) + '</b>' + (window.opisLinia && x.kod ? opisLinia(x.kod) : '') +
       '<div class="mute">' + (x.kod && !x.dodane ? esc(x.kod) + ' · ' : '') + (x.zadanie ? '<span class="edl" onclick="edytujZad(\'' + jsq(x.zadanie) + '\')">' + I('edit', 1) + ' zadanie #' + esc(x.zadanie) + '</span>' + (x.myjnia ? ' · ' + esc(skrot(x.myjnia)) : '') : x.dodane ? (x.kod ? esc(x.kod) + ' · ' : '') + 'dodane ręcznie' : x.kod && x.doc ? 'jest ' + x.stan + ' z ' + x.doc : 'zamówione wcześniej – nie przyszło') +
       (x.termin ? ' · termin ' + dt(x.termin) : '') + '</div>' +
       '<div class="zp">' + (x.pilne ? '<span class="pill r">pilne</span>' : x.zero ? '<span class="pill r">brak w aucie</span>' : '') +
@@ -180,7 +180,7 @@
     const dodaj = (kod, nazwa, zr, sc) => { if (!kod || wid[kod]) return; wid[kod] = 1; l.push({ kod: kod, nazwa: nazwa, zr: zr, sc: sc || 0 }); };
     const qn = q.toLowerCase().replace(/[\s.\/-]/g, '');
     slownik().forEach(x => { const s = traf(q, x.slowa + ' ' + x.nazwa); if (s || (qn.length >= 4 && x.kod.toLowerCase().indexOf(qn) >= 0)) dodaj(x.kod, x.nazwa || x.slowa, 'słownik', s + 0.5); });
-    ((D && D.magazyn) || []).forEach(m => { const s = traf(q, m.nazwa); if (s || (qn.length >= 4 && m.kod.toLowerCase().replace(/[\s.\/-]/g, '').indexOf(qn) >= 0)) dodaj(m.kod, m.nazwa, 'magazyn', s); });
+    ((D && D.magazyn) || []).forEach(m => { const s = traf(q, m.nazwa + ' ' + (window.opisTxt ? opisTxt(m.kod) : '')); if (s || (qn.length >= 4 && m.kod.toLowerCase().replace(/[\s.\/-]/g, '').indexOf(qn) >= 0)) dodaj(m.kod, m.nazwa, 'magazyn', s); });
     ((D && D.nowosci) || []).forEach(n => { const s = traf(q, n.nazwa); if (s) dodaj(n.kod, n.nazwa, 'przyszło', s); });
     return l.sort((a, b) => b.sc - a.sc).slice(0, 8);
   }
@@ -323,6 +323,7 @@
         '<div class="mute" style="font-size:13px;margin:-6px 0 10px">' + KLASY[p.klasa][2] + (p.klasa === 'krytyczna' ? ' – zamawiam po każdym zużyciu' : '') + '</div>' +
         '<div class="row"><div class="g">Ma być w aucie</div><div class="zl"><button class="ib" onclick="zamPl(\'doc\',-1)">−</button><b>' + p.doc + '</b><button class="ib" onclick="zamPl(\'doc\',1)">+</button></div></div>' +
         '<div class="row"><div class="g">Zamów, gdy mniej niż</div><div class="zl"><button class="ib" onclick="zamPl(\'prog\',-1)">−</button><b>' + p.prog + '</b><button class="ib" onclick="zamPl(\'prog\',1)">+</button></div></div>' +
+        (window.opisSekcja ? opisSekcja(kod) : '') +
         '<div class="ab" style="margin-top:12px"><button class="btn" id="zamPlb" onclick="zamPlZapisz()">Zapisz</button><button class="btn2" onclick="arkZamknij()">Anuluj</button></div></div>';
       a.classList.add('on');
     };
@@ -336,7 +337,7 @@
     rys();
   };
   window.zamPlZapisz = function () {
-    const p = window.__zp, b = document.getElementById('zamPlb'); b.disabled = true;
+    const p = window.__zp, b = document.getElementById('zamPlb'); b.disabled = true; if (window.opisFlush) opisFlush();
     api('mgPlan', { kod: p.kod, klasa: p.klasa, docelowo: p.doc, prog: p.prog }).then(() => {
       D.plan = (D.plan || []).filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: p.doc }]);
       const m = D.magazyn.find(x => x.kod === p.kod); if (m) m.min = String(p.prog);

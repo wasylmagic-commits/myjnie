@@ -151,6 +151,8 @@
     { id: '2', d: zd(35), kod: '', nazwa: 'Wąż ssący pompy dozującej 2 m', ilosc: 1, dost: 0, zadanie: '' },
     { id: '3', d: zd(6), kod: '', nazwa: 'Dźwignia dysz wahadłowych', ilosc: 1, dost: 0, zadanie: '' }];
   S.slownik = [{ slowa: 'Głowica oczyszczalni', kod: 'PA00055120', nazwa: 'Głowica sterująca oczyszczalni BIO' }];
+  // 20.11.2026: moje opisy części (opisy.js, łatka Opisy.gs)
+  S.opisy = S.magazyn.length ? [{ kod: S.magazyn[0].kod, o: 'ta mała w szafie chemii, na dole po lewej', f: 0, zm: '2026-11-20T08:00:00.000Z' }] : [];
   S.nowosci = [{ kod: 'PA00061844', nazwa: 'Dźwignia dyszy wahadłowej HD lewa', d: zd(2), n: 1 }];
 
   const zal = (dni, nr, za, kw, miej) => { const d = new Date(DZIS); d.setDate(d.getDate() - dni); return { d: iso(d), za: za, kwota: kw, mies: d.getFullYear() * 100 + d.getMonth() + 1, nr: nr, miejsce: miej, id: '' }; };
@@ -337,6 +339,20 @@
         if (body.akcja === 'zapisz') { const zap = (body.wiersze || []).map(w => { const m = S.myjnie.find(x => x.nazwa === w.nazwa); if (m) m.termin = w.termin; return { nazwa: w.nazwa, termin: w.termin, nastepny: w.termin }; }); return { ok: true, wynik: { zapisane: zap, brak: [] } }; }
         const m = S.myjnie.slice(0, 2);
         return { ok: true, wynik: { wiersze: m.map((x, i) => ({ nr: (String(x.klucz).match(/\d{3,4}/) || [''])[0], stacja: x.nazwa, serwisant: 'Tomczakowski Wasyl', termin: '2026-12-1' + i, ostatni: '2026-09-1' + i })), niejasne: '' } };
+      }
+      case 'opisy': {   // 20.11.2026: opisy i zdjęcia części (opisy.js)
+        let F; try { F = JSON.parse(sessionStorage.getItem('demoOpisyFoto') || '{}'); } catch (e) { F = {}; }
+        const zap = () => { try { sessionStorage.setItem('demoOpisyFoto', JSON.stringify(F)); } catch (e) { /* pełne */ } };
+        const a = body.akcja, kod = String(body.kod || ''), x = S.opisy.find(o => o.kod === kod);
+        if (a === 'mini') { const w = {}; S.opisy.forEach(o => { if (o.f && F[o.kod]) w[o.kod] = F[o.kod].m; }); return { ok: true, wynik: w }; }
+        if (a === 'pobierz') return F[kod] ? { ok: true, wynik: F[kod].f } : { ok: false, blad: 'Brak zdjęcia' };
+        if (x && String(x.zm) > String(body.zm)) return { ok: true, wynik: { zapisano: false, kod: kod, o: x.o, f: x.f, zm: x.zm } };
+        const w = x || { kod: kod, o: '', f: 0 }; if (!x) S.opisy.push(w);
+        if (a === 'zapisz') w.o = String(body.o || '');
+        else if (a === 'foto') { w.f = 1; F[kod] = { f: body.foto, m: body.mini }; zap(); }
+        else if (a === 'usunFoto') { w.f = 0; delete F[kod]; zap(); }
+        else return { ok: false, blad: 'Nieznana akcja' };
+        w.zm = body.zm; return { ok: true, wynik: { zapisano: true, kod: kod, o: w.o, f: w.f, zm: w.zm } };
       }
       case 'pdf': return { ok: true, wynik: 'ok' };
       case 'asystent': { try { return { ok: true, wynik: asystent(body) }; } catch (e) { return { ok: false, blad: e.message }; } }
