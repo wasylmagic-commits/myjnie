@@ -11,7 +11,9 @@
   const PW = { lista: [], nowe: 0, brak: false, trwa: false, ok: false };
   const nieMa = e => /Nieznana akcja/i.test(String(e && e.message || e));
   // tekst bota bywa w HTML Telegrama (<b>, <i>, <code>) – reszta jako zwykły tekst
-  const tx = t => esc(String(t || '')).replace(/&lt;(\/?)(b|i|u|code)&gt;/g, '<$1$2>');
+  // linki http(s) w tekście są klikalne (np. link do aplikacji dla serwisanta po /nowy); tekst w oknie można zaznaczyć i skopiować
+  const tx = t => esc(String(t || '')).replace(/&lt;(\/?)(b|i|u|code)&gt;/g, '<$1$2>')
+    .replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener" style="word-break:break-all">$1</a>');
   const czas = c => { const d = new Date(c); return isNaN(d) ? '' : d.toLocaleString('pl-PL', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }); };
 
   window.pwOdswiez = function () {
