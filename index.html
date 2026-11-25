@@ -797,7 +797,7 @@ function zamknij(id, b) {
 }
 // 15.11.2026: notatka z karty myjni – api=notatkaMyjni: bot rozbija na wpisy i zapisuje OD RAZU, aplikacja pokazuje co zapisano.
 // Bez patcha bota (Nieznana akcja) – stara droga api=notatka z potwierdzeniem w Telegramie.
-const NTM = {};
+const NTM = {}, NTM_RID = {};
 function notatkaMyjni() {
   const w = D.myjnie.find(x => x.nazwa === DW) || D.inne.find(x => x.nazwa === DW);
   const el = document.getElementById('ntm'); if (!w || !el) return;
@@ -805,8 +805,10 @@ function notatkaMyjni() {
   if (t.length < 5) return toast('Napisz trochę więcej');
   const b = document.getElementById('ntmb'); b.disabled = true; b.textContent = 'Analizuję…';
   const koniec = () => { b.disabled = false; b.textContent = 'Wyślij'; };
-  api('notatkaMyjni', { m: w.nazwa, t: t }).then(j => {
-    NTM[w.nazwa] = ''; el.value = ''; koniec();
+  // 25.11.2026: ten sam numer wysłania przy ponowieniu po błędzie sieci – serwer nie zapisze notatki drugi raz (łatka bota 2026-11-25_b_duplikaty)
+  const kl = w.nazwa + '|' + t, rid = NTM_RID[kl] || (NTM_RID[kl] = Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+  api('notatkaMyjni', { m: w.nazwa, t: t, rid: rid }).then(j => {
+    delete NTM_RID[kl]; NTM[w.nazwa] = ''; el.value = ''; koniec();
     const r = j.wynik || {};
     pokazZapisane(r);
     load();
@@ -819,11 +821,15 @@ function notatkaMyjni() {
   });
 }
 function pokazZapisane(r) {
-  const a = document.getElementById('ark'), l = r.wpisy || [];
-  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + (l.length ? 'Zapisane (' + l.length + ')' : 'Nic nie zapisałem') + '</h4>' +
+  const a = document.getElementById('ark'), l = r.wpisy || [], pm = r.pominiete || [];
+  a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + (l.length ? 'Zapisane (' + l.length + ')' : pm.length ? 'Już to masz na liście' : 'Nic nie zapisałem') + '</h4>' +
     (l.length ? '<div style="margin:8px 0">' + l.map(x => '<div class="row"><div class="g"><b>' + esc(x.ikona || '') + '</b>' + (x.myjnia ? ' <span class="mute">' + esc(x.myjnia) + '</span>' : '') + ' ' + esc(x.opis) +
       (x.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(x.czesci) + '</div>' : '') + (x.termin ? '<div class="mute">termin ' + esc(x.termin) + '</div>' : '') + '</div></div>').join('') + '</div>' : '') +
     ((r.zamkniete || []).length ? '<div class="mute">Zamknięte zadania: #' + r.zamkniete.map(esc).join(', #') + '</div>' : '') +
+    // 25.11.2026: wpis podobny do otwartego zadania nie jest zapisywany drugi raz (łatka bota 2026-11-25_b_duplikaty)
+    (pm.length ? '<div style="margin:10px 0 4px" class="mute"><span style="color:var(--org)">' + I('alert', 1) + ' Nie dodałem drugi raz – takie zadanie już jest otwarte:</span>' +
+      pm.map(x => '<div class="row"><div class="g"><span class="mute">#' + esc(x.id) + '</span> ' + esc(x.opis) + '<div class="mute">Twój wpis: ' + esc(x.nowy) + '</div></div></div>').join('') +
+      '<div style="font-size:13px;margin-top:6px">Jeśli to coś innego – dopisz szczegóły (np. numer, strona, model) albo popraw istniejące zadanie przez „edytuj”.</div></div>' : '') +
     (r.niejasne ? '<div class="mute" style="color:var(--org);margin-top:8px">' + I('alert', 1) + ' ' + esc(r.niejasne) + '</div>' : '') +
     '<div class="ab" style="margin-top:16px"><button class="btn" onclick="arkZamknij()">OK</button></div></div>';
   a.classList.add('on');
@@ -1183,7 +1189,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v106</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v107</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
