@@ -75,6 +75,15 @@
       out.push({ k: 'm:' + m.kod, kod: m.kod, nazwa: m.nazwa, ilosc: Math.max(1, x.doc - x.stan - w), klasa: x.klasa, stan: x.stan, doc: x.doc,
         pilne: x.klasa === 'krytyczna' && x.stan <= 0, zero: x.stan <= 0, nieDotarlo: !!stare[m.kod], ponow: stare[m.kod] || [] });
     });
+    // 25.11.2026: „Magazyn bez numeru” z docelowo: stan niższy niż ma być → do zamówienia (zamówienia bez numeru łączą się po nazwie)
+    const czekaBn = {};
+    zamowienia().forEach(z => { if (z.kod) return; const k = pl(z.nazwa); czekaBn[k] = (czekaBn[k] || 0) + Math.max(0, z.ilosc - z.dost); });
+    (D.magBez || []).forEach(b => {
+      if (!(b.doc > 0)) return;
+      const w = czekaBn[pl(b.nazwa)] || 0;
+      if (b.ilosc + w >= b.doc) return;
+      out.push({ k: 'b:' + b.id, kod: '', nazwa: b.nazwa, ilosc: Math.max(1, b.doc - b.ilosc - w), klasa: '', stan: b.ilosc, doc: b.doc, zero: b.ilosc <= 0, bn: true });
+    });
     zamowienia().filter(z => !z.kod && zalegle(z)).forEach(z => out.push({ k: 'z:' + z.id, kod: '', nazwa: z.nazwa, ilosc: Math.max(1, z.ilosc - z.dost), klasa: '',
       nieDotarlo: true, ponow: [z.id] }));
     (D.ogony || []).filter(o => open_(o) && window.czyZamowienie(o)).forEach(o => {
@@ -126,7 +135,7 @@
       (x.termin ? ' · termin ' + dt(x.termin) : '') + '</div>' +
       '<div class="zp">' + (x.pilne ? '<span class="pill r">pilne</span>' : x.zero ? '<span class="pill r">brak w aucie</span>' : '') +
       (kl ? '<span class="pill ' + kl[0] + '">' + kl[1] + '</span>' : '') + (x.nieDotarlo ? '<span class="pill o">nie dotarło?</span>' : '') +
-      (wt ? '<span class="pill">w tekście</span>' : '') + (x.zeSlownika ? '<span class="pill ok">numer ze słownika</span>' : '') + '</div></div>' +
+      (x.bn ? '<span class="pill">bez numeru</span>' : '') + (wt ? '<span class="pill">w tekście</span>' : '') + (x.zeSlownika ? '<span class="pill ok">numer ze słownika</span>' : '') + '</div></div>' +
       '<div class="zl"><button class="ib" onclick="zamIle(\'' + jsq(x.k) + '\',-1)">−</button><b>' + x.ilosc + '</b><button class="ib" onclick="zamIle(\'' + jsq(x.k) + '\',1)">+</button></div></div>';
   }
 

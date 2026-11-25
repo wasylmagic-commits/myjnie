@@ -25,15 +25,16 @@
     const l = lb();
     return '<div class="ab2" style="margin:0 0 10px"><button class="btn2" onclick="mgzBezForm(\'\')">' + I('plus', 1) + ' Dodaj część</button></div>' +
       '<div class="card">' + (l.length ? l.map(x => '<div class="row" style="cursor:pointer" onclick="mgzBezForm(\'' + jsq(x.id) + '\')"><div class="g">' + esc(x.nazwa) +
-        (x.uwagi ? '<div class="mute">' + esc(x.uwagi) + '</div>' : '') + '</div><b>' + fm(x.ilosc) + '</b></div>').join('') :
+        (x.uwagi ? '<div class="mute">' + esc(x.uwagi) + '</div>' : '') + (x.doc ? '<div class="mute">ma być ' + fm(x.doc) + (x.ilosc < x.doc ? ' · do zamówienia' : '') + '</div>' : '') + '</div><b>' + fm(x.ilosc) + '</b></div>').join('') :
         '<div class="empty">Pusto. Tu trzymasz części, których biuro nie numeruje – np. własne zakupy.</div>') + '</div>';
   }
   window.mgzBezForm = function (id) {
-    const x = lb().find(z => z.id === id) || { nazwa: '', ilosc: 1, uwagi: '' };
+    const x = lb().find(z => z.id === id) || { nazwa: '', ilosc: 1, uwagi: '', doc: '' };
     const a = document.getElementById('ark');
     a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + (id ? 'Część bez numeru' : 'Nowa część bez numeru') + '</h4>' +
       '<input id="bzn" type="text" autocomplete="off" placeholder="Nazwa" value="' + esc(x.nazwa) + '">' +
       '<input id="bzi" class="duza" type="text" inputmode="decimal" autocomplete="off" placeholder="Ilość" value="' + esc(x.ilosc) + '">' +
+      '<input id="bzd" type="text" inputmode="numeric" autocomplete="off" placeholder="Docelowo – ile ma być (puste = nie zamawiam)" value="' + esc(x.doc || '') + '">' +
       '<input id="bzu" type="text" autocomplete="off" placeholder="Uwagi (opcjonalnie)" value="' + esc(x.uwagi) + '">' +
       '<div class="ab">' + (id ? '<button class="btn2" onclick="mgzBezUsun(\'' + jsq(id) + '\')">Usuń</button>' : '<button class="btn2" onclick="arkZamknij()">Anuluj</button>') +
       '<button class="btn" id="bzb" onclick="mgzBezZapisz(\'' + jsq(id) + '\')">Zapisz</button></div></div>';
@@ -44,7 +45,7 @@
     const n = document.getElementById('bzn').value.trim(), b = document.getElementById('bzb');
     if (!n) { toast('Podaj nazwę'); return; }
     b.disabled = true; b.textContent = 'Zapisuję…';
-    api('mgBn', { id: id, nazwa: n, ilosc: document.getElementById('bzi').value, uwagi: document.getElementById('bzu').value.trim() })
+    api('mgBn', { id: id, nazwa: n, ilosc: document.getElementById('bzi').value, uwagi: document.getElementById('bzu').value.trim(), doc: document.getElementById('bzd').value.trim() })
       .then(j => { D.magBez = (j.wynik && j.wynik.bez) || D.magBez; arkZamknij(); render(); toast('Zapisano'); })
       .catch(e => { b.disabled = false; b.textContent = 'Zapisz'; toast(e.message); });
   };
