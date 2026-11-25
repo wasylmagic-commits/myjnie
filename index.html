@@ -508,6 +508,7 @@
 <script src="notatnik.js"></script>
 <script src="powiadomienia.js"></script>
 <script src="zamow.js"></script>
+<script src="magazyn2.js"></script>
 <script src="opisy.js"></script>
 <script src="podrodze.js"></script>
 <script src="cudze.js"></script>
@@ -1198,7 +1199,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v109</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v110</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
@@ -1208,8 +1209,9 @@ function animacje() {
 }
 
 /* ---------- Magazyn ---------- */
-function magazyn() {
-  return naglowek('box', 'Magazyn', D.magazyn.length + ' pozycji') +
+function magazyn() { return window.mgzWidok ? mgzWidok() : magazynZ(); }
+function magazynZ(bezNagl) {
+  return (bezNagl ? '' : naglowek('box', 'Magazyn', D.magazyn.length + ' pozycji')) +
     '<input type="search" placeholder="Nazwa albo numer części" value="' + esc(Q) + '" oninput="Q=this.value;document.getElementById(\'mg\').innerHTML=magLista()">' +
     (window.opisDruk ? '<div class="ab2" style="margin:-4px 0 10px"><button class="btn2" onclick="opisDruk(0)">' + I('print', 1) + ' Druk dla wszystkich</button><button class="btn2" onclick="opisDruk(1)">' + I('print', 1) + ' Druk dla mnie</button></div>' : '') +
     '<div id="mg">' + magLista() + '</div>';
