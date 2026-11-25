@@ -304,16 +304,21 @@
   };
   window.zamPrzN = d => { const e = document.getElementById('zamN'); e.textContent = Math.max(1, +e.textContent + d); };
   window.zamPrzyszloOk = function (id) {
-    const n = +document.getElementById('zamN').textContent, b = document.getElementById('zamPb'); b.disabled = true;
-    api('mgPrzyszlo', { id: id, n: n }).then(j => {
-      const z = zamowienia().find(x => String(x.id) === String(id));
-      if (z) {
-        z.dost = Math.min(z.ilosc, (j.wynik && j.wynik.dost) || z.dost + n);
-        const m = z.kod && (D.magazyn || []).find(x => x.kod === z.kod); if (m) m.ilosc = String(num(m.ilosc) + n);
-        if (z.dost >= z.ilosc) D.zamowienia = zamowienia().filter(x => x !== z);
-      }
-      arkZamknij(); render(); toast('Zapisane: +' + n + ' szt.');
-    }).catch(e => { b.disabled = false; blad(e); });
+    const n = +document.getElementById('zamN').textContent;
+    const z = zamowienia().find(x => String(x.id) === String(id)), m = z && z.kod && (D.magazyn || []).find(x => x.kod === z.kod);
+    const staraDost = z && z.dost, staraIl = m && m.ilosc, staraLista = D.zamowienia;
+    if (z) {
+      z.dost = Math.min(z.ilosc, (z.dost || 0) + n);
+      if (m) m.ilosc = String(num(m.ilosc) + n);
+      if (z.dost >= z.ilosc) D.zamowienia = zamowienia().filter(x => x !== z);
+    }
+    arkZamknij(); render(); toast('Zapisane: +' + n + ' szt.');
+    // dodaje sztuki, więc bez automatycznego powtarzania; przy błędzie wracamy do stanu sprzed zmiany
+    apiTlo('mgPrzyszlo', { id: id, n: n }, {
+      nazwa: 'Przyjęcie części',
+      ok: j => { if (z && j.wynik && j.wynik.dost) { z.dost = Math.min(z.ilosc, j.wynik.dost); render(); } },
+      cofnij: () => { if (z) z.dost = staraDost; if (m) m.ilosc = staraIl; D.zamowienia = staraLista; render(); }
+    });
   };
   window.zamAnuluj = function (id) {
     const z = zamowienia().find(x => String(x.id) === String(id)); if (!z) return;
@@ -345,13 +350,17 @@
     };
     rys();
   };
+  // 25.11.2026: okno zamyka się od razu, zapis idzie w tle (apiTlo w index.html); „ustaw wartości” można bezpiecznie powtarzać przy braku sieci
   window.zamPlZapisz = function () {
-    const p = window.__zp, b = document.getElementById('zamPlb'); b.disabled = true; if (window.opisFlush) opisFlush();
-    api('mgPlan', { kod: p.kod, klasa: p.klasa, docelowo: p.doc, prog: p.prog }).then(() => {
-      D.plan = (D.plan || []).filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: p.doc }]);
-      const m = D.magazyn.find(x => x.kod === p.kod); if (m) m.min = String(p.prog);
-      arkZamknij(); render(); toast('Zapisane');
-    }).catch(e => { b.disabled = false; blad(e); });
+    const p = Object.assign({}, window.__zp); if (window.opisFlush) opisFlush();
+    const m = D.magazyn.find(x => x.kod === p.kod), staraMin = m ? m.min : undefined, staryPlan = (D.plan || []).find(x => x.kod === p.kod);
+    D.plan = (D.plan || []).filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: p.doc }]);
+    if (m) m.min = String(p.prog);
+    arkZamknij(); render(); toast('Zapisane');
+    apiTlo('mgPlan', { kod: p.kod, klasa: p.klasa, docelowo: p.doc, prog: p.prog }, {
+      nazwa: 'Zapis ustawień części', powt: 3,
+      cofnij: () => { D.plan = (D.plan || []).filter(x => x.kod !== p.kod).concat(staryPlan ? [staryPlan] : []); if (m) m.min = staraMin; render(); }
+    });
   };
   // znaczek klasy w wierszu Magazynu (index.html → magLista)
   window.zamZnaczek = function (m) {

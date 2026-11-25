@@ -45,13 +45,24 @@
   window.mgzBezZapisz = function (id) {
     const n = document.getElementById('bzn').value.trim(), b = document.getElementById('bzb');
     if (!n) { toast('Podaj nazwę'); return; }
-    b.disabled = true; b.textContent = 'Zapisuję…';
-    api('mgBn', { id: id, nazwa: n, ilosc: document.getElementById('bzi').value, uwagi: document.getElementById('bzu').value.trim(), doc: document.getElementById('bzd').value.trim() })
-      .then(j => { D.magBez = (j.wynik && j.wynik.bez) || D.magBez; arkZamknij(); render(); toast('Zapisano'); })
-      .catch(e => { b.disabled = false; b.textContent = 'Zapisz'; toast(e.message); });
+    const par = { id: id, nazwa: n, ilosc: document.getElementById('bzi').value, uwagi: document.getElementById('bzu').value.trim(), doc: document.getElementById('bzd').value.trim() };
+    // 25.11.2026: okno zamyka się od razu, pozycja widoczna natychmiast, serwer dostaje zapis w tle (nowa pozycja bez powtórek – żeby nie zdublować)
+    const stara = D.magBez, lista = (stara || []).slice();
+    const pol = { id: id || ('tmp' + Date.now()), nazwa: par.nazwa, ilosc: par.ilosc, uwagi: par.uwagi, doc: par.doc }, i = lista.findIndex(z => z.id === id);
+    if (id && i >= 0) lista[i] = Object.assign({}, lista[i], pol); else lista.push(pol);
+    D.magBez = lista;
+    arkZamknij(); render(); toast('Zapisano');
+    apiTlo('mgBn', par, {
+      nazwa: 'Zapis części', powt: id ? 3 : 0,
+      ok: j => { D.magBez = (j.wynik && j.wynik.bez) || D.magBez; render(); },
+      cofnij: () => { D.magBez = stara; render(); }
+    });
   };
   window.mgzBezUsun = function (id) {
-    api('mgBnUsun', { id: id }).then(j => { D.magBez = (j.wynik && j.wynik.bez) || []; arkZamknij(); render(); toast('Usunięto'); }).catch(e => toast(e.message));
+    const stara = D.magBez;
+    D.magBez = (stara || []).filter(z => z.id !== id);
+    arkZamknij(); render(); toast('Usunięto');
+    apiTlo('mgBnUsun', { id: id }, { nazwa: 'Usunięcie części', ok: j => { D.magBez = (j.wynik && j.wynik.bez) || []; render(); }, cofnij: () => { D.magBez = stara; render(); } });
   };
 
   /* ---------- zdjęte z raportów: „Nie ze składu” ---------- */

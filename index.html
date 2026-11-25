@@ -543,6 +543,19 @@ function apiDiagnoza(e) {
     () => { throw new Error('Serwer odpowiada, ale nie przyjmuje zapytań (prawdopodobnie wygasła autoryzacja skryptu). To nie Twój internet – daj znać Wasylowi.'); },
     () => { throw new Error('Brak połączenia z serwerem – sprawdź zasięg i spróbuj ponownie'); });
 }
+// 25.11.2026: ZAPIS W TLE. Okno zamyka się od razu, zmiana pokazuje się w aplikacji natychmiast, a zapytanie do serwera idzie po cichu.
+// o.ok(j) – po odpowiedzi serwera (np. wstaw dane z serwera); o.cofnij() – gdy się nie udało (przywróć stan sprzed zmiany);
+// o.powt – ile razy ponowić przy braku sieci (TYLKO dla zapytań, które można bezpiecznie powtórzyć, np. „ustaw wartość”); o.nazwa – do komunikatu o błędzie.
+function apiTlo(akcja, par, o) {
+  o = o || {}; let n = 0;
+  const idz = () => api(akcja, par).then(j => { if (o.ok) { try { o.ok(j); } catch (x) { console.error(x); } } return j; }).catch(e => {
+    if (/Brak (internetu|połączenia)/.test(e.message) && n < (o.powt || 0)) { n++; return new Promise(r => setTimeout(r, 5000 * n)).then(idz); }
+    if (o.cofnij) { try { o.cofnij(); } catch (x) { console.error(x); } }
+    const m = /Nieznana akcja/.test(e.message) ? 'najpierw zainstaluj aktualizację bota (/aktualizuj)' : e.message;
+    toastAkcja((o.nazwa || 'Zapis') + ' się nie udał: ' + m + (o.cofnij ? ' – zmiana cofnięta' : ''), 'OK', () => {});
+  });
+  return idz();
+}
 const MOTYWY = { auto: ['Auto', 'half'], jasny: ['Jasny', 'sun'], ciemny: ['Ciemny', 'moon'] };
 function ustawMotyw(m) {
   if (m === 'auto') document.documentElement.removeAttribute('data-t'); else document.documentElement.setAttribute('data-t', m);
@@ -743,14 +756,14 @@ function edZapisz() {
   if (!ED) return;
   const t = String(ED.opis || '').trim(); if (t.length < 2) return toast('Wpisz treść');
   const o = D.ogony.find(x => String(x.id) === String(ED.id)); if (!o) return arkZamknij();
-  const b = document.getElementById('edOk'); if (b) b.disabled = true;
   const par = { id: ED.id, opis: t, termin: ED.termin || '', myjnia: ED.myj || '' };
   const zmKat = ED.kat !== ED.kat0; if (zmKat) par.typ = ED.kat;
-  api('edytuj', par).then(() => {
-    o.opis = t; o.termin = par.termin; o.myjnia = par.myjnia; if (zmKat) o.typ = ED_TYP[ED.kat];
-    if (zmKat && TAB === 'ogony') OGF = ED_TAB[ED.kat];
-    ED = null; arkZamknij(); render(); toast(zmKat ? 'Zapisane – przeniesione' : 'Zapisane');
-  }).catch(e => { if (b) b.disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
+  // 25.11.2026: zapis w tle – okno zamyka się od razu
+  const stare = { opis: o.opis, termin: o.termin, myjnia: o.myjnia, typ: o.typ }, staryOGF = OGF;
+  o.opis = t; o.termin = par.termin; o.myjnia = par.myjnia; if (zmKat) o.typ = ED_TYP[ED.kat];
+  if (zmKat && TAB === 'ogony') OGF = ED_TAB[ED.kat];
+  ED = null; arkZamknij(); render(); toast(zmKat ? 'Zapisane – przeniesione' : 'Zapisane');
+  apiTlo('edytuj', par, { nazwa: 'Zapis zadania', powt: 3, cofnij: () => { Object.assign(o, stare); OGF = staryOGF; render(); } });
 }
 // 15.11.2026: usunięcie zamkniętego zadania (np. czego nie pokazywać szefowi) – serwer przenosi wiersz do ukrytego arkusza „Ogony — usunięte”
 function usunPytaj(id) {
@@ -765,11 +778,10 @@ function usunPytaj(id) {
   a.classList.add('on');
 }
 function usun(id, b) {
-  b.disabled = true;
-  api('usun', { id: id }).then(j => {
-      if (j.wynik) D.ogony = D.ogony.filter(x => String(x.id) !== String(id));
-      arkZamknij(); toast(j.wynik ? 'Zadanie #' + id + ' usunięte' : 'Nie znalazłem zadania #' + id); render(); if (DW) pokazMyjnie(DW, 1); })
-    .catch(e => { b.disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
+  const stara = D.ogony;
+  D.ogony = D.ogony.filter(x => String(x.id) !== String(id));
+  arkZamknij(); toast('Zadanie #' + id + ' usunięte'); render(); if (DW) pokazMyjnie(DW, 1);
+  apiTlo('usun', { id: id }, { nazwa: 'Usunięcie zadania', cofnij: () => { D.ogony = stara; render(); if (DW) pokazMyjnie(DW, 1); } });
 }
 // 15.11.2026: przełącznik „Wykonane” – zadanie od razu idzie do Zamkniętych; 5 s na „Cofnij”, w Zamkniętych można otworzyć ponownie (api=otworz)
 function ustawStatus(id, otwarte) {
@@ -799,12 +811,10 @@ function zamknijPytaj(id) {
   a.classList.add('on');
 }
 function zamknij(id, b) {
-  b.disabled = true;
-  api('zamknij', { id: id }).then(j => { const ok = j.wynik;
-      const o = D.ogony.find(x => String(x.id) === String(id));
-      if (o && ok) { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
-      arkZamknij(); toast(ok ? 'Zadanie #' + id + ' zamknięte' : 'Już było zamknięte'); render(); if (DW) pokazMyjnie(DW, 1); })
-    .catch(e => { b.disabled = false; toast('Błąd: ' + e.message); });
+  const o = D.ogony.find(x => String(x.id) === String(id)), stary = o ? { status: o.status, zamkn: o.zamkn } : null;
+  if (o) { o.status = 'zamknięty'; o.zamkn = dzisIso(); }
+  arkZamknij(); toast('Zadanie #' + id + ' zamknięte'); render(); if (DW) pokazMyjnie(DW, 1);
+  apiTlo('zamknij', { id: id }, { nazwa: 'Zamknięcie zadania', cofnij: () => { if (o && stary) { o.status = stary.status; o.zamkn = stary.zamkn; } render(); if (DW) pokazMyjnie(DW, 1); } });
 }
 // 15.11.2026: notatka z karty myjni – api=notatkaMyjni: bot rozbija na wpisy i zapisuje OD RAZU, aplikacja pokazuje co zapisano.
 // Bez patcha bota (Nieznana akcja) – stara droga api=notatka z potwierdzeniem w Telegramie.
@@ -1125,10 +1135,11 @@ function licznikZapisz(nazwa) {
     document.getElementById('lcb').dataset.ok = 1; document.getElementById('lcb').textContent = 'Mimo to zapisz';
     return toast('Mniej niż ostatnio (' + stary + ') — sprawdź');
   }
-  document.getElementById('lcb').disabled = true;
-  api('notatka', { t: 'Fakt: licznik myć na myjni ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ' = ' + n + ', stan na ' + dt(d) })
-    .then(() => { w.licznik = n.toLocaleString('pl-PL'); if (w.odWymiany !== '' && stary) w.odWymiany = Math.max(0, +w.odWymiany + n - stary); arkZamknij(); toast('Licznik ' + n + ' wysłany'); if (DW) pokazMyjnie(DW, 1); })
-    .catch(e => { document.getElementById('lcb').disabled = false; toast('Błąd: ' + e.message); });
+  const staryL = w.licznik, staryOd = w.odWymiany;
+  w.licznik = n.toLocaleString('pl-PL'); if (w.odWymiany !== '' && stary) w.odWymiany = Math.max(0, +w.odWymiany + n - stary);
+  arkZamknij(); toast('Licznik ' + n + ' zapisany'); if (DW) pokazMyjnie(DW, 1);
+  apiTlo('notatka', { t: 'Fakt: licznik myć na myjni ' + w.nazwa + (w.miasto ? ' (' + w.miasto + ')' : '') + ' = ' + n + ', stan na ' + dt(d) },
+    { nazwa: 'Zapis licznika', cofnij: () => { w.licznik = staryL; w.odWymiany = staryOd; if (DW) pokazMyjnie(DW, 1); } });
 }
 
 function zamknijDet() {
@@ -1200,7 +1211,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v113</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v114</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
