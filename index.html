@@ -693,7 +693,7 @@ function ogonRow(o, zNazwa) {
   return '<div class="row"><div class="g"' + ed + '>' + (zNazwa && o.myjnia ? '<b>' + esc(skrot(o.myjnia)) + '</b> · ' : '') + '<span class="mute">#' + esc(o.id) + '</span> ' + esc(o.opis) +
     (o.czesci ? '<div class="mute">' + I('box', 1) + ' ' + esc(o.czesci) + '</div>' : '') +
     '<div class="mute">' + (o.termin ? 'termin ' + dt(o.termin) + ' · ' : '') + 'dodano ' + dt(o.d) + (o.zrodlo && o.zrodlo !== 'notatka' ? ' · ' + esc(o.zrodlo) : '') + (open_(o) ? ' · <span class="edl">' + I('edit', 1) + ' edytuj</span>' : '') + '</div></div>' +
-    (open_(o) ? '<div class="swl"><button class="sw' + swPil(o) + '" role="switch" aria-checked="false" aria-label="Wykonane" onclick="wykonane(\'' + jsq(o.id) + '\',this)"><i></i></button>Wykonane</div>'
+    (open_(o) ? '<div class="swl"><button class="sw' + swPil(o) + '" role="switch" aria-checked="false" aria-label="Wykonane" onclick="wykonane(\'' + jsq(o.id) + '\',this)"><i></i></button>Wykonane</div><button class="ib" style="margin-left:6px;color:var(--red)" aria-label="Usuń" onclick="usunPytaj(\'' + jsq(o.id) + '\')">' + I('trash', 1) + '</button>'
               : '<span class="mute">' + dt(o.zamkn) + '</span>' + (OGF === 'zamkniete' && TAB === 'ogony' ? '<div class="swl" style="margin-left:8px"><button class="sw" role="switch" aria-checked="true" aria-label="Wykonane – otwórz ponownie" onclick="otworz(\'' + jsq(o.id) + '\',this)"><i></i></button>Wykonane</div><button class="ib" style="margin-left:6px;color:var(--red)" aria-label="Usuń" onclick="usunPytaj(\'' + jsq(o.id) + '\')">' + I('trash', 1) + '</button>' : '')) + '</div>';
 }
 // 17.11.2026: edycja otwartego zadania – treść (gdy bot źle usłyszał), termin, kategoria (Naprawa / Zamówienie / Zakup / Do wysłania), myjnia. Zapis: api=edytuj (łatka bota 2026-11-17_edytuj)
@@ -1183,7 +1183,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v105</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v106</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
