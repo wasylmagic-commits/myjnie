@@ -300,11 +300,15 @@
     a.classList.add('on');
   };
   window.wydMiejsceZapisz = function (id, b) {
-    const m = document.getElementById('wyMi').value.trim(); b.disabled = true;
-    api('zaliczkaMiejsce', { id: id, miejsce: m }).then(j => {
-      const z = D.zaliczka.find(x => x.id === id); if (z && j.wynik) z.miejsce = m;
-      arkZamknij(); toast(j.wynik ? 'Miejsce zapisane' : 'Nie znalazłem tej faktury w arkuszu'); render();
-    }).catch(e => { b.disabled = false; toast(blad(e)); });
+    const m = document.getElementById('wyMi').value.trim();
+    const z = D.zaliczka.find(x => x.id === id), stare = z ? z.miejsce : '';
+    if (z) z.miejsce = m;
+    arkZamknij(); toast('Miejsce zapisane'); render();
+    apiTlo('zaliczkaMiejsce', { id: id, miejsce: m }, {
+      nazwa: 'Zapis miejsca', powt: 3,
+      ok: j => { if (!j.wynik) { if (z) z.miejsce = stare; render(); toast('Nie znalazłem tej faktury w arkuszu'); } },
+      cofnij: () => { if (z) z.miejsce = stare; render(); }
+    });
   };
 
   // style modułu

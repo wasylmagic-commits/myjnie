@@ -137,6 +137,7 @@
 
   // ---------- wygląd ----------
   const CAM = '<svg class="i s" viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="13" r="3.5" fill="none" stroke="currentColor" stroke-width="2"/></svg>';
+  const GAL = '<svg class="i s" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="10" r="1.6" fill="currentColor"/><path d="M5 17l4.5-4.5 3 3 2.5-2.5L19 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>';
   // sekcja w karcie części (zamow.js → zamPlanEdytuj)
   window.opisSekcja = function (kod) {
     const o = opis(kod) || {}, m = miniSrc(kod), k = jsq(kod);
@@ -145,8 +146,8 @@
       '<textarea id="opT" rows="3" placeholder="np. mała czarna pompka pod szafą chemii" oninput="opisPisz(\'' + k + '\',this.value)">' + esc(o.o || '') + '</textarea>' +
       (o.f ? '<div class="opfw">' + (m ? '<img class="opfm" src="' + m + '" alt="" onclick="opisFotoPokaz(\'' + k + '\')">' : '<button class="btn2" onclick="opisFotoPokaz(\'' + k + '\')">' + CAM + ' Pokaż zdjęcie</button>') +
         '<button class="btn2 zan" onclick="opisFotoUsun(\'' + k + '\')">Usuń zdjęcie</button></div>' : '') +
-      '<div class="ab2" style="margin-top:8px"><label class="btn2" style="display:inline-flex">' + CAM + (o.f ? ' Nowe zdjęcie' : ' Zrób zdjęcie') + '<input type="file" accept="image/*" capture="environment" hidden onchange="opisFotoPlik(this,\'' + k + '\')"></label>' +
-      '<label class="btn2" style="display:inline-flex">Wgraj z galerii<input type="file" accept="image/*" hidden onchange="opisFotoPlik(this,\'' + k + '\')"></label></div></div>';
+      '<div class="ab2 opfoto"><label class="btn2" style="display:inline-flex">' + CAM + (o.f ? ' Nowe zdjęcie' : ' Zrób zdjęcie') + '<input type="file" accept="image/*" capture="environment" hidden onchange="opisFotoPlik(this,\'' + k + '\')"></label>' +
+      '<label class="btn2" style="display:inline-flex">' + GAL + 'Wgraj z galerii<input type="file" accept="image/*" hidden onchange="opisFotoPlik(this,\'' + k + '\')"></label></div></div>';
   };
   // miniatura na początku wiersza Magazynu
   window.opisMiniHtml = function (kod) {
@@ -188,7 +189,8 @@
   };
 
   const css = document.createElement('style');
-  css.textContent = '.opn{font-size:13px;color:var(--mute);margin-top:2px;line-height:1.3;font-style:italic}.opn .i{width:13px;height:13px;vertical-align:-2px}' +
+  css.textContent = '.opfoto{display:flex;align-items:stretch;gap:10px;margin-top:10px}.opfoto .btn2{flex:1 1 0;justify-content:center;min-height:44px;white-space:nowrap}.opfoto .btn2 .i{flex:0 0 auto}' +
+    '.opn{font-size:13px;color:var(--mute);margin-top:2px;line-height:1.3;font-style:italic}.opn .i{width:13px;height:13px;vertical-align:-2px}' +
     '.opm{flex:0 0 40px;width:40px;height:40px;border-radius:9px;object-fit:cover;margin-right:10px;cursor:zoom-in;background:var(--fill)}' +
     '.opm0{display:flex;align-items:center;justify-content:center;color:var(--mute)}' +
     '.opfw{display:flex;align-items:center;gap:10px;margin-top:8px}.opfm{width:84px;height:84px;border-radius:12px;object-fit:cover;cursor:zoom-in}' +
