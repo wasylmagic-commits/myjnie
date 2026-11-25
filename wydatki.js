@@ -55,8 +55,8 @@
       }).join('') : '<div class="mute">Brak dokumentów w tym miesiącu.</div>') +
       (lista.length ? (() => { const wys = ((D_.wyslano || {}).zaliczka || {})[m];
         return '<button class="btn wy-roz' + (wys ? ' wys' : '') + '" onclick="wydRozliczenie(' + m + ')">' + I(wys ? 'check' : 'send', 1) +
-          (wys ? 'Wysłane ' + dt(wys) + ' · wyślij ponownie' : 'Wyślij rozliczenie · ' + nazwaMies(m)) + '</button>' +
-          (wys ? '' : '<div class="note" style="text-align:center;margin-top:6px">mail z drukiem zaliczki + ' + lista.length + ' ' + (lista.length === 1 ? 'skanem' : 'skanami') + ' · termin do 7. następnego miesiąca</div>'); })() : '') + '</div>';
+          (wys ? 'Udostępnione ' + dt(wys) + ' · udostępnij ponownie' : 'Rozliczenie do udostępnienia · ' + nazwaMies(m)) + '</button>' +
+          (wys ? '' : '<div class="note" style="text-align:center;margin-top:6px">druk zaliczki + ' + lista.length + ' ' + (lista.length === 1 ? 'skanem' : 'skanami') + ' · termin do 7. następnego miesiąca</div>'); })() : '') + '</div>';
 
     // paliwo tego miesiąca – szczegóły w module Paliwo
     const mk = Math.floor(m / 100) + '-' + String(m % 100).padStart(2, '0');
@@ -197,28 +197,48 @@
   }
   window.wydPdfTest = pdfZJpeg;   // do testów
 
-  // ---- „Wyślij rozliczenie”: zawsze JEDEN miesiąc; bot wysyła mail z xlsx + PDF + skanami na własną skrzynkę serwisanta ----
+  // ---- „Rozliczenie”: zawsze JEDEN miesiąc; bot składa druk zaliczki (xlsx) + skany, a ty udostępniasz dalej (Gmail/WhatsApp/…) – skrypt nie wysyła poczty ----
+  const ROZ = {};
+  const plikZ = p => { const s = atob(p.b64), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new File([u], p.nazwa, { type: p.mime }); };
   window.wydRozliczenie = async function (mies) {
     const wys = ((D.wyslano || {}).zaliczka || {})[mies];
-    if (wys && !confirm('Rozliczenie za ten miesiąc wysłano już ' + dt(wys) + '. Wysłać jeszcze raz?')) return;
+    if (wys && !confirm('Rozliczenie za ten miesiąc udostępniono już ' + dt(wys) + '. Złożyć jeszcze raz?')) return;
     const a = document.getElementById('ark');
-    a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(mies) + '</h4><div class="mute">Składam druk zaliczki i skany, wysyłam na pocztę… (kilkanaście sekund)</div></div>';
+    a.innerHTML = '<div class="tlo"></div><div class="ar"><h4>' + I('send', 1) + ' Rozliczenie · ' + nazwaMies(mies) + '</h4><div class="mute">Składam druk zaliczki i skany… (kilkanaście sekund)</div></div>';
     a.classList.add('on');
     try {
-      const j = await api('rozmail', { mies: mies });
+      const j = await api('rozliczenie', { mies: mies });
       const r = j.wynik || {};
-      D.wyslano = D.wyslano || { premia: {}, zaliczka: {} }; D.wyslano.zaliczka[mies] = new Date().toISOString().slice(0, 10);
-      a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('check', 1) + ' Wysłane na pocztę</h4>' +
-        '<div class="row"><div class="g">Na adres: <b>' + esc(r.na || '') + '</b></div></div>' +
+      if (!r.ile || !(r.pliki || []).length) throw new Error('Brak dokumentów w tym miesiącu – nie ma czego udostępnić');
+      ROZ[mies] = { pliki: r.pliki.map(plikZ), pdf: r.drukPdf ? plikZ(r.drukPdf) : null, temat: r.temat || '', tresc: r.tresc || '' };
+      a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>' + I('check', 1) + ' Rozliczenie gotowe</h4>' +
         '<div class="row"><div class="g">Faktur: <b>' + (r.ile || 0) + '</b> · razem <b>' + z2(r.suma) + '</b></div></div>' +
-        (r.zalaczniki || []).map(n => '<div class="row"><div class="g">' + I('doc', 1) + ' ' + esc(n) + '</div></div>').join('') +
+        ROZ[mies].pliki.map(f => '<div class="row"><div class="g">' + I('doc', 1) + ' ' + esc(f.name) + '</div></div>').join('') +
         ((r.brakSkanu || []).length ? '<div class="mute" style="color:var(--org)">Bez skanu: ' + esc(r.brakSkanu.join(', ')) + '</div>' : '') +
-        '<div class="note" style="margin-top:10px">Otwórz tego maila w poczcie, naciśnij „Przekaż dalej” i wpisz adresata. Załączniki jadą razem z mailem.</div>' +
-        '<div class="ab" style="margin-top:14px"><button class="btn" onclick="arkZamknij()">Gotowe</button></div></div>';
-      render();
+        '<div class="note" style="margin-top:10px">„Udostępnij” otwiera menu telefonu – wybierz Gmail, WhatsApp albo cokolwiek innego. Załączniki jadą razem.</div>' +
+        '<div class="ab" style="margin-top:14px"><button class="btn2" onclick="arkZamknij()">Zamknij</button>' +
+        '<button class="btn" onclick="wydRozUdostepnij(' + mies + ')">' + I('send', 1) + 'Udostępnij</button></div></div>';
     } catch (e) {
       a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Rozliczenie</h4><div class="mute">' + esc(blad(e)) + '</div><div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zamknij</button></div></div>';
     }
+  };
+  // musi iść z kliknięcia (Android wymaga „gestu”), dlatego osobny przycisk po złożeniu plików
+  window.wydRozUdostepnij = async function (mies) {
+    const x = ROZ[mies]; if (!x) return toast('Złóż rozliczenie jeszcze raz');
+    let pliki = x.pliki;
+    try {
+      if (!(navigator.canShare && navigator.canShare({ files: pliki }))) {
+        // telefon nie umie udostępnić xlsx – wtedy PDF druku + skany
+        pliki = (x.pdf ? [x.pdf] : []).concat(x.pliki.slice(1));
+        if (!(navigator.canShare && navigator.canShare({ files: pliki }))) throw new Error('Ta przeglądarka nie umie udostępniać plików – otwórz aplikację w Chrome na telefonie');
+      }
+      await navigator.share({ files: pliki, title: x.temat, text: x.tresc });
+    } catch (e) { if (e && e.name === 'AbortError') return; return toast('Błąd: ' + e.message); }
+    arkZamknij();
+    api('wyslano', { typ: 'zaliczka', mies: mies, tak: 1 }).then(() => {
+      D.wyslano = D.wyslano || { premia: {}, zaliczka: {} }; D.wyslano.zaliczka = D.wyslano.zaliczka || {}; D.wyslano.zaliczka[mies] = new Date().toISOString().slice(0, 10);
+      toast('Rozliczenie udostępnione'); render();
+    }).catch(e => toast(blad(e)));
   };
 
   // karta rozpoznanej faktury – wszystko do poprawienia przed zapisem
