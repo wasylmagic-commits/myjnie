@@ -530,7 +530,16 @@ function imieSerw() { const n = (LS.get('n') || '').trim().split(/\s+/).pop(); r
 // zapytanie do Apps Script (GET, bez preflight CORS)
 function api(akcja, par) {
   const q = new URLSearchParams(Object.assign({ api: akcja, k: K }, par || {}));
-  return fetch(API + '?' + q.toString(), { redirect: 'follow' }).then(r => r.json()).then(j => { if (!j.ok) throw new Error(j.blad || 'błąd serwera'); return j; });
+  return fetch(API + '?' + q.toString(), { redirect: 'follow' }).then(r => r.json()).then(j => { if (!j.ok) throw new Error(j.blad || 'błąd serwera'); return j; }, e => apiDiagnoza(e));
+}
+// 25.11.2026: „Failed to fetch” nic nie mówi. Sonda no-cors: gdy serwer Google odpowiada (choć nie JSON-em) – to nie internet, tylko wygasła
+// autoryzacja skryptu (Wasyl: otworzyć adres /exec w przeglądarce → Review permissions) albo uszkodzone wdrożenie.
+function apiDiagnoza(e) {
+  if (e && e.name !== 'TypeError' && !(e instanceof SyntaxError)) throw e;
+  if (navigator.onLine === false) throw new Error('Brak internetu w telefonie');
+  return fetch(API + '?api=ping', { mode: 'no-cors', redirect: 'follow' }).then(
+    () => { throw new Error('Serwer odpowiada, ale nie przyjmuje zapytań (prawdopodobnie wygasła autoryzacja skryptu). To nie Twój internet – daj znać Wasylowi.'); },
+    () => { throw new Error('Brak połączenia z serwerem – sprawdź zasięg i spróbuj ponownie'); });
 }
 const MOTYWY = { auto: ['Auto', 'half'], jasny: ['Jasny', 'sun'], ciemny: ['Ciemny', 'moon'] };
 function ustawMotyw(m) {
@@ -1189,7 +1198,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v107</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v108</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
