@@ -5,18 +5,19 @@
  */
 (function () {
   let TABM = 'z', BUSY = false;
-  const lb = () => D.magBez || [], lr = () => D.magRozb || [];
+  const lb = () => D.magBez || [], lr = () => D.magRozb || [], lo = () => D.magOstatnie || [];
   const fm = n => String(+n).replace('.', ',');
 
   window.mgzTab = function (t) { TABM = t; Q = ''; render(); window.scrollTo(0, 0); };
 
   window.mgzWidok = function () {
     const nr = lr().length;
-    const tabs = [['z', 'Z numerem', D.magazyn.length], ['b', 'Bez numeru', lb().length], ['r', 'Rozbieżności', nr]];
+    const tabs = [['z', 'Z numerem', D.magazyn.length], ['b', 'Bez numeru', lb().length], ['r', 'Rozbieżności', nr], ['o', 'Zdjęte', lo().length]];
     const seg = '<div class="seg">' + tabs.map(t => '<button class="' + (TABM === t[0] ? 'on' : '') + '" onclick="mgzTab(\'' + t[0] + '\')">' + t[1] +
       (t[2] || t[0] === 'r' ? ' <span class="mute">' + t[2] + '</span>' : '') + (t[0] === 'r' && nr ? ' <span style="color:#d93">●</span>' : '') + '</button>').join('') + '</div>';
     if (TABM === 'b') return naglowek('box', 'Magazyn', 'części bez numeru · nie liczą się w rozliczeniu') + seg + bezWidok();
     if (TABM === 'r') return naglowek('box', 'Magazyn', 'zgodność z PDF biura') + seg + rozbWidok();
+    if (TABM === 'o') return naglowek('box', 'Magazyn', 'ostatnio zdjęte z raportów') + seg + ostWidok();
     return naglowek('box', 'Magazyn', D.magazyn.length + ' pozycji z numerem') + seg + magazynZ(true);
   };
 
@@ -51,6 +52,23 @@
   };
   window.mgzBezUsun = function (id) {
     api('mgBnUsun', { id: id }).then(j => { D.magBez = (j.wynik && j.wynik.bez) || []; arkZamknij(); render(); toast('Usunięto'); }).catch(e => toast(e.message));
+  };
+
+  /* ---------- zdjęte z raportów: „Nie ze składu” ---------- */
+  function ostWidok() {
+    const l = lo();
+    return '<div class="mute" style="margin:2px 2px 8px">Raport nie mówi, czy część była ze składu, czy z busa – bot zdejmuje ją z Magazynu. Jeśli była „poza magazynem”, naciśnij „Nie ze składu”: sztuki wrócą do Magazynu (a pozycja o tej samej nazwie w „Bez numeru” zostanie zdjęta).</div>' +
+      '<div class="card">' + (l.length ? l.map(x => '<div class="row" style="align-items:flex-start"><div class="g"><b>' + esc(x.nazwa) + '</b><div class="mute">' + esc(x.kod) + ' · ×' + fm(x.ile) + ' · ' +
+        esc(x.d) + (x.myjnia ? ' · ' + esc(x.myjnia) : '') + '</div></div><button class="btn2" onclick="mgzNie(' + x.r + ',\'' + jsq(x.kod) + '\')">Nie ze składu</button></div>').join('') :
+        '<div class="empty">Nic z ostatnich 14 dni.</div>') + '</div>';
+  }
+  window.mgzNie = function (r, kod) {
+    if (BUSY) return; BUSY = true;
+    api('mgNieZeSkladu', { r: r, kod: kod }).then(j => {
+      BUSY = false; const w = j.wynik || {}; D.magOstatnie = w.ostatnie || []; render();
+      toast('Wróciło do Magazynu' + (w.bn ? ' · ' + w.bn : ''));
+      if (window.load) load();
+    }).catch(e => { BUSY = false; toast(/Nieznana|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : e.message); });
   };
 
   /* ---------- rozbieżności ---------- */
