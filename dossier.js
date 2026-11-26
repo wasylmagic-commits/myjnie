@@ -15,6 +15,7 @@
     kod: 'Adres: z niego liczy się trasa i podpowiedzi „po drodze”.',
     miasto: 'Miasto: z niego liczy się trasa i podpowiedzi „po drodze”, wpis trafia też do listy myjni.'
   };
+  let ORYG = null;
   const tel = t => String(t || '').replace(/[^0-9+]/g, '');
 
   function rekord(w) {
@@ -52,6 +53,7 @@
   window.dosjeEdytuj = function (nazwa) {
     const w = (D.myjnie || []).concat(D.inne || []).find(x => x.nazwa === nazwa); if (!w) return;
     const v = wartosci(w), a = document.getElementById('ark');
+    ORYG = { nazwa: nazwa, v: v };   // stan z chwili otwarcia – z nim porównujemy (dane z sieci mogą się odświeżyć w trakcie edycji)
     a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Dossier · ' + esc(skrot(w.nazwa)) + '</h4>' +
       '<div id="dsForm">' + POLA.map(p => p[0] === 'notatki'
         ? '<label class="mute">' + p[1] + '</label><textarea id="ds_' + p[0] + '" rows="3">' + esc(v[p[0]]) + '</textarea>'
@@ -65,7 +67,7 @@
   // krok 1: sprawdź zmiany; jeśli dotykają pól ważnych dla systemu – najpierw ostrzeżenie (krok 2 = potwierdzenie)
   window.dosjeDalej = function (nazwa, potw) {
     const w = (D.myjnie || []).concat(D.inne || []).find(x => x.nazwa === nazwa); if (!w) return;
-    const v = wartosci(w), zm = {};
+    const v = (ORYG && ORYG.nazwa === nazwa) ? ORYG.v : wartosci(w), zm = {};
     POLA.forEach(p => { const e = document.getElementById('ds_' + p[0]); if (e && e.value.trim() !== String(v[p[0]] || '').trim()) zm[p[0]] = e.value.trim(); });
     if (!Object.keys(zm).length) { arkZamknij(); return; }
     const ost = Object.keys(zm).filter(k => OSTRZEZ[k] && v[k]).map(k => OSTRZEZ[k]).filter((x, i, t) => t.indexOf(x) === i);
