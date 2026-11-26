@@ -116,6 +116,7 @@
     ['Orlen SP 1466', 52.43, 16.80], ['Orlen SP 1467', 52.40, 16.84], ['Orlen SP 4137', 52.42, 16.83], ['Orlen SP 4142', 52.47, 16.90], ['Orlen SP 4576', 52.52, 16.95], ['BP Przygoda', 52.43, 16.91], ['BP Piątka', 52.39, 16.87], ['BP Mieszko', 52.40, 16.94]]
     .map(x => ({ n: x[0], lat: x[1], lng: x[2] }));
   S.ust = {};
+  S.dosje = [{ klucz: 'SP4046', firma: 'Orlen 4046', siec: 'Orlen', ulica: 'Bałtycka 4a', kod: '61-013', miasto: 'Poznań', model: 'Quantus', typ: '', serial: '3780100', email: 's04046@sp.orlen.pl', prowadzacy: 'Jan Kowalski', telefon: '61 555 01 02', telefonProw: '600 100 200', notatki: 'Klucz do kontenera u kasjera', reczne: [], uwagi: '' }];
   S.stacje = [{ klucz: 'SP4046', firma: 'Orlen 4046', siec: 'Orlen', ulica: 'Bałtycka 4a', kod: '61-013', miasto: 'Poznań' }, { klucz: 'RF402', firma: 'BP Wilda', siec: 'BP', ulica: 'Wilda 12', kod: '61-001', miasto: 'Poznań' }];
   S.prace.push({ d: iso(new Date(DZIS.getTime() - 3 * 864e5)), firma: 'BP Wilda', miejsce: 'Poznań', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00420', opis: 'Zastępstwo: zacinająca się rolka, wymieniona', p: 0, rodzaj: 'AWK', km: 12, montaz: 0, st: 0, ko: 0, wy: 0, status: 'wykonane', kl: '' });
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Poznan', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00446', opis: 'Brak dawkowania aktywnej piany podczas mycia. Prosze o sprawdzenie i kalibracje.', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Baltycka 4a, 61-013 Poznan | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 14:05 | Biuro' });
@@ -321,6 +322,7 @@
         const m = z.kod && S.magazyn.find(x => x.kod === z.kod); if (m) m.ilosc = String((+m.ilosc || 0) + (+p.n || 0)); if (z.dost >= z.ilosc) S.zamowienia = S.zamowienia.filter(x => x !== z); return { ok: true, wynik: { dost: z.dost } }; }
       case 'mgPolacz': { const z = S.zamowienia.find(x => x.id === String(p.id)); if (z) { z.kod = p.kod; S.slownik.push({ slowa: z.nazwa, kod: p.kod, nazwa: p.nazwa }); } return { ok: true, wynik: { dost: 0 } }; }
       case 'mgGeo': return { ok: true, wynik: { dodane: [], pozostalo: 0 } };
+      case 'mgDosje': { const pol = JSON.parse(p.pola || '{}'); let x = S.dosje.find(y => y.klucz === p.klucz || y.firma === p.n); if (!x) { x = { klucz: p.n.toUpperCase(), firma: p.n, reczne: [] }; S.dosje.push(x); } Object.assign(x, pol); return { ok: true, wynik: { klucz: x.klucz, zapisane: Object.keys(pol) } }; }
       case 'mgUst': S.ust[p.k] = { v: p.k === 'promien' ? +p.v : p.v, ts: +p.t }; return { ok: true, wynik: { zapisano: true } };
       case 'mgAnuluj': S.zamowienia = S.zamowienia.filter(x => x.id !== String(p.id)); return { ok: true, wynik: true };
       case 'mgPlan': { S.plan = S.plan.filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: +p.docelowo }]); const m = S.magazyn.find(x => x.kod === p.kod); if (m) m.min = String(p.prog); return { ok: true, wynik: true }; }

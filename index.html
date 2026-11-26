@@ -513,6 +513,7 @@
 <script src="opisy.js"></script>
 <script src="podrodze.js"></script>
 <script src="cudze.js"></script>
+<script src="dossier.js"></script>
 <script src="ustawienia.js"></script>
 <script src="start.js"></script>
 <script>
@@ -1058,6 +1059,7 @@ function pokazMyjnie(nazwa, bezAnim) {
   if (window.serwPill) h += '<div class="row"><div class="g">Serwisant: ' + serwPill(w, true) + '</div></div>';
   if (w.uwagi) h += '<div class="row"><div class="g mute">' + esc(w.uwagi).replace(/\n/g, '<br>') + '</div></div>';
   h += '</div>';
+  if (window.dosjeKarta) h += dosjeKarta(w);
   h += '<div class="card"><h3>' + I('pen', 1) + 'Notatka – ' + esc(skrot(w.nazwa)) + '</h3><textarea id="ntm" placeholder="Co tu zrobić, co kupić, co zrobione – myjnia jest już wpisana" oninput="NTM[DW]=this.value">' + esc(NTM[w.nazwa] || '') + '</textarea>' +
        '<button class="btn" id="ntmb" onclick="notatkaMyjni()">Wyślij</button> <span class="mute">zapisze się od razu</span></div>';
   h += '<div class="card"><h3>' + I('wrench', 1) + 'Otwarte zadania (' + otw.length + ')</h3>' + (otw.length ? otw.map(o => ogonRow(o)).join('') : '<div class="mute">brak</div>') + '</div>';
@@ -1221,7 +1223,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v116</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v117</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
