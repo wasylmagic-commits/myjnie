@@ -121,6 +121,8 @@
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Poznan', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00446', opis: 'Brak dawkowania aktywnej piany podczas mycia. Prosze o sprawdzenie i kalibracje.', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Baltycka 4a, 61-013 Poznan | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 14:05 | Biuro' });
   S.prace.push({ d: iso(DZIS), firma: '', miejsce: 'Kobylnica', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00432', opis: 'Portal stanął w trakcie programu, błąd na panelu', p: 0, rodzaj: 'AWK', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'zlecenie', kl: 'SMS: Poznańska, Kobylnica (Orlen SP 4137) | zgł. ' + p2(DZIS.getDate()) + '.' + p2(DZIS.getMonth() + 1) + ' 08:03 | Biuro' });
 
+  // 26.11.2026: wisząca zaślepka z notesu (numer zlecenia bez raportu) – do próby „Bez raportu”
+  S.prace.push({ d: iso(rob(1)), firma: 'Orlen 1368', miejsce: 'Poznań', nr: 'SZL/' + DZIS.getFullYear() + '/' + p2(DZIS.getMonth() + 1) + '/00455', opis: '', p: 0, rodzaj: '', km: 0, montaz: 0, st: 0, ko: 0, wy: 0, status: 'czeka_na_raport', kl: '' });
   S.obce.push({ d: iso(rob(14)), firma: 'Orlen SP 1466', kto: 'Kowalski Marek', nr: 'SZL/2026/10/00811', p: 0, opis: 'Wymieniono uszkodzoną dyszę wodną.', zal: '' });
   S.obce.push({ d: iso(rob(11)), firma: 'Orlen SP 1149', kto: 'Nowak Piotr', nr: 'SZL/2026/10/00840', p: 0, opis: 'Kontrola portalu po zgłoszeniu zatrzymań.', zal: 'Sprawdzić uszczelnienie wejścia kabla do szafy' });
 
@@ -324,6 +326,7 @@
       case 'mgPlan': { S.plan = S.plan.filter(x => x.kod !== p.kod).concat([{ kod: p.kod, klasa: p.klasa, docelowo: +p.docelowo }]); const m = S.magazyn.find(x => x.kod === p.kod); if (m) m.min = String(p.prog); return { ok: true, wynik: true }; }
       case 'odrzuc': { const x = S.prace.find(y => y.nr === p.nr); if (x) x.status = p.cofnij === '1' ? 'zlecenie' : 'anulowane'; return { ok: true, wynik: true }; }
       case 'notatnikZapisz': return { ok: true, wynik: p.tak === '1' ? { zapisane: true, komunikaty: ['Zapisano dzień pracy (demo): 2 prace, koniec dnia 14:20.'], pytania: [] } : { anulowane: true } };
+      case 'bezRaportu': { const x = S.prace.find(y => y.nr === p.nr); if (!x) return { ok: false, blad: 'Nie znalazłem zlecenia' }; x.status = p.cofnij === '1' ? 'czeka_na_raport' : 'gotowe'; return { ok: true, wynik: { nr: p.nr, status: x.status } }; }
       case 'notatnikOdp': return { ok: true, wynik: { ok: true } };
       case 'popraw': return { ok: true, wynik: popraw(body) };
       case 'dokument': return { ok: true, wynik: /notes|notatnik/i.test(String(body.nazwa || '')) ? notes() : dokument() };

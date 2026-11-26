@@ -87,9 +87,11 @@
     const stan = p.typ === 'raport' ? (p.raport ? '<span class="pill ok">raport jest</span>' : '<span class="pill o">raportu jeszcze nie ma</span>') : '';
     return '<div class="nt-p" id="ntp' + i + '" data-i="' + i + '">' +
       '<div class="nt-h"><b>' + (i + 1) + '. ' + esc(TYP[p.typ] || 'Inne') + '</b>' +
-      (p.typ === 'raport' ? '<input class="nt-nr" id="ntNr' + i + '" placeholder="nr 11/350" value="' + esc(p.nr || '') + '">' : '') +
+      (p.typ === 'raport' ? '<input class="nt-nr" id="ntNr' + i + '" placeholder="nr 11/350" value="' + esc(p.nr || '') + '">' +
+        '<button class="pill nt-bez" id="ntBez' + i + '" onclick="notatnikBez(' + i + ',this)">Bez raportu</button>' : '') +
       '<button class="ib" onclick="notatnikUsun(' + i + ')" aria-label="Usuń tę pracę">' + I('trash') + '</button></div>' +
-      '<div class="nt-g">' + I('pin', 1) + ' ' + esc(p.gdzie || p.stacja || p.miejsce || 'miejsce?') + ' ' + stan +
+      '<div class="nt-g">' + I('pin', 1) + ' ' + esc(p.gdzie || p.stacja || p.miejsce || 'miejsce?') + ' ' +
+      '<span class="nt-stan">' + stan + '</span><span class="pill nt-bezi">praca bez raportu</span>' +
       (p.nowa ? ' <span class="pill">nowa myjnia</span>' : '') + (p.tenSam ? ' <span class="pill">ten sam obiekt</span>' : '') +
       ' <a onclick="notatnikMiejsce(' + i + ')">zmień</a></div>' +
       '<div class="nt-m" id="ntM' + i + '" hidden><div class="nt-2"><div><label>Miejsce / miasto</label><input id="ntMi' + i + '" value="' + esc(p.miejsce || '') + '"></div>' +
@@ -103,6 +105,13 @@
       '</div>';
   }
 
+  // 26.11.2026: „Bez raportu” – praca bez numeru zlecenia (np. pomoc koledze): numer niepotrzebny, wiersz od razu gotowy, nic nie czeka na dokument
+  window.notatnikBez = (i, b) => {
+    const on = b.classList.toggle('on');
+    const nr = document.getElementById('ntNr' + i), box = document.getElementById('ntp' + i);
+    if (nr) { nr.disabled = on; nr.style.opacity = on ? '.35' : ''; }
+    if (box) box.classList.toggle('bez', on);
+  };
   window.notatnikMiejsce = i => { const e = document.getElementById('ntM' + i); if (e) e.hidden = !e.hidden; };
   window.notatnikUsun = i => {
     const e = document.getElementById('ntp' + i); if (!e) return;
@@ -120,7 +129,10 @@
       const o = { i: i, miejsce: v('ntMi' + i), stacja: v('ntSt' + i), adres: v('ntAd' + i), km: v('ntKm' + i),
         wyjazd: v('ntWy' + i), start: v('ntSa' + i), koniec: v('ntKo' + i),
         flagi: Array.from(document.querySelectorAll('#ntF' + i + ' .pill.on')).map(b => b.dataset.f) };
-      if (p.typ === 'raport') o.nr = v('ntNr' + i);
+      if (p.typ === 'raport') {
+        const bz = document.getElementById('ntBez' + i);
+        if (bz && bz.classList.contains('on')) { o.bez = 1; o.nr = ''; } else o.nr = v('ntNr' + i);
+      }
       return o;
     });
     return { prace: prace, koniec: { czas: v('ntKc') || '', km: v('ntKk') || '' } };
@@ -132,7 +144,7 @@
     if (tak) {
       const zm = zmiany(w);
       if (!zm.prace.some(p => !p.usun)) return toast('Wszystkie prace usunięte – użyj „Anuluj”');
-      const bezNr = zm.prace.find(p => !p.usun && p.nr === '');
+      const bezNr = zm.prace.find(p => !p.usun && !p.bez && p.nr === '');
       if (bezNr) return toast('Wpisz numer zlecenia w pracy ' + (bezNr.i + 1));
       par.zm = JSON.stringify(zm);
     }
@@ -196,6 +208,8 @@
     '.nt-f{display:flex;flex-wrap:wrap;gap:5px;padding-top:2px} .nt-f .pill{border:0;cursor:pointer;font-size:13px;padding:7px 9px;background:var(--solid);transition:background .25s var(--spring),color .25s}' +
     '.nt-f .pill.on{background:var(--acc);color:#fff}' +
     '.nt-w{background:color-mix(in srgb,var(--org) 16%,transparent);border-radius:12px;padding:8px 10px;margin:6px 0;font-size:14px;white-space:pre-line}' +
-    '.nt-tn{flex:none;gap:6px} .nt-tn button{min-width:64px}';
+    '.nt-tn{flex:none;gap:6px} .nt-tn button{min-width:64px}' +
+    '.nt-bez{border:0;cursor:pointer;flex:none;font-size:13px;padding:7px 9px;background:var(--solid);transition:background .25s var(--spring),color .25s} .nt-bez.on{background:var(--acc);color:#fff}' +
+    '.nt-bezi{display:none} .nt-p.bez .nt-bezi{display:inline-block} .nt-p.bez .nt-stan{display:none}';
   document.head.appendChild(css);
 })();

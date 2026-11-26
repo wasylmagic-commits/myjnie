@@ -942,7 +942,8 @@ function dzis() {
         (n ? '<div class="mute" style="color:var(--org)">' + I('star', 1) + ' przy okazji do zamknięcia: ' + n + '</div>' : '') + '</div><div style="text-align:right">' + pillDni(w.dni) + '<div class="mute">' + esc(w.termin) + '</div></div></div>';
     }).join('') + '</div>';
   if (akty.length) h += '<div class="card"><h3>' + I('doc', 1) + 'Dokumenty</h3>' + akty.map(p => '<div class="row"><div class="g">' + esc(p.nr) + ' · ' + esc(p.firma) +
-      '<div class="mute">' + dt(p.d) + ' · ' + esc(statusPl(p.status)) + '</div></div></div>').join('') + '</div>';
+      '<div class="mute">' + dt(p.d) + ' · ' + esc(statusPl(p.status)) + '</div></div>' +
+      (p.status === 'czeka_na_raport' ? '<button class="btn2" onclick="bezRaportu(\'' + jsq(p.nr) + '\')">Bez raportu</button>' : '') + '</div>').join('') + '</div>';
   const kup = ot.filter(o => kat(o) === 'kupic'), bi = doWysl(ot);
   if (kup.length) h += '<div class="card"><h3>' + I('cart', 1) + 'Do kupienia</h3>' + kup.map(o => ogonRow(o, true)).join('') + '</div>';
   if (bi.length) h += '<div class="card"><h3>' + I('office', 1) + 'Biuro / wysyłka</h3>' + bi.map(o => ogonRow(o, true)).join('') + '</div>';
@@ -978,6 +979,15 @@ function premiaWyslana(pm, el) {
     D.wyslano = D.wyslano || {}; D.wyslano.premia = D.wyslano.premia || {}; D.wyslano.premia[pm] = dzisIso(); render();
     toastAkcja('Premia oznaczona jako wysłana', 'Cofnij', () => api('wyslano', { typ: 'premia', mies: pm, tak: 0 }).then(() => { delete D.wyslano.premia[pm]; render(); }).catch(blad));
   }).catch(e => { blad(e); render(); });
+}
+// 26.11.2026: praca, na którą nie będzie raportu (np. pomoc koledze) – zamyka wiszące „czeka na raport” (bot: BezRaportu.gs, api=bezRaportu)
+function bezRaportu(nr) {
+  const blad = e => toast(/Nieznan|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+  const p = D.prace.find(x => x.nr === nr); if (!p) return;
+  api('bezRaportu', { nr: nr }).then(() => {
+    p.status = 'gotowe'; render();
+    toastAkcja('Zamknięte bez raportu', 'Cofnij', () => api('bezRaportu', { nr: nr, cofnij: 1 }).then(() => { p.status = 'czeka_na_raport'; render(); }).catch(blad));
+  }).catch(blad);
 }
 function statusPl(s) {
   return ({ czeka_na_czas: 'czeka na godziny', pytania: 'pytania w bocie', czeka_koniec_dnia: 'czeka na koniec dnia', czeka_na_raport: 'czeka na raport', zlecenie: 'zlecenie bez pracy' })[s] || s;
@@ -1211,7 +1221,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v114</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v115</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
