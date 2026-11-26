@@ -19,10 +19,10 @@
   // znane wartosci z wszystkich myjni (do list wyboru modelu i typu)
   function znane(pole, biezaca) {
     const m = {};
-    const dodaj = x => { x = String(x || '').trim(); if (x && !m[x.toLowerCase()]) m[x.toLowerCase()] = x; };
+    const dodaj = (x, bezFiltra) => { x = String(x || '').trim(); if (x && (bezFiltra || x.indexOf('/') < 0) && !m[x.toLowerCase()]) m[x.toLowerCase()] = x; };
     (D.dosje || []).forEach(d => dodaj(d[pole]));
     if (pole === 'model') (D.myjnie || []).concat(D.inne || []).forEach(w => dodaj(w.model));
-    dodaj(biezaca);
+    dodaj(biezaca, true);   // wartość już zapisana przy tej myjni zostaje na liście, żeby zapis jej nie zmienił
     return Object.keys(m).map(k => m[k]).sort((a, b) => a.localeCompare(b, 'pl'));
   }
   const INNY = '__inny';
