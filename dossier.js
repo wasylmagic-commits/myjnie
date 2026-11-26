@@ -16,6 +16,26 @@
     miasto: 'Miasto: z niego liczy się trasa i podpowiedzi „po drodze”, wpis trafia też do listy myjni.'
   };
   let ORYG = null;
+  // znane wartosci z wszystkich myjni (do list wyboru modelu i typu)
+  function znane(pole, biezaca) {
+    const m = {};
+    const dodaj = x => { x = String(x || '').trim(); if (x && !m[x.toLowerCase()]) m[x.toLowerCase()] = x; };
+    (D.dosje || []).forEach(d => dodaj(d[pole]));
+    if (pole === 'model') (D.myjnie || []).concat(D.inne || []).forEach(w => dodaj(w.model));
+    dodaj(biezaca);
+    return Object.keys(m).map(k => m[k]).sort((a, b) => a.localeCompare(b, 'pl'));
+  }
+  const INNY = '__inny';
+  window.dosjeWybor = function (pole) {
+    const s = document.getElementById('ds_' + pole), i = document.getElementById('dsi_' + pole);
+    if (i) i.style.display = s.value === INNY ? '' : 'none';
+    if (i && s.value === INNY) i.focus();
+  };
+  const pobierz = pole => {
+    const e = document.getElementById('ds_' + pole); if (!e) return null;
+    if (e.tagName === 'SELECT') return e.value === INNY ? String((document.getElementById('dsi_' + pole) || {}).value || '').trim() : e.value.trim();
+    return e.value.trim();
+  };
   const tel = t => String(t || '').replace(/[^0-9+]/g, '');
 
   function rekord(w) {
@@ -57,6 +77,10 @@
     a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Dossier · ' + esc(skrot(w.nazwa)) + '</h4>' +
       '<div id="dsForm">' + POLA.map(p => p[0] === 'notatki'
         ? '<label class="mute">' + p[1] + '</label><textarea id="ds_' + p[0] + '" rows="3">' + esc(v[p[0]]) + '</textarea>'
+        : (p[0] === 'model' || p[0] === 'typ')
+        ? '<label class="mute">' + p[1] + '</label><select id="ds_' + p[0] + '" class="as-in" onchange="dosjeWybor(\'' + p[0] + '\')"><option value="">— brak —</option>' +
+          znane(p[0], v[p[0]]).map(x => '<option value="' + esc(x) + '"' + (x === String(v[p[0]] || '').trim() ? ' selected' : '') + '>' + esc(x) + '</option>').join('') +
+          '<option value="' + INNY + '">+ inny (wpisz)…</option></select><input id="dsi_' + p[0] + '" type="text" autocomplete="off" placeholder="wpisz ' + (p[0] === 'model' ? 'model' : 'typ, np. C-160') + '" style="display:none;margin-top:6px">'
         : '<label class="mute">' + p[1] + '</label><input id="ds_' + p[0] + '" type="' + (/^telefon/.test(p[0]) ? 'tel' : p[0] === 'email' ? 'email' : 'text') + '" autocomplete="off" value="' + esc(v[p[0]]) + '">').join('') + '</div>' +
       '<div id="dsOstrz"></div>' +
       '<div class="mute" style="margin-top:8px">Wpisane tu pola mają pierwszeństwo przed raportami PDF. Puste pole = znów uzupełnią je raporty.</div>' +
@@ -68,7 +92,7 @@
   window.dosjeDalej = function (nazwa, potw) {
     const w = (D.myjnie || []).concat(D.inne || []).find(x => x.nazwa === nazwa); if (!w) return;
     const v = (ORYG && ORYG.nazwa === nazwa) ? ORYG.v : wartosci(w), zm = {};
-    POLA.forEach(p => { const e = document.getElementById('ds_' + p[0]); if (e && e.value.trim() !== String(v[p[0]] || '').trim()) zm[p[0]] = e.value.trim(); });
+    POLA.forEach(p => { const x = pobierz(p[0]); if (x !== null && x !== String(v[p[0]] || '').trim()) zm[p[0]] = x; });
     if (!Object.keys(zm).length) { arkZamknij(); return; }
     const ost = Object.keys(zm).filter(k => OSTRZEZ[k] && v[k]).map(k => OSTRZEZ[k]).filter((x, i, t) => t.indexOf(x) === i);
     if (ost.length && !potw) {
