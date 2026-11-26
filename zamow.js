@@ -162,7 +162,7 @@
         '<button class="btn" style="width:100%" onclick="zamKopiuj()">' + I('doc', 1) + ' Kopiuj tekst</button>' +
         '<div class="mute" style="font-size:13px;margin-top:8px">Wklej w SMS do magazyniera, wyślij, potem wróć i naciśnij „Zamówione”.</div></div>';
     }
-    if (w.length) h += '<div class="card"><h3>' + I('route', 1) + 'W drodze (' + w.length + ')</h3>' + '<button class="btn" style="width:100%;margin-bottom:6px" onclick="przOtworz()">' + I('check', 1) + ' Przyjęcie dostawy</button>' + w.map(z =>
+    if (w.length) h += '<div class="card"><h3>' + I('route', 1) + 'W drodze (' + w.length + ')</h3>' + '<button class="btn" style="width:100%;margin-bottom:6px" onclick="przyjecieOtworz()">' + I('check', 1) + ' Przyjęcie dostawy</button>' + w.map(z =>
       '<div class="row"><div class="g"><b>' + esc(z.nazwa) + '</b><div class="mute">' + (z.kod ? esc(z.kod) + ' · ' : '') + 'zamówione ' + dt(z.d) + ' · ' + z.ilosc + ' szt.' +
       (z.dost ? ' · doszło ' + z.dost : '') + '</div>' + (!z.kod ? podpowiedz(z) : '') + (zalegle(z) ? '<div class="zp"><span class="pill o">nie dotarło? ' + wiek(z.d) + ' dni</span></div>' : '') + '</div>' +
       '<div class="zl" style="flex-direction:column;gap:6px"><button class="btn2" onclick="zamPrzyszlo(\'' + jsq(z.id) + '\')">Przyszło</button><button class="btn2 zan" onclick="zamAnuluj(\'' + jsq(z.id) + '\')">Anuluj</button></div></div>').join('') +

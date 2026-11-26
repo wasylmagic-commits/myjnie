@@ -9,7 +9,7 @@
   const nn = v => { const x = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(x) ? x : 0; };
   const pol = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
 
-  window.przOtworz = function () {
+  window.przyjecieOtworz = function () {
     const l = ((D && D.zamowienia) || []).slice().sort((a, b) => String(a.d).localeCompare(String(b.d)))
       .map(z => { const rest = Math.max(0, z.ilosc - (z.dost || 0)); return { id: String(z.id), kod: z.kod || '', nazwa: z.nazwa, ilosc: z.ilosc, dost: z.dost || 0, rest: rest, n: rest, r: 'czeka' }; })
       .filter(x => x.rest > 0);
