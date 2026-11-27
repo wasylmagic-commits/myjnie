@@ -1217,7 +1217,7 @@ function przeglady() {
 function wiecej() {
   const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
   return '<div class="more">' +
-    k('asystent', 'spark', 'Asystent', 'diagnoza krok po kroku') +
+    k('asystent', 'spark', 'Asystent', 'pytanie albo diagnoza') +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
@@ -1225,7 +1225,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v128</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v129</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

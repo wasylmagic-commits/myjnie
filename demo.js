@@ -254,6 +254,19 @@
       const x = sesje.find(y => y.id === b.id) || sesje[0];
       return { id: x.id, myjnia: { nazwa: x.myjnia }, status: 'zamknieta', runda: x.rundy, model: 'sonnet-5-5', poziom: '', odp: { faza: 'zamkniecie', podsumowanie: 'Sesja z archiwum (przykład demo).', przyczyna: x.przyczyna, plan: [], hipotezy: [] }, rozmowa: [{ rola: 'user', tekst: x.objaw }, { rola: 'assistant', tekst: 'Przykład demo.' }] };
     }
+    if (a === 'as_szybko') return { szybka: 'Zaczniemy od tego, co pokazuje panel i od najczęstszej przyczyny dla tego modelu (demo).', pakiet: { karty: [], wiedza: [], dokumenty: [] } };
+    if (a === 'as_wiedza_dodaj') return { id: 'W' + (++licznikSes) };
+    if (a === 'as_pytaj') {
+      const q = String(b.pytanie || ''), ip = /\bip\b|adres/i.test(q);
+      return { id: 'PY-DEMO' + (++licznikSes), rodzaj: ip ? 'myjnia' : /stoi|nie dzia|błąd|blad/i.test(q) ? 'awaria' : 'ogolne',
+               szybka: ip ? 'To zależy od konkretnej myjni – adresy są w jej schemacie.' : 'Sprawdzam w bazie i dokumentacji, chwila (demo).',
+               potrzebna_myjnia: ip, powod: ip ? 'Adresy IP są na ostatnim arkuszu schematu tej myjni (w szafie).' : '', dzis: 'SP1368 Orlen', koniec: ip, koszt: 0.01, pytania1: [] };
+    }
+    if (a === 'as_pytaj_dalej') {
+      return { id: b.id, koniec: true, koszt: 0.04, myjnia: b.myjnia || '', pakiet: b.pelny ? 'cała baza' : '3 kart, 0 wiedzy, 1 dok.',
+               odp: { odpowiedz: b.myjnia ? 'Na schemacie ' + b.myjnia + ' (ostatni arkusz) – w trybie demo bez prawdziwych adresów.' : 'Przykładowa odpowiedź demo: najpierw sprawdź czystość i ustawienie, potem diody na wzmacniaczu.',
+                      kroki: ['Sprawdź, czy element jest czysty', 'Porównaj z kartą w bazie'], pytania: [], zrodla: ['Przypadek 14 (demo)'], brak_w_bazie: false, gdzie_szukac: '', awaria: false } };
+    }
     if (!s) throw new Error('Nie znam tej sesji (demo)');
     if (a === 'as_runda') { s.odp = odpRunda(s, b); return wynikSesji(s); }
     if (a === 'as_zamknij') {

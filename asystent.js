@@ -1,4 +1,6 @@
-/* Asystent serwisowy – moduł aplikacji „Serwis myjni” (11.2026, etap 1).
+/* Asystent serwisowy – moduł aplikacji „Serwis myjni” (11.2026, etap 1; v2 27.11.2026: jedno pole „O co chcesz zapytać?” + Diagnoza na myjni).
+ * v2: pytanie → as_pytaj (szybki model, 2–4 s, żywa odpowiedź + wybór materiału) → as_pytaj_dalej (model podstawowy na wybranym pakiecie).
+ *     Diagnoza → as_szybko (szybka odpowiedź na ekranie oczekiwania + pakiet) → as_start z pakietem. Bez funkcji „pytaj” w bocie – jak dawniej.
  * Ładowany PRZED głównym skryptem index.html; korzysta z jego funkcji (esc, I, toast, D, K, API, render) dopiero w momencie wywołania.
  * Serwer: Apps Script Asystent.gs, POST …/exec?api=asystent (text/plain → bez preflight CORS).
  * Pamięć w telefonie: bieżąca sesja + kolejka wysyłek bez zasięgu (localStorage).
@@ -14,8 +16,12 @@
     zdj: [],                      // [{ b64, mime, mini }]
     myjnia: '', objaw: '', kody: '', trudny: false,
     busy: false, sesje: null, zamykanie: false, q: '', potwierdz: null, poziom: LSG('as_poziom') || '',
-    mowa: null, jezyk: LSG('as_jezyk') || 'pl-PL'
+    mowa: null, jezyk: LSG('as_jezyk') || 'pl-PL',
+    p: LSG('as_pyt'),             // bieżące pytanie (v2): { id, myjnia, tury: [{ q, zdjec, szybka, pytania1, trafienie, potrzebna_myjnia, powod, dzis, odp, etap, blad }] }
+    pyt: '', zdjP: [], diagOtw: false, szybka: ''
   };
+  const zapiszPyt = () => LSS('as_pyt', ST.p);
+  const umiePytac = () => typeof window.maFunkcje !== 'function' || window.maFunkcje('pytaj');
   const zapiszStan = () => LSS('as_sesja', ST.s);
   const kolejka = () => LSG('as_kolejka') || [];
 
@@ -93,8 +99,9 @@
   }
 
   /* ---------- zdjęcia (zmniejszone w telefonie do 1600 px) ---------- */
-  function dodajZdjecia(input) {
-    const pliki = Array.from(input.files || []).slice(0, 6 - ST.zdj.length);
+  function dodajZdjecia(input, cel) {
+    const kosz = cel === 'p' ? ST.zdjP : ST.zdj;
+    const pliki = Array.from(input.files || []).slice(0, 6 - kosz.length);
     input.value = '';
     pliki.forEach(f => {
       const img = new Image(), url = URL.createObjectURL(f);
@@ -103,14 +110,14 @@
         const c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
         c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
         const d = c.toDataURL('image/jpeg', 0.82);
-        ST.zdj.push({ b64: d.split(',')[1], mime: 'image/jpeg', mini: d });
+        kosz.push({ b64: d.split(',')[1], mime: 'image/jpeg', mini: d });
         URL.revokeObjectURL(url); odswiez();
       };
       img.onerror = () => { URL.revokeObjectURL(url); toast('Nie mogę odczytać zdjęcia'); };
       img.src = url;
     });
   }
-  window.asUsunZdj = i => { ST.zdj.splice(i, 1); odswiez(); };
+  window.asUsunZdj = (i, cel) => { (cel === 'p' ? ST.zdjP : ST.zdj).splice(i, 1); odswiez(); };
 
   /* ---------- dyktowanie (Chrome: Web Speech) ---------- */
   window.asMow = (poleId) => {
@@ -218,16 +225,17 @@
 
   function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = window.MODULY.asystent.widok(); if (window.zmocz) zmocz(m); odswiezMik(); } } }
 
-  function narzedzia(pole) {
+  function narzedzia(pole, cel) {
     return '<div class="as-bar">' +
       '<button style="' + st + '" class="as-mik" onclick="asMow(\'' + pole + '\')" aria-label="Dyktuj">' + I('mic') + '</button>' +
       '<button style="' + st + ';min-width:38px;font-size:12px" class="as-jez" onclick="asJezyk()">' + (ST.jezyk === 'pl-PL' ? 'PL' : 'RU') + '</button>' +
-      '<label style="' + st + '" aria-label="Zdjęcie">' + I('camera') + '<input type="file" accept="image/*" multiple style="display:none" onchange="asZdj(this)"></label>' +
+      '<label style="' + st + '" aria-label="Zdjęcie">' + I('camera') + '<input type="file" accept="image/*" multiple style="display:none" onchange="asZdj(this' + (cel === 'p' ? ',\'p\'' : '') + ')"></label>' +
       '<span style="flex:1"></span></div>';
   }
-  window.asZdj = el => dodajZdjecia(el);
-  function miniatury() {
-    return ST.zdj.length ? '<div class="as-zdj">' + ST.zdj.map((z, i) => '<div><img src="' + z.mini + '"><b onclick="asUsunZdj(' + i + ')">×</b></div>').join('') + '</div>' : '';
+  window.asZdj = (el, cel) => dodajZdjecia(el, cel);
+  function miniatury(cel) {
+    const kosz = cel === 'p' ? ST.zdjP : ST.zdj;
+    return kosz.length ? '<div class="as-zdj">' + kosz.map((z, i) => '<div><img src="' + z.mini + '"><b onclick="asUsunZdj(' + i + (cel === 'p' ? ',\'p\'' : '') + ')">×</b></div>').join('') + '</div>' : '';
   }
   const busy = t => '<div class="card as-busy"><i></i>' + esc(t) + '</div>';
 
@@ -245,17 +253,26 @@
       (z.szkicStatus ? '<div class="mute">szkic ' + esc(z.szkicStatus) + ' → „Do przeglądu”' + (z.ogon ? ' · kontrola ' + esc(z.ogon) : '') + '</div>' : '') + '</div>' +
       (z.szkicUrl ? '<a class="btn2" href="' + esc(z.szkicUrl) + '" target="_blank">' + I('doc', 1) + 'Otwórz</a>' : '') +
       '<button class="ib" aria-label="Ukryj" onclick="asOstatnioX()">×</button></div></div>';
-    h += '<div class="hero"><small>Asystent serwisowy</small><h2>Nowa diagnoza</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Myjnia, objaw, zdjęcie błędu — dostaniesz hipotezy i cały plan sprawdzeń.</div></div>';
+    h += '<div class="hero"><small>Asystent serwisowy</small><h2>O co chcesz zapytać?</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Usterka, ustawienie, gdzie co jest — bez wybierania myjni. Prowadzona diagnoza na myjni jest niżej.</div></div>';
     if (kol.length) h += '<div class="card"><div class="row"><div class="g">W kolejce bez zasięgu: <b>' + kol.length + '</b></div><button class="btn2" onclick="asKolejka()">Wyślij teraz</button></div></div>';
+    h += '<div class="card"><textarea id="as-pyt" placeholder="np. gdzie w Alpha są adresy IP? · co znaczy błąd 2 w C160? · jak ustawić czujnik impulsów… (możesz dyktować)" oninput="asPole(\'pyt\',this.value)">' + esc(ST.pyt) + '</textarea>' +
+      miniatury('p') + narzedzia('as-pyt', 'p') +
+      '<button class="btn" style="width:100%;justify-content:center;margin-top:10px;height:46px" onclick="asPytaj()">' + I('spark', 1) + 'Zapytaj</button></div>';
+    const hist = LSG('as_pyt_hist') || [];
+    if (hist.length) h += '<div class="card"><button class="as-sek' + (ST.sek === 'pyt' ? ' on' : '') + '" style="border:0;padding:0" onclick="asSek(\'pyt\')">' + I('history', 1) + 'Ostatnie pytania <span class="n">' + hist.length + '</span><span class="s">›</span></button>' +
+      (ST.sek === 'pyt' ? hist.map((x, i) => '<div class="row"><div class="g w" onclick="asPytOtworz(' + i + ')"><b>' + esc(String(x.q || '').slice(0, 80)) + '</b> <span class="mute">' + esc(x.kiedy || '') + '</span>' +
+        (x.odp ? '<div class="mute">' + esc(String(x.odp).slice(0, 90)) + '</div>' : '') + '</div></div>').join('') : '') + '</div>';
     const l = listaMyjni();
-    h += '<div class="card"><h3>' + I('pin', 1) + 'Myjnia</h3>' +
+    const otw = !!ST.diagOtw;
+    h += '<div class="card"><button class="as-sek' + (otw ? ' on' : '') + '" style="border:0;padding:0" onclick="asDiagOtw()">' + I('pulse', 1) + 'Diagnoza na myjni <span class="n">hipotezy i plan sprawdzeń</span><span class="s">›</span></button>';
+    if (otw) h += '<div style="margin-top:10px"><h3>' + I('pin', 1) + 'Myjnia</h3>' +
       (l.length ? '<select class="as-in" id="as-myj" onchange="asPole(\'myjnia\',this.value)"><option value="">— wybierz —</option>' +
         l.map(n => '<option' + (n === ST.myjnia ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__inna"' + (ST.myjnia === '__inna' ? ' selected' : '') + '>Inna (wpiszę)…</option></select>' : '') +
       (!l.length || ST.myjnia === '__inna' ? '<input class="as-in" id="as-myj2" placeholder="np. Orlen SP 4040 Kalisz, Quantus" value="' + esc(ST.myjniaInna || '') + '" oninput="asPole(\'myjniaInna\',this.value)">' : '') +
       '<h3 style="margin-top:6px">' + I('camera', 1) + 'Ekran z błędem</h3>' +
       '<div class="as-bar" style="gap:8px"><label class="btn" style="flex:1;justify-content:center;cursor:pointer">' + I('camera', 1) + 'Zrób zdjęcie ekranu z błędem<input type="file" accept="image/*" capture="environment" style="display:none" onchange="asZdj(this)"></label>' +
       '<label class="btn2" style="cursor:pointer">Z galerii<input type="file" accept="image/*" multiple style="display:none" onchange="asZdj(this)"></label></div>' +
-      '<div class="mute" style="font-size:13px;margin:4px 0 2px">Kod i komunikat odczyta system ze zdjęcia – nie musisz go przepisywać.</div>' + miniatury() +
+      '<div class="mute" style="font-size:13px;margin:4px 0 2px">Kod i komunikat odczyta system ze zdjęcia – nie musisz go przepisywać.</div>' + miniatury('') +
       '<h3 style="margin-top:6px">' + I('pen', 1) + 'Co się dzieje</h3>' +
       '<textarea id="as-objaw" placeholder="Objaw, kody błędów, od kiedy, co już sprawdzone… (możesz dyktować)" oninput="asPole(\'objaw\',this.value)">' + esc(ST.objaw) + '</textarea>' +
       narzedzia('as-objaw') +
@@ -265,6 +282,7 @@
       '<option value="nowy"' + (ST.poziom === 'nowy' ? ' selected' : '') + '>Początkujący — krok po kroku, twarda kontrola końca</option></select>' +
       '<label class="row" style="border:0;padding:12px 0 4px;cursor:pointer"><input type="checkbox" ' + (ST.trudny ? 'checked' : '') + ' onchange="asPole(\'trudny\',this.checked)" style="width:20px;height:20px"><div class="g">Trudny przypadek <span class="mute">— od razu mocniejszy model (wolniej, drożej)</span></div></label>' +
       '<button class="btn" style="width:100%;justify-content:center;margin-top:8px;height:46px" onclick="asStart()">' + I('spark', 1) + 'Zacznij diagnozę</button></div>';
+    h += '</div>';
     if (!ST.sesje && !ST.laduje && !ST.ladBlad) setTimeout(asSesje, 0);
     h += '<div class="card"><h3>' + I('history', 1) + 'Sesje</h3>' + listaSesji() + '</div>';
     return h;
@@ -343,7 +361,7 @@
           '<h3>' + I('check', 1) + 'Pomogło?</h3><div class="as-wyn"><button class="t" onclick="asPomoglo()">✔ Pomogło</button><button class="f" onclick="asNiePomoglo()">✖ Nie pomogło</button></div>' : '') +
         '<h3>' + I('pen', 1) + 'Wynik / odpowiedź</h3>' +
         '<textarea id="as-tekst" placeholder="Co wyszło, odpowiedź na pytanie, co widzisz…" oninput="asPole(\'tekst\',this.value)">' + esc(ST.tekst || '') + '</textarea>' +
-        miniatury() + narzedzia('as-tekst') +
+        miniatury('') + narzedzia('as-tekst') +
         '<div class="as-bar" style="margin-top:12px">' +
         '<button class="btn2" onclick="asTrudny()" title="Mocniejszy model">' + I('star', 1) + 'Trudny</button>' +
         '<button class="btn2" onclick="asZamykanie(true)">' + I('shield', 1) + 'Zakończ</button><span style="flex:1"></span>' +
@@ -366,7 +384,128 @@
     if (s.status === 'zamknieta' && !ST.podglad) { wyczysc(); return; }   // zamkniętą widać tylko, gdy otwarta z listy
     if (s.id !== '?' && Date.now() - s.t > STARA_H * 3600e3) { wyczysc(); setTimeout(() => toast('Poprzednia diagnoza odłożona — jest na liście'), 300); }
   }
-  function widok() { porzadek(); return css + (ST.s ? widokSesja() : (ST.busy ? busy('Zaczynam… zwykle 10–30 s') : widokStart())); }
+  const szybkaKarta = t => t ? '<div class="card"><div class="row" style="padding:0;align-items:flex-start"><div style="color:var(--acc)">' + I('spark') + '</div><div class="g">' + esc(t) + '</div></div></div>' : '';
+  function widok() {
+    porzadek();
+    if (ST.p) return css + widokPytanie();
+    return css + (ST.s ? widokSesja() : (ST.busy ? szybkaKarta(ST.szybka) + busy(ST.szybka ? 'Analizuję… zwykle 10–20 s' : 'Zaczynam… zwykle 10–20 s') : widokStart()));
+  }
+
+  /* ---------- pytanie (v2) ---------- */
+  function widokPytanie() {
+    const p = ST.p, tury = p.tury || [];
+    let h = '<div class="as-bar" style="margin-bottom:12px"><button class="btn2" onclick="asPytZamknij()">' + I('back', 1) + 'Asystent</button><span style="flex:1"></span>' +
+      (p.myjnia ? '<span class="as-tag">' + esc(skrot(p.myjnia)) + '</span>' : '') + (p.koszt ? '<span class="mute" style="font-size:12px">≈ ' + (+p.koszt).toFixed(2) + ' USD</span>' : '') + '</div>';
+    tury.forEach((t, i) => {
+      const ost = i === tury.length - 1;
+      h += '<div class="card" style="background:var(--acc2)"><b>' + esc(t.q) + '</b>' + (t.zdjec ? ' <span class="mute">📷' + t.zdjec + '</span>' : '') + '</div>';
+      if (t.szybka && !(t.odp && t.trafienie)) h += szybkaKarta(t.szybka);
+      if ((t.pytania1 || []).length && !t.odp) h += t.pytania1.map(q => '<div class="as-q">' + esc(q) + '</div>').join('');
+      if (t.etap === 'h') h += busy('Chwila…');
+      else if (t.etap === 's') h += busy('Szukam w bazie i dokumentacji… zwykle 10–15 s');
+      else if (t.etap === 'myjnia' && ost) {
+        h += '<div class="card"><h3>' + I('pin', 1) + 'Na której myjni?</h3>' + (t.powod ? '<div class="mute" style="margin-bottom:10px">' + esc(t.powod) + '</div>' : '') +
+          (t.dzis ? '<button class="btn" style="width:100%;justify-content:center;margin-bottom:8px" onclick="asPytMyjnia(\'' + jsq(t.dzis.split(' / ')[0]) + '\')">Dziś jesteś na ' + esc(t.dzis.split(' / ')[0]) + '?</button>' : '') +
+          '<select class="as-in" onchange="if(this.value)asPytMyjnia(this.value)"><option value="">— inna myjnia —</option>' + listaMyjni().map(n => '<option>' + esc(n) + '</option>').join('') + '</select>' +
+          '<button class="btn2" style="width:100%;justify-content:center" onclick="asPytMyjnia(\'\')">Odpowiedz ogólnie, bez myjni</button></div>';
+      } else if (t.etap === 'blad') {
+        h += '<div class="card"><div class="row" style="padding:0"><div class="g" style="color:var(--red)">' + esc(t.blad || 'Nie udało się') + '</div>' + (ost ? '<button class="btn2" onclick="asPytPonow()">Ponów</button>' : '') + '</div></div>';
+      }
+      const o = t.odp;
+      if (o) {
+        h += '<div class="card">' + (o.ostrzezenie ? '<div class="as-warn">' + I('alert', 1) + '<span>' + esc(o.ostrzezenie) + '</span></div>' : '') +
+          (o.brak_w_bazie ? '<span class="as-tag op">brak w bazie</span>' : '') + (t.trafienie ? '<span class="as-tag">Wiedza ogólna</span>' : '') +
+          '<div style="margin-top:4px;white-space:pre-wrap">' + esc(o.odpowiedz || '') + '</div>' +
+          ((o.kroki || []).length ? '<div style="margin-top:8px">' + o.kroki.map((k, j) => '<div class="as-krok" style="padding:8px 0"><div class="n">' + (j + 1) + '</div><div class="g">' + esc(k) + '</div></div>').join('') + '</div>' : '') +
+          (o.gdzie_szukac ? '<div class="note" style="margin-top:8px"><b>Gdzie szukać:</b> ' + esc(o.gdzie_szukac) + '</div>' : '') +
+          ((o.pytania || []).length ? o.pytania.map(q => '<div class="as-q">' + esc(q) + '</div>').join('') : '') +
+          ((o.zrodla || []).length ? '<div class="mute" style="margin-top:8px;font-size:13px">Źródła: ' + esc(o.zrodla.join(', ')) + '</div>' : '') +
+          (ost ? '<div class="as-bar" style="margin-top:10px">' +
+            (o.awaria || t.rodzaj === 'awaria' ? '<button class="btn2" onclick="asDoDiagnozy()">' + I('pulse', 1) + 'To awaria → Diagnoza</button>' : '') +
+            (!t.pelny ? '<button class="btn2" onclick="asPytPelny()">Szukaj w całej bazie</button>' : '') +
+            (!t.zapisane ? '<button class="btn2" onclick="asPytZapisz(' + i + ')">' + I('check', 1) + 'Zapisz do wiedzy</button>' : '<span class="mute">zapisane do Wiedzy ogólnej</span>') + '</div>' : '') + '</div>';
+      }
+    });
+    const ost = tury[tury.length - 1];
+    if (ost && ost.etap !== 'h' && ost.etap !== 's') {
+      h += '<div class="card"><h3>' + I('pen', 1) + 'Dopytaj</h3><textarea id="as-dop" placeholder="Doprecyzuj, odpowiedz na pytanie, dopisz wynik…" oninput="asPole(\'dop\',this.value)">' + esc(ST.dop || '') + '</textarea>' +
+        miniatury('p') + narzedzia('as-dop', 'p') +
+        '<div class="as-bar" style="margin-top:10px"><button class="btn2" onclick="asPytNowe()">' + I('spark', 1) + 'Nowe pytanie</button><span style="flex:1"></span><button class="btn" onclick="asDopytaj()">Wyślij</button></div></div>';
+    }
+    return h;
+  }
+  function pytHist() {
+    const p = ST.p; if (!p || !p.tury || !p.tury.length || !p.id) return;
+    const t0 = p.tury[0], ost = p.tury[p.tury.length - 1];
+    const l = (LSG('as_pyt_hist') || []).filter(x => x.id !== p.id);
+    l.unshift({ id: p.id, q: t0.q, kiedy: new Date().toLocaleString('pl-PL', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }), odp: ost.odp ? ost.odp.odpowiedz : (ost.szybka || ''), p: p });
+    LSS('as_pyt_hist', l.slice(0, 8));
+  }
+  function kontekstPyt() {
+    return (ST.p.tury || []).map(t => 'Pytanie: ' + t.q + (t.odp ? ' | Odpowiedź: ' + String(t.odp.odpowiedz || '').slice(0, 500) : '')).join(' || ').slice(-3500);
+  }
+  function blad(t, e) { t.etap = 'blad'; t.blad = e.offline ? 'Brak zasięgu — spróbuj ponownie, gdy wróci' : 'Błąd: ' + e.message; }
+  function dalej(t, dane) {
+    t.etap = 's'; zapiszPyt(); odswiez();
+    return wyslij('as_pytaj_dalej', Object.assign({ id: ST.p.id }, dane || {})).then(w => {
+      t.odp = w.odp; t.etap = 'ok'; t.pelny = !!(dane && dane.pelny) || /cała baza/.test(w.pakiet || '');
+      ST.p.koszt = w.koszt; ST.p.myjnia = w.myjnia || ST.p.myjnia; if (w.id) ST.p.id = w.id;
+    }).catch(e => blad(t, e)).then(() => { t.ponow = dane; zapiszPyt(); pytHist(); odswiez(); });
+  }
+  window.asPytaj = () => {
+    if (!umiePytac()) { if (window.wkrotce) wkrotce('Pytania do asystenta'); return; }
+    const q = (ST.pyt || (document.getElementById('as-pyt') || {}).value || '').trim();
+    if (!q && !ST.zdjP.length) { toast('Napisz pytanie albo dodaj zdjęcie'); return; }
+    if (ST.mowa) ST.mowa.stop();
+    const zd = ST.zdjP.map(z => ({ b64: z.b64, mime: z.mime }));
+    const t = { q: q || '(zdjęcie)', zdjec: zd.length, etap: 'h' };
+    ST.p = { id: '', tury: [t] }; ST.pyt = ''; ST.zdjP = []; zapiszPyt(); odswiez(); window.scrollTo(0, 0);
+    wyslij('as_pytaj', { pytanie: q, zdjecia: zd }).then(w => {
+      ST.p.id = w.id; ST.p.koszt = w.koszt; ST.p.myjnia = w.myjnia || '';
+      Object.assign(t, { szybka: w.szybka, pytania1: w.pytania1, trafienie: w.trafienie, potrzebna_myjnia: w.potrzebna_myjnia, powod: w.powod, dzis: w.dzis, rodzaj: w.rodzaj });
+      if (w.trafienie && w.odp) { t.odp = w.odp; t.etap = 'ok'; }
+      else if (w.potrzebna_myjnia) t.etap = 'myjnia';
+      else if (!w.koniec) return dalej(t);
+      else t.etap = 'ok';
+    }).catch(e => { blad(t, e); t.ponowStart = { q: q, zd: zd }; }).then(() => { zapiszPyt(); pytHist(); odswiez(); });
+  };
+  window.asPytMyjnia = nazwa => {
+    const t = ST.p.tury[ST.p.tury.length - 1];
+    if (nazwa) { ST.p.myjnia = nazwa; const ost = (LSG('as_ost_myjnie') || []).filter(n => n !== nazwa); ost.unshift(nazwa); LSS('as_ost_myjnie', ost.slice(0, 5)); }
+    dalej(t, nazwa ? { myjnia: nazwa } : {});
+  };
+  window.asDopytaj = () => {
+    const q = (ST.dop || '').trim();
+    if (!q && !ST.zdjP.length) { toast('Napisz, o co dopytać'); return; }
+    if (ST.mowa) ST.mowa.stop();
+    const zd = ST.zdjP.map(z => ({ b64: z.b64, mime: z.mime }));
+    const t = { q: q || '(zdjęcie)', zdjec: zd.length };
+    const kont = kontekstPyt();
+    ST.p.tury.push(t); ST.dop = ''; ST.zdjP = [];
+    dalej(t, { tekst: q, zdjecia: zd, kontekst: kont }).then(() => window.scrollTo(0, document.body.scrollHeight));
+  };
+  window.asPytPelny = () => { const t = { q: 'Szukaj w całej bazie' }; ST.p.tury.push(t); dalej(t, { pelny: true, kontekst: kontekstPyt() }); };
+  window.asPytPonow = () => {
+    const t = ST.p.tury[ST.p.tury.length - 1];
+    if (!ST.p.id && t.ponowStart) { ST.p = null; ST.pyt = t.ponowStart.q; ST.zdjP = []; window.asPytaj(); return; }
+    dalej(t, t.ponow || {});
+  };
+  window.asPytZapisz = i => {
+    const t = ST.p.tury[i], o = t.odp || {};
+    const q = i > 0 ? ST.p.tury[0].q + ' — ' + t.q : t.q;
+    const odp = [o.odpowiedz].concat((o.kroki || []).map((k, j) => (j + 1) + '. ' + k)).filter(Boolean).join(' ');
+    post('as_wiedza_dodaj', { pytanie: q, odpowiedz: odp, id: ST.p.id }).then(w => { t.zapisane = w.id; zapiszPyt(); toast('Zapisane jako ' + w.id + ' — do sprawdzenia w arkuszu Wiedza_ogolna'); odswiez(); })
+      .catch(e => toast('Błąd: ' + e.message));
+  };
+  window.asPytNowe = () => { ST.p = null; ST.dop = ''; zapiszPyt(); odswiez(); window.scrollTo(0, 0); setTimeout(() => { const x = document.getElementById('as-pyt'); if (x) x.focus(); }, 50); };
+  window.asPytZamknij = () => { ST.p = null; zapiszPyt(); odswiez(); window.scrollTo(0, 0); };
+  window.asPytOtworz = i => { const x = (LSG('as_pyt_hist') || [])[i]; if (!x || !x.p) return; ST.p = x.p; zapiszPyt(); odswiez(); window.scrollTo(0, 0); };
+  window.asDoDiagnozy = () => {
+    const p = ST.p; ST.objaw = p.tury.map(t => t.q).filter(q => q !== 'Szukaj w całej bazie').join('. ');
+    ST.myjnia = p.myjnia && listaMyjni().indexOf(p.myjnia) >= 0 ? p.myjnia : ''; ST.diagOtw = true; ST.p = null; zapiszPyt(); odswiez();
+    setTimeout(() => { const x = document.getElementById('as-myj') || document.getElementById('as-objaw'); if (x) x.scrollIntoView({ block: 'center' }); }, 50);
+  };
+  window.asDiagOtw = () => { ST.diagOtw = !ST.diagOtw; odswiez(); };
 
   /* ---------- akcje ---------- */
   window.asPole = (k, v) => { ST[k] = v; if (k === 'myjnia') odswiez(); };
@@ -381,7 +520,7 @@
   window.asZamykanie = on => { ST.zamykanie = on; odswiez(); window.scrollTo(0, document.body.scrollHeight); };
   // odłożenie sesji nic nie kasuje: otwarta zostaje na serwerze i na liście („Otwarte” / „Do omówienia”)
   window.asNowa = () => { wyczysc(); odswiez(); window.scrollTo(0, 0); };
-  window.asNowaDla = nazwa => { asNowa(); ST.myjnia = nazwa; if (typeof zamknijDet === 'function') zamknijDet(); go('asystent'); };
+  window.asNowaDla = nazwa => { asNowa(); ST.p = null; zapiszPyt(); ST.myjnia = nazwa; ST.diagOtw = true; if (typeof zamknijDet === 'function') zamknijDet(); go('asystent'); };
 
   window.asStart = () => {
     const myj = ST.myjnia === '__inna' || !ST.myjnia ? (ST.myjniaInna || '').trim() : ST.myjnia;
@@ -391,14 +530,18 @@
     const dane = { myjnia: myj, objaw: ST.objaw, kody: ST.kody, trudny: ST.trudny, poziom: ST.poziom || undefined, zdjecia: ST.zdj.map(z => ({ b64: z.b64, mime: z.mime })) };
     const lok = { id: '?', myjnia: { nazwa: myj }, odp: { podsumowanie: 'Zgłoszenie zapisane — czeka na zasięg.' }, runda: 1,
                   rozmowa: [{ rola: 'user', tekst: (ST.kody ? '[' + ST.kody + '] ' : '') + ST.objaw, zdjec: ST.zdj.length }] };
-    ST.busy = true; odswiez();
-    wyslij('as_start', dane).then(w => {
+    ST.busy = true; ST.szybka = ''; odswiez();
+    const szybko = umiePytac() && navigator.onLine
+      ? post('as_szybko', { myjnia: myj, objaw: ST.objaw, kody: ST.kody, zdjecia: dane.zdjecia, rid: nowyRid() })
+          .then(r => { if (r && r.pakiet) dane.pakiet = r.pakiet; ST.szybka = (r && r.szybka) || ''; odswiez(); }).catch(() => {})
+      : Promise.resolve();
+    szybko.then(() => wyslij('as_start', dane)).then(w => {
       ST.s = { rozmowa: lok.rozmowa }; ST.s.id = w.id; przyjmij(w, 'as_start');
       ST.zdj = []; ST.objaw = ''; ST.kody = ''; ST.trudny = false;
     }).catch(e => {
       if (e.offline) { doKolejki('as_start', dane); ST.s = lok; zapiszStan(); ST.zdj = []; ST.objaw = ''; ST.kody = ''; }
       else toast('Błąd: ' + e.message);
-    }).then(() => { ST.busy = false; odswiez(); window.scrollTo(0, 0); });
+    }).then(() => { ST.busy = false; ST.szybka = ''; odswiez(); window.scrollTo(0, 0); });
   };
 
   function runda(extra) {
@@ -472,7 +615,7 @@
 
   /* ---------- rejestracja w aplikacji ---------- */
   window.MODULY = window.MODULY || {};
-  window.MODULY.asystent = { widok: widok, bezDanych: true, wstecz: () => { if (ST.s) { window.asNowa(); return true; } } };
+  window.MODULY.asystent = { widok: widok, bezDanych: true, wstecz: () => { if (ST.p) { window.asPytZamknij(); return true; } if (ST.s) { window.asNowa(); return true; } } };
   window.IKONY_DODATKOWE = Object.assign(window.IKONY_DODATKOWE || {}, {
     spark: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',

@@ -336,5 +336,5 @@
 
   // Asystent przeniesiony z dolnego paska do „Więcej” – dostaje nagłówek z powrotem
   const A = window.MODULY.asystent;
-  if (A && !A.opak) { const w = A.widok; A.widok = () => naglowek('spark', 'Asystent', 'diagnoza krok po kroku') + w(); A.opak = 1; }
+  if (A && !A.opak) { const w = A.widok; A.widok = () => naglowek('spark', 'Asystent', 'pytanie albo diagnoza') + w(); A.opak = 1; }
 })();
