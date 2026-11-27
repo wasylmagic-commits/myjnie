@@ -1034,7 +1034,7 @@ function pokazMyjnie(nazwa, bezAnim) {
   og.filter(o => !open_(o)).forEach(o => zd.push({ d: o.zamkn || o.d, t: o.typ === 'fakt' ? 'Fakt' : o.typ === 'zrobione' ? 'Zrobione (notatka)' : 'Zamknięte zadanie #' + o.id, o: o.opis }));
   zd.sort((a, b) => b.d.localeCompare(a.d));
   const maps = 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent([w.nazwa.replace(/SP\s*/, ''), w.adres, w.miasto].filter(Boolean).join(' '));
-  let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc([w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
+  let h = '<header><div class="top"><button class="ib" onclick="zamknijDet()">' + I('back') + '</button><h1>' + esc(skrot(w.nazwa)) + '<small>' + esc(window.dosjeNaglowek ? dosjeNaglowek(w) : [w.miasto, w.adres].filter(Boolean).join(', ')) + '</small></h1>' +
           (window.asNowaDla ? '<button class="btn2" onclick="asNowaDla(\'' + jsq(w.nazwa) + '\')">' + I('spark', 1) + 'Diagnoza</button>' : '') +
           '<button class="btn2" onclick="przedWyjazdem(\'' + jsq(w.nazwa) + '\')">' + I('route', 1) + 'Jedź</button></div></header><main>' +
           (window.rapNowy ? '<div style="display:flex;gap:10px;margin-bottom:14px"><button class="btn" style="flex:1" onclick="rapNowy(\'' + jsq(w.nazwa) + '\')">' + I('doc', 1) + 'Raport</button>' +
@@ -1223,7 +1223,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v120</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v121</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)
