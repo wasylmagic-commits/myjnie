@@ -12,6 +12,13 @@
   let ORYG = null;
   const tel = t => String(t || '').replace(/[^0-9+]/g, '');
   const wszystkie = () => (D.myjnie || []).concat(D.inne || []);
+  // telefon stacji Orlen z numeru: SP1466 / „Orlen 1466” / „Orlen SP 466” → 24 256 + 4 cyfry (3 cyfry dopełniam zerem). Tylko podpowiedź, nic nie zapisuję.
+  function telZNumeru(w, d) {
+    const t = [(d && d.klucz) || '', w.klucz || '', w.nazwa || ''].join(' ');
+    const m = t.match(/(?:^|[^A-Za-z0-9])(?:SP\s?|Orlen\s+(?:SP\s?)?)?([0-9]{3,4})(?![0-9])/i);
+    if (!m || !/(^|[^A-Za-z])(SP|Orlen)/i.test(t)) return '';
+    return '24 256 ' + ('0000' + m[1]).slice(-4);
+  }
   const INNY = '__inny';
 
   function rekord(w) {
@@ -25,6 +32,8 @@
     const v = { d: d, klucz: d.klucz || '', sys: sys, wid: wd };
     WID.forEach(k => { v[k] = wd[k] || sys[k] || ''; });
     ['prowadzacy', 'telefon', 'telefonProw', 'notatki'].forEach(k => { v[k] = d[k] || ''; });
+    v.telWyliczony = !v.telefon ? telZNumeru(w, d) : '';
+    if (v.telWyliczony) v.telefon = v.telWyliczony;
     return v;
   }
   // szara podpowiedź, gdy wpisana wartość różni się od systemowej
@@ -50,7 +59,7 @@
     h += wiersz('E-mail', v.email ? '<a href="mailto:' + esc(v.email) + '"><b>' + esc(v.email) + '</b></a>' : '<b>—</b>', roznica(v, 'email'));
     h += wiersz('Prowadzący', '<b>' + esc(v.prowadzacy || '—') + '</b>');
     h += wiersz('Tel. prowadzącego', '<b>' + esc(v.telefonProw || '—') + '</b>', '', zadzwon(v.telefonProw));
-    h += wiersz('Tel. stacji', '<b>' + esc(v.telefon || '—') + '</b>', '', zadzwon(v.telefon));
+    h += wiersz('Tel. stacji', '<b>' + esc(v.telefon || '—') + '</b>', v.telWyliczony ? '<div class="mute">wyliczony z numeru stacji – sprawdź przy okazji</div>' : '', zadzwon(v.telefon));
     if (v.notatki) h += '<div class="row"><div class="g mute">' + esc(v.notatki).replace(/\n/g, '<br>') + '</div></div>';
     return h + '</div>';
   };
