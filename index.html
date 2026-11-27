@@ -613,7 +613,7 @@ Object.assign(IC, window.IKONY_DODATKOWE || {});
 const I = (n, s) => '<svg class="i' + (s ? ' s' : '') + '" viewBox="0 0 24 24">' + (IC[n] || '') + '</svg>';
 
 const TABS = [['dzis','home','Dziś'],['myjnie','pin','Myjnie'],['ogony','wrench','Zadania'],['przeglady','cal','Przeglądy'],['wydatki','money','Wydatki'],['wiecej','grid','Więcej']];
-const WIECEJ = { ustawienia: 1, zamow: 1, asystent: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
+const WIECEJ = { ustawienia: 1, zamow: 1, asystent: 1, pytanie: 1, raport: 1, magazyn: 1, druk: 1, wykresy: 1, panel: 1, paliwo: 1 };
 
 /* ---------- pomocnicze ---------- */
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -1217,7 +1217,8 @@ function przeglady() {
 function wiecej() {
   const k = (id, ic, t, s) => '<button onclick="go(\'' + id + '\')"><div class="ch">' + I(ic) + '</div><b>' + t + '</b><span>' + s + '</span></button>';
   return '<div class="more">' +
-    k('asystent', 'spark', 'Asystent', 'pytanie albo diagnoza') +
+    k('asystent', 'pulse', 'Asystent', 'diagnoza usterki na myjni') +
+    k('pytanie', 'spark', 'Pytanie techniczne', 'bez wybierania myjni') +
     k('panel', 'panel', 'Panel', 'liczby i trendy') +
     k('paliwo', 'fuel', 'Paliwo', 'tankowania i zużycie') +
     k('magazyn', 'box', 'Magazyn', 'stan części w aucie') +
@@ -1225,7 +1226,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v129</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v130</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

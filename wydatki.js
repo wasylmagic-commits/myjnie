@@ -336,5 +336,7 @@
 
   // Asystent przeniesiony z dolnego paska do „Więcej” – dostaje nagłówek z powrotem
   const A = window.MODULY.asystent;
-  if (A && !A.opak) { const w = A.widok; A.widok = () => naglowek('spark', 'Asystent', 'pytanie albo diagnoza') + w(); A.opak = 1; }
+  if (A && !A.opak) { const w = A.widok; A.widok = () => naglowek('pulse', 'Asystent', 'diagnoza usterki na myjni') + w(); A.opak = 1; }
+  const PY = window.MODULY.pytanie;
+  if (PY && !PY.opak) { const w = PY.widok; PY.widok = () => naglowek('spark', 'Pytanie techniczne', 'bez wybierania myjni') + w(); PY.opak = 1; }
 })();

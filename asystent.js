@@ -223,7 +223,7 @@
   window.asPrzebieg = () => { ST.przebieg = !ST.przebieg; odswiez(); };
   window.asPlanWsz = () => { ST.planWsz = !ST.planWsz; odswiez(); };
 
-  function odswiez() { if (TAB === 'asystent') { const m = document.getElementById('main'); if (m) { m.innerHTML = window.MODULY.asystent.widok(); if (window.zmocz) zmocz(m); odswiezMik(); } } }
+  function odswiez() { if (TAB === 'asystent' || TAB === 'pytanie') { const m = document.getElementById('main'); if (m) { m.innerHTML = window.MODULY[TAB].widok(); if (window.zmocz) zmocz(m); odswiezMik(); } } }
 
   function narzedzia(pole, cel) {
     return '<div class="as-bar">' +
@@ -253,19 +253,11 @@
       (z.szkicStatus ? '<div class="mute">szkic ' + esc(z.szkicStatus) + ' → „Do przeglądu”' + (z.ogon ? ' · kontrola ' + esc(z.ogon) : '') + '</div>' : '') + '</div>' +
       (z.szkicUrl ? '<a class="btn2" href="' + esc(z.szkicUrl) + '" target="_blank">' + I('doc', 1) + 'Otwórz</a>' : '') +
       '<button class="ib" aria-label="Ukryj" onclick="asOstatnioX()">×</button></div></div>';
-    h += '<div class="hero"><small>Asystent serwisowy</small><h2>O co chcesz zapytać?</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Usterka, ustawienie, gdzie co jest — bez wybierania myjni. Prowadzona diagnoza na myjni jest niżej.</div></div>';
+    h += '<div class="hero"><small>Asystent serwisowy</small><h2>Nowa diagnoza</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Myjnia, objaw, zdjęcie błędu — dostaniesz hipotezy i cały plan sprawdzeń.</div></div>';
     if (kol.length) h += '<div class="card"><div class="row"><div class="g">W kolejce bez zasięgu: <b>' + kol.length + '</b></div><button class="btn2" onclick="asKolejka()">Wyślij teraz</button></div></div>';
-    h += '<div class="card"><textarea id="as-pyt" placeholder="np. gdzie w Alpha są adresy IP? · co znaczy błąd 2 w C160? · jak ustawić czujnik impulsów… (możesz dyktować)" oninput="asPole(\'pyt\',this.value)">' + esc(ST.pyt) + '</textarea>' +
-      miniatury('p') + narzedzia('as-pyt', 'p') +
-      '<button class="btn" style="width:100%;justify-content:center;margin-top:10px;height:46px" onclick="asPytaj()">' + I('spark', 1) + 'Zapytaj</button></div>';
-    const hist = LSG('as_pyt_hist') || [];
-    if (hist.length) h += '<div class="card"><button class="as-sek' + (ST.sek === 'pyt' ? ' on' : '') + '" style="border:0;padding:0" onclick="asSek(\'pyt\')">' + I('history', 1) + 'Ostatnie pytania <span class="n">' + hist.length + '</span><span class="s">›</span></button>' +
-      (ST.sek === 'pyt' ? hist.map((x, i) => '<div class="row"><div class="g w" onclick="asPytOtworz(' + i + ')"><b>' + esc(String(x.q || '').slice(0, 80)) + '</b> <span class="mute">' + esc(x.kiedy || '') + '</span>' +
-        (x.odp ? '<div class="mute">' + esc(String(x.odp).slice(0, 90)) + '</div>' : '') + '</div></div>').join('') : '') + '</div>';
     const l = listaMyjni();
-    const otw = !!ST.diagOtw;
-    h += '<div class="card"><button class="as-sek' + (otw ? ' on' : '') + '" style="border:0;padding:0" onclick="asDiagOtw()">' + I('pulse', 1) + 'Diagnoza na myjni <span class="n">hipotezy i plan sprawdzeń</span><span class="s">›</span></button>';
-    if (otw) h += '<div style="margin-top:10px"><h3>' + I('pin', 1) + 'Myjnia</h3>' +
+    h += '<div class="card">';
+    h += '<div><h3>' + I('pin', 1) + 'Myjnia</h3>' +
       (l.length ? '<select class="as-in" id="as-myj" onchange="asPole(\'myjnia\',this.value)"><option value="">— wybierz —</option>' +
         l.map(n => '<option' + (n === ST.myjnia ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '<option value="__inna"' + (ST.myjnia === '__inna' ? ' selected' : '') + '>Inna (wpiszę)…</option></select>' : '') +
       (!l.length || ST.myjnia === '__inna' ? '<input class="as-in" id="as-myj2" placeholder="np. Orlen SP 4040 Kalisz, Quantus" value="' + esc(ST.myjniaInna || '') + '" oninput="asPole(\'myjniaInna\',this.value)">' : '') +
@@ -285,6 +277,19 @@
     h += '</div>';
     if (!ST.sesje && !ST.laduje && !ST.ladBlad) setTimeout(asSesje, 0);
     h += '<div class="card"><h3>' + I('history', 1) + 'Sesje</h3>' + listaSesji() + '</div>';
+    return h;
+  }
+
+  function widokPytStart() {
+    let h = '';
+    h += '<div class="hero"><small>Asystent serwisowy</small><h2>O co chcesz zapytać?</h2><div style="position:relative;z-index:1;font-size:14px;opacity:.9">Ustawienie, kod, gdzie co jest — krótka odpowiedź bez wybierania myjni. Usterkę na myjni prowadzi „Asystent” (diagnoza).</div></div>';
+    h += '<div class="card"><textarea id="as-pyt" placeholder="np. gdzie w Alpha są adresy IP? · co znaczy błąd 2 w C160? · jak ustawić czujnik impulsów… (możesz dyktować)" oninput="asPole(\'pyt\',this.value)">' + esc(ST.pyt) + '</textarea>' +
+      miniatury('p') + narzedzia('as-pyt', 'p') +
+      '<button class="btn" style="width:100%;justify-content:center;margin-top:10px;height:46px" onclick="asPytaj()">' + I('spark', 1) + 'Zapytaj</button></div>';
+    const hist = LSG('as_pyt_hist') || [];
+    if (hist.length) h += '<div class="card"><button class="as-sek' + (ST.sek === 'pyt' ? ' on' : '') + '" style="border:0;padding:0" onclick="asSek(\'pyt\')">' + I('history', 1) + 'Ostatnie pytania <span class="n">' + hist.length + '</span><span class="s">›</span></button>' +
+      (ST.sek === 'pyt' ? hist.map((x, i) => '<div class="row"><div class="g w" onclick="asPytOtworz(' + i + ')"><b>' + esc(String(x.q || '').slice(0, 80)) + '</b> <span class="mute">' + esc(x.kiedy || '') + '</span>' +
+        (x.odp ? '<div class="mute">' + esc(String(x.odp).slice(0, 90)) + '</div>' : '') + '</div></div>').join('') : '') + '</div>';
     return h;
   }
 
@@ -387,14 +392,15 @@
   const szybkaKarta = t => t ? '<div class="card"><div class="row" style="padding:0;align-items:flex-start"><div style="color:var(--acc)">' + I('spark') + '</div><div class="g">' + esc(t) + '</div></div></div>' : '';
   function widok() {
     porzadek();
-    if (ST.p) return css + widokPytanie();
     return css + (ST.s ? widokSesja() : (ST.busy ? szybkaKarta(ST.szybka) + busy(ST.szybka ? 'Analizuję… zwykle 10–20 s' : 'Zaczynam… zwykle 10–20 s') : widokStart()));
   }
+
+  function widokPyt() { return css + (ST.p ? widokPytanie() : widokPytStart()); }
 
   /* ---------- pytanie (v2) ---------- */
   function widokPytanie() {
     const p = ST.p, tury = p.tury || [];
-    let h = '<div class="as-bar" style="margin-bottom:12px"><button class="btn2" onclick="asPytZamknij()">' + I('back', 1) + 'Asystent</button><span style="flex:1"></span>' +
+    let h = '<div class="as-bar" style="margin-bottom:12px"><button class="btn2" onclick="asPytZamknij()">' + I('back', 1) + 'Pytania</button><span style="flex:1"></span>' +
       (p.myjnia ? '<span class="as-tag">' + esc(skrot(p.myjnia)) + '</span>' : '') + (p.koszt ? '<span class="mute" style="font-size:12px">≈ ' + (+p.koszt).toFixed(2) + ' USD</span>' : '') + '</div>';
     tury.forEach((t, i) => {
       const ost = i === tury.length - 1;
@@ -501,11 +507,12 @@
   window.asPytZamknij = () => { ST.p = null; zapiszPyt(); odswiez(); window.scrollTo(0, 0); };
   window.asPytOtworz = i => { const x = (LSG('as_pyt_hist') || [])[i]; if (!x || !x.p) return; ST.p = x.p; zapiszPyt(); odswiez(); window.scrollTo(0, 0); };
   window.asDoDiagnozy = () => {
-    const p = ST.p; ST.objaw = p.tury.map(t => t.q).filter(q => q !== 'Szukaj w całej bazie').join('. ');
-    ST.myjnia = p.myjnia && listaMyjni().indexOf(p.myjnia) >= 0 ? p.myjnia : ''; ST.diagOtw = true; ST.p = null; zapiszPyt(); odswiez();
+    const p = ST.p, objaw = p.tury.map(t => t.q).filter(q => q !== 'Szukaj w całej bazie').join('. ');
+    const myj = p.myjnia && listaMyjni().indexOf(p.myjnia) >= 0 ? p.myjnia : '';
+    ST.p = null; zapiszPyt(); if (ST.s) wyczysc();
+    ST.objaw = objaw; ST.myjnia = myj; go('asystent');
     setTimeout(() => { const x = document.getElementById('as-myj') || document.getElementById('as-objaw'); if (x) x.scrollIntoView({ block: 'center' }); }, 50);
   };
-  window.asDiagOtw = () => { ST.diagOtw = !ST.diagOtw; odswiez(); };
 
   /* ---------- akcje ---------- */
   window.asPole = (k, v) => { ST[k] = v; if (k === 'myjnia') odswiez(); };
@@ -520,7 +527,7 @@
   window.asZamykanie = on => { ST.zamykanie = on; odswiez(); window.scrollTo(0, document.body.scrollHeight); };
   // odłożenie sesji nic nie kasuje: otwarta zostaje na serwerze i na liście („Otwarte” / „Do omówienia”)
   window.asNowa = () => { wyczysc(); odswiez(); window.scrollTo(0, 0); };
-  window.asNowaDla = nazwa => { asNowa(); ST.p = null; zapiszPyt(); ST.myjnia = nazwa; ST.diagOtw = true; if (typeof zamknijDet === 'function') zamknijDet(); go('asystent'); };
+  window.asNowaDla = nazwa => { asNowa(); ST.myjnia = nazwa; if (typeof zamknijDet === 'function') zamknijDet(); go('asystent'); };
 
   window.asStart = () => {
     const myj = ST.myjnia === '__inna' || !ST.myjnia ? (ST.myjniaInna || '').trim() : ST.myjnia;
@@ -615,7 +622,8 @@
 
   /* ---------- rejestracja w aplikacji ---------- */
   window.MODULY = window.MODULY || {};
-  window.MODULY.asystent = { widok: widok, bezDanych: true, wstecz: () => { if (ST.p) { window.asPytZamknij(); return true; } if (ST.s) { window.asNowa(); return true; } } };
+  window.MODULY.asystent = { widok: widok, bezDanych: true, wstecz: () => { if (ST.s) { window.asNowa(); return true; } } };
+  window.MODULY.pytanie = { widok: widokPyt, bezDanych: true, wstecz: () => { if (ST.p) { window.asPytZamknij(); return true; } } };
   window.IKONY_DODATKOWE = Object.assign(window.IKONY_DODATKOWE || {}, {
     spark: '<path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/>',
     mic: '<rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/>',
