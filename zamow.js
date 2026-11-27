@@ -174,7 +174,7 @@
   function podpowiedz(z) {
     const k = ((D && D.nowosci) || []).filter(n => n.d >= z.d).map(n => ({ n: n, p: podobne(z.nazwa, n.nazwa) })).filter(x => x.p > 0).sort((a, b) => b.p - a.p).slice(0, 2);
     return '<div class="zp" style="flex-direction:column;align-items:flex-start;gap:6px;margin-top:6px">' + k.map(x =>
-      '<button class="btn2" style="font-size:13px;min-height:30px" onclick="zamPolacz(\'' + jsq(z.id) + '\',\'' + jsq(x.n.kod) + '\',\'' + jsq(x.n.nazwa) + '\')">To ta część? ' + esc(x.n.kod) + ' ' + esc(x.n.nazwa) + '</button>').join('') +
+      '<button class="btn2" style="font-size:13px;min-height:30px" onclick="zamPolaczPytaj(\'' + jsq(z.id) + '\',\'' + jsq(x.n.kod) + '\',\'' + jsq(x.n.nazwa) + '\')">Może to? ' + esc(x.n.kod) + ' ' + esc(x.n.nazwa) + '</button>').join('') +
       '<button class="btn2 zan" style="font-size:13px;min-height:30px" onclick="zamWybierz(\'' + jsq(z.id) + '\')">Przypisz numer…</button></div>';
   }
 
@@ -220,6 +220,17 @@
   window.zamUsunDod = k => { ST.dod = ST.dod.filter(d => d.k !== k); if (ST.kopia && ST.kopia.poz) ST.kopia.poz = ST.kopia.poz.filter(p => p.k !== k); zapisz(); render(); };
   window.zamWybierz = id => { const z = zamowienia().find(x => String(x.id) === String(id)); if (!z) return; SZ = { q: z.nazwa, ile: 1, kod: '', nazwa: '', cel: z }; arkDodaj(); };
   window.zamWybierzOk = () => { if (SZ.cel && SZ.kod) zamPolacz(SZ.cel.id, SZ.kod, SZ.nazwa); };
+  // 27.11.2026: podpowiedź z „W drodze” najpierw pyta – nic nie zapisuje, dopóki nie naciśniesz „Tak, to ta część”
+  window.zamPolaczPytaj = function (id, kod, nazwa) {
+    const z = zamowienia().find(x => String(x.id) === String(id)); if (!z) return;
+    const a = document.getElementById('ark');
+    a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Czy to ta sama część?</h4>' +
+      '<div class="row"><div class="g"><div class="mute">Twoje zamówienie</div><b>' + esc(z.nazwa) + '</b></div></div>' +
+      '<div class="row"><div class="g"><div class="mute">Pozycja z dostawy (PDF)</div><b>' + esc(nazwa) + '</b><div class="mute">' + esc(kod) + '</div></div></div>' +
+      '<div class="mute" style="font-size:13px;margin:8px 0">Po „Tak” zamówienie dostaje ten numer, a system zapamięta to na przyszłość.</div>' +
+      '<div class="ab"><button class="btn" onclick="zamPolacz(\'' + jsq(id) + '\',\'' + jsq(kod) + '\',\'' + jsq(nazwa) + '\')">Tak, to ta część</button><button class="btn2" onclick="arkZamknij()">Nie</button></div></div>';
+    a.classList.add('on');
+  };
   window.zamPolacz = function (id, kod, nazwa) {
     api('mgPolacz', { id: id, kod: kod, nazwa: nazwa }).then(j => {
       const z = zamowienia().find(x => String(x.id) === String(id));
