@@ -418,7 +418,11 @@
         h += '<div class="card"><div class="row" style="padding:0"><div class="g" style="color:var(--red)">' + esc(t.blad || 'Nie udało się') + '</div>' + (ost ? '<button class="btn2" onclick="asPytPonow()">Ponów</button>' : '') + '</div></div>';
       }
       const o = t.odp;
-      if (o) {
+      const pustaOdp = o && !String(o.odpowiedz || '').trim() && !(o.kroki || []).length && !(o.pytania || []).length;
+      if (pustaOdp) {
+        h += '<div class="card"><div class="as-warn">' + I('alert', 1) + '<span>' + esc(o.blad || 'Nie udało się sformułować odpowiedzi. Ponów albo zapytaj krócej.') + '</span></div>' +
+          (ost ? '<div class="as-bar"><button class="btn2" onclick="asPytPonow()">Ponów</button>' + (!t.pelny ? '<button class="btn2" onclick="asPytPelny()">Szukaj w całej bazie</button>' : '') + '</div>' : '') + '</div>';
+      } else if (o) {
         h += '<div class="card">' + (o.ostrzezenie ? '<div class="as-warn">' + I('alert', 1) + '<span>' + esc(o.ostrzezenie) + '</span></div>' : '') +
           (o.brak_w_bazie ? '<span class="as-tag op">brak w bazie</span>' : '') + (t.trafienie ? '<span class="as-tag">Wiedza ogólna</span>' : '') +
           '<div style="margin-top:4px;white-space:pre-wrap">' + esc(o.odpowiedz || '') + '</div>' +
