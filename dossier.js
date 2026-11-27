@@ -32,6 +32,9 @@
     const v = { d: d, klucz: d.klucz || '', sys: sys, wid: wd };
     WID.forEach(k => { v[k] = wd[k] || sys[k] || ''; });
     ['prowadzacy', 'telefon', 'telefonProw', 'notatki'].forEach(k => { v[k] = d[k] || ''; });
+    // typ pusty, a model znany → pokazuję typowy typ dla modelu (tylko wyświetlanie, nic nie zapisuję)
+    v.typDomyslny = !v.typ && !!DOM_TYP[String(v.model || '').trim().toLowerCase()];
+    if (v.typDomyslny) v.typ = DOM_TYP[String(v.model).trim().toLowerCase()];
     v.telWyliczony = !v.telefon ? telZNumeru(w, d) : '';
     if (v.telWyliczony) v.telefon = v.telWyliczony;
     return v;
@@ -55,7 +58,7 @@
             '<button class="btn2" onclick="dosjeEdytuj(\'' + jsq(w.nazwa) + '\')">' + I('pen', 1) + 'Edytuj</button></div>';
     h += wiersz('Adres', '<b>' + esc(adr || '—') + '</b>', adrRoz);
     h += wiersz('Nr seryjny', '<b>' + esc(v.serial || '—') + '</b>', roznica(v, 'serial'));
-    h += wiersz('Model', '<b>' + esc([v.model, v.typ].filter(Boolean).join(' · ') || '—') + '</b>', roznica(v, 'model') + roznica(v, 'typ'));
+    h += wiersz('Model', '<b>' + esc([v.model, v.typ].filter(Boolean).join(' · ') || '—') + '</b>', roznica(v, 'model') + roznica(v, 'typ') + (v.typDomyslny ? '<div class="mute">typ typowy dla modelu – sprawdź przy okazji</div>' : ''));
     h += wiersz('E-mail', v.email ? '<a href="mailto:' + esc(v.email) + '"><b>' + esc(v.email) + '</b></a>' : '<b>—</b>', roznica(v, 'email'));
     h += wiersz('Prowadzący', '<b>' + esc(v.prowadzacy || '—') + '</b>');
     h += wiersz('Tel. prowadzącego', '<b>' + esc(v.telefonProw || '—') + '</b>', '', zadzwon(v.telefonProw));
@@ -118,6 +121,7 @@
       '<div class="mute" style="margin-top:8px">Puste pole adresu, modelu, numeru lub e-maila = aplikacja pokaże wartość z systemu.</div>' +
       '<div class="ab"><button class="btn2" onclick="arkZamknij()">Anuluj</button><button class="btn" id="dsB" onclick="dosjeDalej(\'' + jsq(nazwa) + '\')">Zapisz</button></div></div>';
     a.classList.add('on');
+    const te = document.getElementById('ds_typ'); if (te) te.dataset.auto = v.typDomyslny ? v.typ : '';   // typ wzięty z modelu wolno podmienić przy zmianie modelu
   };
 
   window.dosjeDalej = function (nazwa) {
