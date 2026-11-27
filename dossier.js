@@ -110,7 +110,7 @@
 
   window.dosjeEdytuj = function (nazwa) {
     const w = wszystkie().find(x => x.nazwa === nazwa); if (!w) return;
-    if (D.dosje && D.dosje.length && !D.dosje[0].sys) { toast('Najpierw zainstaluj aktualizację bota (/aktualizuj): 2026-11-27_dossier_widoczne'); return; }   // stary bot zapisywałby do kolumn systemowych
+    if (!maFunkcje('dosje') || (D.dosje && D.dosje.length && !D.dosje[0].sys)) return wkrotce('Teczka stacji (edycja)');   // stary bot zapisywałby do kolumn systemowych
     const v = wartosci(w), a = document.getElementById('ark');
     ORYG = { nazwa: nazwa, v: v };   // stan z chwili otwarcia – z nim porównujemy (dane z sieci mogą się odświeżyć w trakcie edycji)
     a.innerHTML = '<div class="tlo" onclick="arkZamknij()"></div><div class="ar"><h4>Dossier · ' + esc(skrot(w.nazwa)) + '</h4>' +

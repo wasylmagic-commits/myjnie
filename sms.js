@@ -82,7 +82,7 @@
   window.zlOdrzuc = function (nr, el) {
     const p = D.prace.find(x => x.nr === nr); if (!p) return;
     if (el) el.disabled = true;
-    const blad = e => { toast(/Nieznan|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); if (el) el.disabled = false; };
+    const blad = e => { toast(/Nieznan|akcja/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message); if (el) el.disabled = false; };
     api('odrzuc', { nr: nr }).then(() => {
       p.status = 'anulowane'; render();
       toastAkcja('Odrzucone: ' + nrKr(nr), 'Cofnij', () => api('odrzuc', { nr: nr, cofnij: 1 }).then(() => { p.status = 'zlecenie'; render(); }).catch(blad));
@@ -108,7 +108,7 @@
   window.smsTest = function () {
     const out = document.getElementById('smsWynik'); out.textContent = 'Sprawdzam…';
     fetch(adresMD() + '&test=1&t=' + encodeURIComponent(PROBKA), { redirect: 'follow' }).then(r => r.text()).then(t => {
-      if (/^\s*\{/.test(t) && /Nieznana akcja/.test(t)) t = 'Bot jeszcze bez aktualizacji – zainstaluj aktualizację (/aktualizuj).';
+      if (/^\s*\{/.test(t) && /Nieznana akcja/.test(t)) t = 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby.';
       out.textContent = t || '(pusta odpowiedź)';
     }).catch(e => { out.textContent = 'Błąd: ' + e.message; });
   };

@@ -144,7 +144,7 @@
       const x = j.wynik || {};
       if ((x.zapisane || []).indexOf(k) >= 0) { w[k] = v; toast('Zapisane w karcie myjni'); }
       else if (x.konflikt && x.konflikt[k] != null) toast('W arkuszu jest inna wartość – odśwież dane');
-    }).catch(e => toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Karta myjni: ' + e.message));
+    }).catch(e => toast(/Nieznana akcja/.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Karta myjni: ' + e.message));
   };
   window.rapLista = () => { ST.id = null; render(); window.scrollTo(0, 0); };
   // 15.11.2026: kafelek „Raport dziś” na ekranie startowym – najnowszy szkic z dzisiejszą datą (bez pokazowych)
@@ -270,7 +270,7 @@
         '<div class="ab" style="margin-top:12px"><button class="btn2" onclick="arkZamknij()">Zostaw moje</button><button class="btn" onclick="rapPoprawWstaw(\'' + k + '\')">Wstaw do raportu</button></div></div>';
     } catch (e) {
       arkZamknij();
-      toast(/Nieznana|akcja|poprawnie|Unknown/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Poprawa: ' + e.message);
+      toast(/Nieznana|akcja|poprawnie|Unknown/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Poprawa: ' + e.message);
     }
   };
   window.rapPoprawWstaw = function (k) {

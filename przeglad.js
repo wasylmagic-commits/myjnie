@@ -95,7 +95,7 @@
   }
   function chStatus(t) { chTxt = t; const e = document.getElementById('prCh'); if (e) e.textContent = t; }
   function chBlad(e) {
-    if (/Nieznana|akcja|Unknown/i.test(e.message)) { chOff = true; chStatus('Szkic tylko na tym urządzeniu – zainstaluj aktualizację bota (/aktualizuj)'); }
+    if (/Nieznana|akcja|Unknown/i.test(e.message)) { chOff = true; chStatus('Szkic na razie tylko w tym urządzeniu – chmura włączy się sama, zwykle w ciągu doby'); }
     else chStatus('Chmura: ' + e.message + ' – ponowię przy następnej zmianie');
   }
   function chUsunLok(id) {
@@ -143,7 +143,7 @@
       if (zm && !ST.id && TAB === 'przeglady') { const sel = document.getElementById('prNm'); if (!sel || !sel.value) render(); }
     } catch (e) { chBlad(e); }
   }
-  window.przChmura = function () { const p = P(); if (!p) return; chBrud.add(p.id); chFlush().then(() => toast(chOff ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Szkic wysłany do chmury')); };
+  window.przChmura = function () { const p = P(); if (!p) return; chBrud.add(p.id); chFlush().then(() => toast(chOff ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Szkic wysłany do chmury')); };
   document.addEventListener('visibilitychange', () => { if (!document.hidden && (ST.id || TAB === 'przeglady')) chSynchro(); });
 
   window.przPole = function (el) {
@@ -238,7 +238,7 @@
       p.zadania[k] = 1; zapisz(p, 1); arkZamknij(); toast('Dodane do zadań myjni');
       const z = document.querySelector('[data-pk="' + k + '"] .pr-z'); if (z) z.innerHTML = przyciskZadania(p, k);
       if (typeof load === 'function') setTimeout(load, 800);
-    }).catch(e => { document.getElementById('prZb').disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
+    }).catch(e => { document.getElementById('prZb').disabled = false; toast(/Nieznana akcja/.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message); });
   };
   // N/D jak w poprzednim przeglądzie tej myjni (tylko po kliknięciu)
   function poprzedni(p) { return przSzkice().find(x => x.id !== p.id && x.myjnia === p.myjnia && Object.keys(x.odp || {}).some(k => x.odp[k] === 'D')); }
@@ -361,7 +361,7 @@
       const typ = (j.wynik || {}).typ; toast(typ && !/raport|protokol/.test(typ) ? 'Zapisany, ale bot rozpoznał jako „' + typ + '” – sprawdź w systemie' : 'Przegląd zapisany – potwierdzenie jak dla skanu'); render();
       if (typeof load === 'function') setTimeout(load, 1500);
     } catch (e) {
-      toast(/Nieznana|akcja|Unknown/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Zapis: ' + e.message);
+      toast(/Nieznana|akcja|Unknown/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Zapis: ' + e.message);
       if (b) { b.disabled = false; b.textContent = 'Zapisz w systemie'; }
     }
   };

@@ -22,7 +22,7 @@
     if (!j.ok) { if (/Nieznana|akcja|api/i.test(j.blad || '')) bezLatki = true; throw new Error(j.blad || 'błąd serwera'); }
     return j.wynik;
   }
-  const brakLatki = () => toast('Najpierw zainstaluj aktualizację bota (/aktualizuj) – notatka zostaje w telefonie');
+  const brakLatki = () => toast('Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd. Notatka zostaje w telefonie.');
 
   // stan jednej części: nowszy z telefonu albo z serwera
   function opis(kod) {

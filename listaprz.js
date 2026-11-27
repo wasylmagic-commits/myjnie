@@ -19,8 +19,8 @@
   async function post(body) {
     const r = await fetch(API + '?api=przLista', { method: 'POST', redirect: 'follow', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(Object.assign({ k: K }, body)) });
     const t = await r.text(); let j;
-    try { j = JSON.parse(t); } catch (e) { throw new Error('Najpierw zainstaluj aktualizację bota (/aktualizuj)'); }
-    if (!j.ok) throw new Error(/Nieznana akcja/i.test(j.blad || '') ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : (j.blad || 'błąd serwera'));
+    try { j = JSON.parse(t); } catch (e) { throw new Error('Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.'); }
+    if (!j.ok) throw new Error(/Nieznana akcja/i.test(j.blad || '') ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : (j.blad || 'błąd serwera'));
     return j.wynik;
   }
 

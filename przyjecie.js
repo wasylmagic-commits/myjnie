@@ -10,6 +10,7 @@
   const pol = s => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/ł/g, 'l');
 
   window.przyjecieOtworz = function () {
+    if (!maFunkcje('przyjecie')) return wkrotce('Przyjęcie dostawy');
     const l = ((D && D.zamowienia) || []).slice().sort((a, b) => String(a.d).localeCompare(String(b.d)))
       .map(z => { const rest = Math.max(0, z.ilosc - (z.dost || 0)); return { id: String(z.id), kod: z.kod || '', nazwa: z.nazwa, ilosc: z.ilosc, dost: z.dost || 0, rest: rest, n: rest, r: 'czeka' }; })
       .filter(x => x.rest > 0);
@@ -78,6 +79,6 @@
       BUSY = false; const w = j.wynik || {}; PRZ = null; arkZamknij();
       toast(w.powtorka ? 'To przyjęcie już było zapisane' : 'Przyjęto: ' + (w.zapisane || 0) + ' poz.' + ((w.zamkniete || []).length ? ' · zamknięte: ' + w.zamkniete.length : ''));
       if (window.load) load();   // Magazyn i zamówienia zmieniły się na serwerze – dociągam świeże dane
-    }).catch(e => { BUSY = false; if (b) { b.disabled = false; b.textContent = 'Przyjmij'; } toast(/Nieznana|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : e.message); });
+    }).catch(e => { BUSY = false; if (b) { b.disabled = false; b.textContent = 'Przyjmij'; } toast(/Nieznana|akcja/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : e.message); });
   };
 })();

@@ -507,6 +507,7 @@
 <script src="sms.js"></script>
 <script src="notatnik.js"></script>
 <script src="powiadomienia.js"></script>
+<script src="funkcje.js"></script>
 <script src="zamow.js"></script>
 <script src="magazyn2.js"></script>
 <script src="przyjecie.js"></script>
@@ -552,7 +553,7 @@ function apiTlo(akcja, par, o) {
   const idz = () => api(akcja, par).then(j => { if (o.ok) { try { o.ok(j); } catch (x) { console.error(x); } } return j; }).catch(e => {
     if (/Brak (internetu|połączenia)/.test(e.message) && n < (o.powt || 0)) { n++; return new Promise(r => setTimeout(r, 5000 * n)).then(idz); }
     if (o.cofnij) { try { o.cofnij(); } catch (x) { console.error(x); } }
-    const m = /Nieznana akcja/.test(e.message) ? 'najpierw zainstaluj aktualizację bota (/aktualizuj)' : e.message;
+    const m = /Nieznana akcja/.test(e.message) ? 'ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : e.message;
     toastAkcja((o.nazwa || 'Zapis') + ' się nie udał: ' + m + (o.cofnij ? ' – zmiana cofnięta' : ''), 'OK', () => {});
   });
   return idz();
@@ -628,7 +629,7 @@ let TT = 0;
 // toast z przyciskiem (np. „Cofnij”) – wisi dłużej (5 s)
 const toastAkcja = (t, nazwa, fn) => { const e = document.getElementById('toast'); e.textContent = t + ' '; const b = document.createElement('button'); b.textContent = nazwa;
   b.onclick = () => { e.classList.remove('on'); clearTimeout(TT); fn(); }; e.appendChild(b); e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 5000); };
-const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 2600); };
+const toast = t => { const e = document.getElementById('toast'); e.textContent = t; e.classList.remove('on'); void e.offsetWidth; e.classList.add('on'); clearTimeout(TT); TT = setTimeout(() => e.classList.remove('on'), 2600 + Math.max(0, String(t).length - 45) * 45); };
 const open_ = o => o.status === 'otwarty';
 const doWysl = l => l.filter(o => kat(o) === 'biuro' && !(window.czyZamowienie && czyZamowienie(o)));
 // 17.11.2026: typy ręczne z edycji zadania: „do wysłania” (zawsze Do wysłania) i „do zamówienia” (zawsze Zamówienia); „do biura” rozdziela się po słowach (czyZamowienie)
@@ -792,7 +793,7 @@ function ustawStatus(id, otwarte) {
   render(); if (DW) pokazMyjnie(DW, 1);
   return api(otwarte ? 'otworz' : 'zamknij', { id: id }).catch(e => {
     o.status = stary.status; o.zamkn = stary.zamkn; render(); if (DW) pokazMyjnie(DW, 1);
-    toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+    toast(/Nieznana akcja/.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message);
   });
 }
 // przełącznik najpierw dojeżdża (sprężyna .4 s jak input[type=checkbox]), dopiero potem zmienia się lista
@@ -975,7 +976,7 @@ function terminyRozliczen() {
   return h ? '<div class="card roz"><h3>' + I('alert', 1) + 'Rozliczenia za ' + nm + '</h3>' + h + '</div>' : '';
 }
 function premiaWyslana(pm, el) {
-  const blad = e => toast(/Nieznan|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+  const blad = e => toast(/Nieznan|akcja/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message);
   animSw(el).then(() => api('wyslano', { typ: 'premia', mies: pm, tak: 1 })).then(() => {
     D.wyslano = D.wyslano || {}; D.wyslano.premia = D.wyslano.premia || {}; D.wyslano.premia[pm] = dzisIso(); render();
     toastAkcja('Premia oznaczona jako wysłana', 'Cofnij', () => api('wyslano', { typ: 'premia', mies: pm, tak: 0 }).then(() => { delete D.wyslano.premia[pm]; render(); }).catch(blad));
@@ -983,7 +984,8 @@ function premiaWyslana(pm, el) {
 }
 // 26.11.2026: praca, na którą nie będzie raportu (np. pomoc koledze) – zamyka wiszące „czeka na raport” (bot: BezRaportu.gs, api=bezRaportu)
 function bezRaportu(nr) {
-  const blad = e => toast(/Nieznan|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+  if (!maFunkcje('bezRaportu')) return wkrotce('Bez raportu');
+  const blad = e => toast(/Nieznan|akcja/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message);
   const p = D.prace.find(x => x.nr === nr); if (!p) return;
   api('bezRaportu', { nr: nr }).then(() => {
     p.status = 'gotowe'; render();
@@ -1182,7 +1184,7 @@ function zadDodaj() {
   const koniec = () => { b.disabled = false; b.textContent = 'Dodaj'; };
   api('notatkaDzis', { t: '[Typ wpisu: ' + z[1] + ' – wszystkie pozycje poniżej są tego typu] ' + t }).then(j => {
     el.value = ''; koniec(); pokazZapisane(j.wynik || {}); load();
-  }).catch(e => { koniec(); toast(/Nieznana akcja/.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message); });
+  }).catch(e => { koniec(); toast(/Nieznana akcja/.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message); });
 }
 function ogony() {
   const naz = { naprawy: ['wrench', 'Naprawy'], zamow: ['box', 'Zamówienia'], kupic: ['cart', 'Zakupy'], biuro: ['office', 'Do wysłania'], zamkniete: ['check', 'Zamknięte'] };
@@ -1223,7 +1225,7 @@ function wiecej() {
     '<button onclick="smsUstaw()"><div class="ch">' + I('phone') + '</div><b>SMS z WebCon</b><span>MacroDroid → zlecenia</span></button>' +
     k('wykresy', 'chart', 'Wykresy', 'szczotki, zaliczka, zadania') +
     '<button onclick="window.open(\'' + jsq(D.arkusz) + '\',\'_blank\')"><div class="ch">' + I('doc') + '</div><b>Tabela</b><span>arkusz z danymi</span></button>' +
-    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v127</span></button>' +
+    '<button onclick="go(\'ustawienia\')"><div class="ch">' + I('suwaki') + '</div><b>Ustawienia</b><span>wygląd, zachowanie, moje dane' + (document.documentElement.classList.contains('lekki') ? ' · tryb lekki' : '') + ' · v128</span></button>' +
     '</div>';
 }
 // 16.11.2026: pierścienie i mruganie można wyłączyć (słabszy tablet, oszczędzanie baterii)

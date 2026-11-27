@@ -74,12 +74,13 @@
         '<div class="empty">Nic z ostatnich 14 dni.</div>') + '</div>';
   }
   window.mgzNie = function (r, kod) {
+    if (!maFunkcje('nieZeSkladu')) return wkrotce('Nie ze składu');
     if (BUSY) return; BUSY = true;
     api('mgNieZeSkladu', { r: r, kod: kod }).then(j => {
       BUSY = false; const w = j.wynik || {}; D.magOstatnie = w.ostatnie || []; render();
       toast('Wróciło do Magazynu' + (w.bn ? ' · ' + w.bn : ''));
       if (window.load) load();
-    }).catch(e => { BUSY = false; toast(/Nieznana|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : e.message); });
+    }).catch(e => { BUSY = false; toast(/Nieznana|akcja/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : e.message); });
   };
 
   /* ---------- rozbieżności ---------- */

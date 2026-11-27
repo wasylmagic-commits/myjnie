@@ -286,7 +286,7 @@
   setTimeout(pytaj, 3500); setTimeout(pytaj, 9000);
   window.zamNieWyslane = () => { delete ST.kopia; zapisz(); render(); toast('OK, lista bez zmian'); };
 
-  const blad = e => toast(/Nieznana|akcja/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message);
+  const blad = e => toast(/Nieznana|akcja/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message);
   window.zamZamowione = function () {
     const k = ST.kopia; if (!k || !k.poz) return;
     const b = document.getElementById('zamOk'); if (b) b.disabled = true;

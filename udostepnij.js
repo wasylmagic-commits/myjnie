@@ -38,7 +38,7 @@
           if ((j.powiadomienia || []).length && window.pwPokazNowe) pwPokazNowe(j.powiadomienia);
           else pokaz('Przyjęte: ' + nazwa);
         } catch (e) {
-          pokaz(/Nieznana|akcja|poprawnie/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj) – plik czeka w telefonie'
+          pokaz(/Nieznana|akcja|poprawnie/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd. Plik czeka w telefonie.'
             : 'Nie wysłano (' + e.message + ') – spróbuję przy następnym otwarciu');
           break;
         }

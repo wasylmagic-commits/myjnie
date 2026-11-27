@@ -8,7 +8,7 @@
  */
 (function () {
   const ST = { trwa: false };
-  const blad = e => /Nieznan|akcja|poprawnie|apiPost/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message;
+  const blad = e => /Nieznan|akcja|poprawnie|apiPost/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message;
   const zapis = () => { try { const s = JSON.parse(LS.get('notatnik') || '{}'); return s && typeof s === 'object' ? s : {}; } catch (e) { return {}; } };
   const zachowaj = s => LS.set('notatnik', JSON.stringify(s));
   const TYP = { raport: 'Serwis', montaz: 'Montaż', inwent: 'Inwentaryzacja', inne: 'Inne' };

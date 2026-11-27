@@ -11,7 +11,7 @@
   const z2 = x => (Math.round((+x || 0) * 100) / 100).toFixed(2).replace('.', ',') + ' zł';
   const isoZ = s => { const m = String(s || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})/); return m ? m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0') : ''; };
   const plZ = iso => iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4) : '';
-  const blad = e => /Nieznan|akcja|poprawnie/i.test(e.message) ? 'Najpierw zainstaluj aktualizację bota (/aktualizuj)' : 'Błąd: ' + e.message;
+  const blad = e => /Nieznan|akcja|poprawnie/i.test(e.message) ? 'Ta funkcja jeszcze się włącza (próby na żywym systemie) – pojawi się sama, zwykle w ciągu doby. To nie błąd.' : 'Błąd: ' + e.message;
 
   // miejsca z prac danego dnia – ten sam zapis co w bocie (miejsceDnia_): „SP1149 Orlen”, „Montaż …”
   function miejscaDnia(iso) {
