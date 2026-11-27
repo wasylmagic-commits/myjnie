@@ -85,8 +85,9 @@
     const mod = String(pobierz('model') || '').toLowerCase(), def = DOM_TYP[mod] || '', poprz = typ.dataset.auto || '';
     const stary = DOM_TYP[typ.dataset.model || ''] || '';   // typowy typ poprzedniej modelki
     typ.dataset.model = mod;
-    // zmieniam tylko gdy typ jest pusty, wstawiony automatycznie albo typowy dla starego modelu; nietypowy (np. C-164T) zostaje
-    if (typ.value !== '' && typ.value !== poprz && typ.value !== stary) return;
+    // zmieniam gdy typ jest pusty, wstawiony automatycznie albo standardowy (C-160, C-165…); nietypowy (np. C-164T) zostaje
+    const standardowy = Object.keys(DOM_TYP).some(k => DOM_TYP[k] === typ.value);
+    if (typ.value !== '' && typ.value !== poprz && typ.value !== stary && !standardowy) return;
     if (def && ![...typ.options].some(o => o.value === def)) {
       const o = document.createElement('option'); o.value = def; o.textContent = def;
       typ.insertBefore(o, [...typ.options].find(x => x.value === INNY) || null);
