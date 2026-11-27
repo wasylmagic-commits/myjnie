@@ -70,14 +70,31 @@
     const dodaj = (x, bezFiltra) => { x = String(x || '').trim(); if (x && (bezFiltra || x.indexOf('/') < 0) && !m[x.toLowerCase()]) m[x.toLowerCase()] = x; };
     (D.dosje || []).forEach(d => { dodaj((d.sys || {})[pole]); dodaj((d.wid || {})[pole]); });
     if (pole === 'model') wszystkie().forEach(w => dodaj(w.model));
+    if (pole === 'typ') Object.keys(DOM_TYP).forEach(k => dodaj(DOM_TYP[k]));
     dodaj(biezaca, true);
     return Object.keys(m).map(k => m[k]).sort((a, b) => a.localeCompare(b, 'pl'));
+  }
+  // domyślny typ maszyny dla modelu (w większości przypadków tak jest; Alpha bywa inna – wtedy wybierasz ręcznie z listy)
+  const DOM_TYP = { genius: 'C-160', quantus: 'C-165', centus: 'C-164', cadis: 'C-17', alpha: 'C-173' };
+  // po zmianie modelu podstawia domyślny typ, ale tylko gdy typ jest pusty albo był wpisany automatycznie (ręcznego wyboru nie nadpisuje)
+  function ustawTyp() {
+    const typ = document.getElementById('ds_typ'); if (!typ) return;
+    const def = DOM_TYP[String(pobierz('model') || '').toLowerCase()] || '', poprz = typ.dataset.auto || '';
+    if (typ.value !== '' && typ.value !== poprz) return;
+    if (def && ![...typ.options].some(o => o.value === def)) {
+      const o = document.createElement('option'); o.value = def; o.textContent = def;
+      typ.insertBefore(o, [...typ.options].find(x => x.value === INNY) || null);
+    }
+    typ.value = def; typ.dataset.auto = def;
+    dosjeWybor('typ');
   }
   window.dosjeWybor = function (pole) {
     const s = document.getElementById('ds_' + pole), i = document.getElementById('dsi_' + pole);
     if (i) i.style.display = s.value === INNY ? '' : 'none';
     if (i && s.value === INNY) i.focus();
+    if (pole === 'model') ustawTyp();
   };
+  window.dosjeModelPisze = function () { ustawTyp(); };
   const pobierz = pole => {
     const e = document.getElementById('ds_' + pole); if (!e) return null;
     if (e.tagName === 'SELECT') return e.value === INNY ? String((document.getElementById('dsi_' + pole) || {}).value || '').trim() : e.value.trim();
@@ -96,7 +113,7 @@
         : (p[0] === 'model' || p[0] === 'typ')
         ? '<label class="mute">' + p[1] + '</label><select id="ds_' + p[0] + '" class="as-in" onchange="dosjeWybor(\'' + p[0] + '\')"><option value="">— brak —</option>' +
           znane(p[0], v[p[0]]).map(x => '<option value="' + esc(x) + '"' + (x === String(v[p[0]] || '').trim() ? ' selected' : '') + '>' + esc(x) + '</option>').join('') +
-          '<option value="' + INNY + '">+ inny (wpisz)…</option></select><input id="dsi_' + p[0] + '" type="text" autocomplete="off" placeholder="wpisz ' + (p[0] === 'model' ? 'model' : 'typ, np. C-160') + '" style="display:none;margin-top:6px">'
+          '<option value="' + INNY + '">+ inny (wpisz)…</option></select><input id="dsi_' + p[0] + '" type="text" autocomplete="off"' + (p[0] === 'model' ? ' oninput="dosjeModelPisze()"' : '') + ' placeholder="wpisz ' + (p[0] === 'model' ? 'model' : 'typ, np. C-160') + '" style="display:none;margin-top:6px">'
         : '<label class="mute">' + p[1] + '</label><input id="ds_' + p[0] + '" type="' + (/^telefon/.test(p[0]) ? 'tel' : p[0] === 'email' ? 'email' : 'text') + '" autocomplete="off" value="' + esc(v[p[0]]) + '">').join('') + '</div>' +
       '<div class="mute" style="margin-top:8px">Puste pole adresu, modelu, numeru lub e-maila = aplikacja pokaże wartość z systemu.</div>' +
       '<div class="ab"><button class="btn2" onclick="arkZamknij()">Anuluj</button><button class="btn" id="dsB" onclick="dosjeDalej(\'' + jsq(nazwa) + '\')">Zapisz</button></div></div>';
