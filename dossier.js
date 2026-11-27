@@ -82,8 +82,11 @@
   // po zmianie modelu podstawia domyślny typ, ale tylko gdy typ jest pusty albo był wpisany automatycznie (ręcznego wyboru nie nadpisuje)
   function ustawTyp() {
     const typ = document.getElementById('ds_typ'); if (!typ) return;
-    const def = DOM_TYP[String(pobierz('model') || '').toLowerCase()] || '', poprz = typ.dataset.auto || '';
-    if (typ.value !== '' && typ.value !== poprz) return;
+    const mod = String(pobierz('model') || '').toLowerCase(), def = DOM_TYP[mod] || '', poprz = typ.dataset.auto || '';
+    const stary = DOM_TYP[typ.dataset.model || ''] || '';   // typowy typ poprzedniej modelki
+    typ.dataset.model = mod;
+    // zmieniam tylko gdy typ jest pusty, wstawiony automatycznie albo typowy dla starego modelu; nietypowy (np. C-164T) zostaje
+    if (typ.value !== '' && typ.value !== poprz && typ.value !== stary) return;
     if (def && ![...typ.options].some(o => o.value === def)) {
       const o = document.createElement('option'); o.value = def; o.textContent = def;
       typ.insertBefore(o, [...typ.options].find(x => x.value === INNY) || null);
@@ -121,7 +124,7 @@
       '<div class="mute" style="margin-top:8px">Puste pole adresu, modelu, numeru lub e-maila = aplikacja pokaże wartość z systemu.</div>' +
       '<div class="ab"><button class="btn2" onclick="arkZamknij()">Anuluj</button><button class="btn" id="dsB" onclick="dosjeDalej(\'' + jsq(nazwa) + '\')">Zapisz</button></div></div>';
     a.classList.add('on');
-    const te = document.getElementById('ds_typ'); if (te) te.dataset.auto = v.typDomyslny ? v.typ : '';   // typ wzięty z modelu wolno podmienić przy zmianie modelu
+    const te = document.getElementById('ds_typ'); if (te) { te.dataset.auto = v.typDomyslny ? v.typ : ''; te.dataset.model = String(v.model || '').toLowerCase(); }   // typ wzięty z modelu wolno podmienić przy zmianie modelu
   };
 
   window.dosjeDalej = function (nazwa) {
