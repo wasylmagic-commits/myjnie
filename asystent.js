@@ -415,7 +415,7 @@
           '<select class="as-in" onchange="if(this.value)asPytMyjnia(this.value)"><option value="">— inna myjnia —</option>' + listaMyjni().map(n => '<option>' + esc(n) + '</option>').join('') + '</select>' +
           '<button class="btn2" style="width:100%;justify-content:center" onclick="asPytMyjnia(\'\')">Odpowiedz ogólnie, bez myjni</button></div>';
       } else if (t.etap === 'blad') {
-        h += '<div class="card"><div class="row" style="padding:0"><div class="g" style="color:var(--red)">' + esc(t.blad || 'Nie udało się') + '</div>' + (ost ? '<button class="btn2" onclick="asPytPonow()">Ponów</button>' : '') + '</div></div>';
+        h += '<div class="card"><div class="row" style="padding:0"><div class="g" style="color:var(--red)">' + esc(t.blad || 'Nie udało się') + '</div>' + (ost && !t.zamkniete ? '<button class="btn2" onclick="asPytPonow()">Ponów</button>' : '') + '</div></div>';
       }
       const o = t.odp;
       const pustaOdp = o && !String(o.odpowiedz || '').trim() && !(o.kroki || []).length && !(o.pytania || []).length;
@@ -432,8 +432,8 @@
           ((o.zrodla || []).length ? '<div class="mute" style="margin-top:8px;font-size:13px">Źródła: ' + esc(o.zrodla.join(', ')) + '</div>' : '') +
           (ost ? '<div class="as-bar" style="margin-top:10px">' +
             (o.awaria || t.rodzaj === 'awaria' ? '<button class="btn2" onclick="asDoDiagnozy()">' + I('pulse', 1) + 'To awaria → Diagnoza</button>' : '') +
-            (!t.pelny ? '<button class="btn2" onclick="asPytPelny()">Szukaj w całej bazie</button>' : '') +
-            (!t.zapisane ? '<button class="btn2" onclick="asPytZapisz(' + i + ')">' + I('check', 1) + 'Zapisz do wiedzy</button>' : '<span class="mute">zapisane do Wiedzy ogólnej</span>') + '</div>' : '') + '</div>';
+            (!t.pelny && !o.przekieruj ? '<button class="btn2" onclick="asPytPelny()">Szukaj w całej bazie</button>' : '') +
+            (o.przekieruj ? '' : !t.zapisane ? '<button class="btn2" onclick="asPytZapisz(' + i + ')">' + I('check', 1) + 'Zapisz do wiedzy</button>' : '<span class="mute">zapisane do Wiedzy ogólnej</span>') + '</div>' : '') + '</div>';
       }
     });
     const ost = tury[tury.length - 1];
@@ -454,7 +454,9 @@
   function kontekstPyt() {
     return (ST.p.tury || []).map(t => 'Pytanie: ' + t.q + (t.odp ? ' | Odpowiedź: ' + String(t.odp.odpowiedz || '').slice(0, 500) : '')).join(' || ').slice(-3500);
   }
-  function blad(t, e) { t.etap = 'blad'; t.blad = e.offline ? 'Brak zasięgu — spróbuj ponownie, gdy wróci' : 'Błąd: ' + e.message; }
+  const zamkniete = e => /w trakcie przebudowy/.test((e && e.message) || '');
+  const komunikat = e => zamkniete(e) ? e.message : 'Błąd: ' + e.message;
+  function blad(t, e) { t.etap = 'blad'; t.zamkniete = zamkniete(e); t.blad = e.offline ? 'Brak zasięgu — spróbuj ponownie, gdy wróci' : komunikat(e); }
   function dalej(t, dane) {
     t.etap = 's'; zapiszPyt(); odswiez();
     return wyslij('as_pytaj_dalej', Object.assign({ id: ST.p.id }, dane || {})).then(w => {
@@ -473,7 +475,7 @@
     wyslij('as_pytaj', { pytanie: q, zdjecia: zd }).then(w => {
       ST.p.id = w.id; ST.p.koszt = w.koszt; ST.p.myjnia = w.myjnia || '';
       Object.assign(t, { szybka: w.szybka, pytania1: w.pytania1, trafienie: w.trafienie, potrzebna_myjnia: w.potrzebna_myjnia, powod: w.powod, dzis: w.dzis, rodzaj: w.rodzaj });
-      if (w.trafienie && w.odp) { t.odp = w.odp; t.etap = 'ok'; }
+      if (w.odp && (w.trafienie || w.rodzaj === 'awaria')) { t.odp = w.odp; t.etap = 'ok'; }
       else if (w.potrzebna_myjnia) t.etap = 'myjnia';
       else if (!w.koniec) return dalej(t);
       else t.etap = 'ok';
@@ -551,7 +553,7 @@
       ST.zdj = []; ST.objaw = ''; ST.kody = ''; ST.trudny = false;
     }).catch(e => {
       if (e.offline) { doKolejki('as_start', dane); ST.s = lok; zapiszStan(); ST.zdj = []; ST.objaw = ''; ST.kody = ''; }
-      else toast('Błąd: ' + e.message);
+      else toast(komunikat(e));
     }).then(() => { ST.busy = false; ST.szybka = ''; odswiez(); window.scrollTo(0, 0); });
   };
 
@@ -568,7 +570,7 @@
     if (s.id === '?') { doKolejki('as_runda', dane); czysc(); odswiez(); return; }
     ST.busy = true; odswiez();
     wyslij('as_runda', dane).then(w => { przyjmij(w, 'as_runda'); czysc(); })
-      .catch(e => { if (e.offline) { doKolejki('as_runda', dane); czysc(); } else { s.rozmowa.pop(); toast('Błąd: ' + e.message); } })
+      .catch(e => { if (e.offline) { doKolejki('as_runda', dane); czysc(); } else { s.rozmowa.pop(); toast(komunikat(e)); } })
       .then(() => { ST.busy = false; odswiez(); window.scrollTo(0, 0); });
   }
   window.asWyslij = () => runda();
