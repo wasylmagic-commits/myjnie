@@ -91,7 +91,7 @@
     if (!w) return;
     const s = ST.s && ST.s.id === w.id ? ST.s : { rozmowa: (ST.s && ST.s.id === '?' ? ST.s.rozmowa : []) || [] };
     Object.assign(s, { id: w.id, myjnia: w.myjnia, status: w.status, odp: w.odp, model: w.model, eskalacja: w.eskalacja, runda: w.runda,
-                       powrot: w.powrot, szkicUrl: w.szkicUrl, szkicStatus: w.szkicStatus, ogon: w.ogon, poziom: w.poziom, koszt: w.koszt });
+                       powrot: w.powrot, szkicUrl: w.szkicUrl, szkicStatus: w.szkicStatus, ogon: w.ogon, poziom: w.poziom, koszt: w.koszt, test: !!w.test });
     if (w.rozmowa) s.rozmowa = w.rozmowa;
     else if (w.odp && akcja !== 'as_zamknij') s.rozmowa.push({ rola: 'assistant', tekst: w.odp.podsumowanie });
     s.t = Date.now();
@@ -179,6 +179,8 @@
     .as-sek.on .s{transform:rotate(90deg)}
     .as-wyn{display:flex;gap:8px;margin-bottom:12px} .as-wyn button{flex:1;height:46px;border-radius:14px;border:0;font:inherit;font-weight:700;font-size:16px}
     .as-wyn .t{background:var(--grnbg);color:var(--grn)} .as-wyn .f{background:var(--redbg);color:var(--red)}
+    .as-bar.pin{position:sticky;top:calc(env(safe-area-inset-top) + 54px);z-index:4;background:var(--bg);padding:6px 0;margin-top:-6px}
+    [id^=as-t-],#as-odp{scroll-margin-top:112px}
     .as-zrob{font-size:14px;color:var(--mute);padding:10px 0 2px;border-top:1px solid var(--line);cursor:pointer}
   </style>`;
 
@@ -186,10 +188,10 @@
    * 15.11.2026: serwisant zwykle nie zamyka sesji – kończy, gdy dostał rozwiązanie. Dlatego:
    * otwarta < STARA_H godzin = „Otwarte”; otwarta dłużej = „Do omówienia” (Wasyl zamyka na briefingu z prawdziwą przyczyną → szkic do bazy);
    * zamknięta = „Archiwum”. Testowe i schowane znikają z listy (w arkuszu zostają). */
-  const STARA_H = 12;
+  const STARA_H = 24;
   const testowa = x => /^\s*\[?\s*test\b/i.test(String(x.objaw || '')) || /^test/i.test(String(x.myjnia || ''));
   const kiedy = t => { const m = String(t || '').match(/(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/); return m ? new Date(+m[3], m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0)).getTime() : 0; };
-  const stara = x => Date.now() - kiedy(x.start) > STARA_H * 3600e3;
+  const stara = x => x.wisi === true || Date.now() - kiedy(x.start) > STARA_H * 3600e3;
   function wierszSesji(x, grupa) {
     const r = +x.rundy || 0;
     return '<div class="row"><div class="g w" onclick="asOtworz(\'' + jsq(x.id) + '\',\'' + grupa + '\')"><b>' + esc(skrot(x.myjnia)) + '</b> <span class="mute">' + esc(x.start) + '</span>' +
@@ -212,7 +214,7 @@
     const wid = ST.sesje.filter(x => !ukr.includes(x.id) && !testowa(x));
     const schow = ST.sesje.length - wid.length;
     const otw = wid.filter(x => x.status === 'otwarta' && !stara(x)), omow = wid.filter(x => x.status === 'otwarta' && stara(x)), arch = wid.filter(x => x.status !== 'otwarta');
-    const h = sekcja('otw', 'Otwarte', otw, 'otw', true) + sekcja('omow', 'Do omówienia (briefing)', omow, 'omow') + sekcja('arch', 'Archiwum', arch, 'arch');
+    const h = sekcja('otw', 'Otwarte', otw, 'otw', true) + sekcja('omow', 'Wiszące (do omówienia)', omow, 'omow') + sekcja('arch', 'Archiwum', arch, 'arch');
     return (h || '<div class="mute">brak sesji</div>') +
       (schow ? '<div class="mute" style="margin-top:10px;font-size:13px">Schowane i testowe: ' + schow + (ukr.length ? ' · <a onclick="asOdkryj()">pokaż z powrotem</a>' : '') + '</div>' : '');
   }
@@ -273,6 +275,7 @@
       '<option value="doswiadczony"' + (ST.poziom === 'doswiadczony' ? ' selected' : '') + '>Doświadczony — cały plan, miękka kontrola końca</option>' +
       '<option value="nowy"' + (ST.poziom === 'nowy' ? ' selected' : '') + '>Początkujący — krok po kroku, twarda kontrola końca</option></select>' +
       '<label class="row" style="border:0;padding:12px 0 4px;cursor:pointer"><input type="checkbox" ' + (ST.trudny ? 'checked' : '') + ' onchange="asPole(\'trudny\',this.checked)" style="width:20px;height:20px"><div class="g">Trudny przypadek <span class="mute">— od razu mocniejszy model (wolniej, drożej)</span></div></label>' +
+      '<label class="row" style="border:0;padding:6px 0 0;cursor:pointer"><input type="checkbox" ' + (ST.test ? 'checked' : '') + ' onchange="asPole(\'test\',this.checked)" style="width:20px;height:20px"><div class="g">Test <span class="mute">— nic nie zapisuj do historii myjni</span></div></label>' +
       '<button class="btn" style="width:100%;justify-content:center;margin-top:8px;height:46px" onclick="asStart()">' + I('spark', 1) + 'Zacznij diagnozę</button></div>';
     h += '</div>';
     if (!ST.sesje && !ST.laduje && !ST.ladBlad) setTimeout(asSesje, 0);
@@ -295,11 +298,12 @@
 
   function widokSesja() {
     const s = ST.s, o = s.odp || {}, otw = s.status !== 'zamknieta';
-    let h = '<div class="as-bar" style="margin-bottom:12px"><button class="btn2" onclick="asNowa()">' + I('back', 1) + 'Lista</button><span style="flex:1"></span>' +
+    let h = '<div class="as-bar pin" style="margin-bottom:12px"><button class="btn2" onclick="asNowa()">' + I('back', 1) + 'Lista</button><span style="flex:1"></span>' +
       '<button class="btn2" onclick="asNowa()">' + I('spark', 1) + 'Nowa diagnoza</button></div>';
+    if (s.test) h += '<div class="as-warn">' + I('alert', 1) + '<span>TEST — ta sesja nie zapisuje się w historii myjni (powrót usterki, ogony, szkice).</span></div>';
     if (ST.omow && otw && !ST.zamykanie && !ST.potwierdz) h += '<div class="card" style="background:var(--orgbg)"><b>Do omówienia na briefingu.</b> <span class="mute">Ta sesja nie została zamknięta. Wpisz, co naprawdę pomogło — szkic trafi do „Do przeglądu” i uczy system.</span>' +
       '<div style="margin-top:10px"><button class="btn" onclick="asZamykanie(true)">' + I('shield', 1) + 'Zamknij z przyczyną</button></div></div>';
-    h += '<div class="card"><div class="row" style="padding-top:0"><div class="g"><b style="font-size:17px">' + esc(skrot((s.myjnia || {}).nazwa || '')) + '</b>' +
+    h += '<div class="card" id="as-odp"><div class="row" style="padding-top:0"><div class="g"><b style="font-size:17px">' + esc(skrot((s.myjnia || {}).nazwa || '')) + '</b>' +
       '<div class="mute">' + esc([(s.myjnia || {}).model, 'runda ' + (s.runda || 1), (s.model || '').replace('claude-', ''), s.poziom === 'nowy' ? 'początkujący' : '', s.koszt ? '≈ ' + (+s.koszt).toFixed(2) + ' USD' : ''].filter(Boolean).join(' · ')) + '</div>' +
       (s.eskalacja ? '<div class="mute">↑ mocniejszy model: ' + esc(s.eskalacja) + '</div>' : '') + '</div>' +
       (o.pewnosc != null ? '<div style="text-align:right"><b style="font-size:20px;color:var(' + (o.pewnosc >= 70 ? '--grn' : o.pewnosc >= 40 ? '--org' : '--red') + ')">' + o.pewnosc + '%</b><div class="mute">pewność</div></div>' : '') + '</div>' +
@@ -311,7 +315,7 @@
       (o.bramka && o.bramka.brak && s.status !== 'zamknieta' ? '<div class="note" style="margin-top:10px"><b>Do zamknięcia brakuje:</b> ' + esc(o.bramka.brak) + '</div>' : '') + '</div>';
     if (o.ostrzezenie) h += '<div class="as-warn">' + I('alert', 1) + '<span>' + esc(o.ostrzezenie) + '</span></div>';
     if (o.prosba_o_zdjecie) h += '<div class="card"><div class="row" style="padding:0"><div class="g">' + I('camera', 1) + ' <b>Zdjęcie:</b> ' + esc(o.prosba_o_zdjecie) + '</div></div></div>';
-    if ((o.hipotezy || []).length) h += '<div class="card"><h3>' + I('pulse', 1) + 'Hipotezy</h3>' + o.hipotezy.map((x, i) =>
+    if ((o.hipotezy || []).length) h += '<div class="card"><h3>' + I('pulse', 1) + 'Hipotezy</h3>' + o.hipotezy.filter((x, i) => ST.calosc || i === 0 || o.hipotezy.length <= 2).map((x, i) =>
       '<div class="as-hip"><b>' + esc(x.t) + '</b><b style="color:var(--acc)">' + (x.p != null ? x.p + '%' : '') + '</b>' +
       (x.p != null ? '<div class="bar" style="grid-column:1/3"><div style="width:' + x.p + '%;background:var(--acc)"></div></div>' : '') +
       (x.dlaczego && i === 0 ? '<div class="mute">' + esc(x.dlaczego) + '</div>' : '') + '</div>').join('') + '</div>';
@@ -319,7 +323,9 @@
       const zmian = Object.keys(ST.wyniki).length;
       // zrobione kroki (już wysłane) zwijam do jednej linii – na ekranie zostaje to, co jeszcze do zrobienia
       const zrob = o.plan.filter(k => k.stan && k.stan !== 'todo' && !ST.wyniki[k.id]);
-      const widoczne = ST.planWsz ? o.plan : o.plan.filter(k => zrob.indexOf(k) < 0);
+      const widocz0 = ST.planWsz ? o.plan : o.plan.filter(k => zrob.indexOf(k) < 0);
+      const kompakt = !ST.calosc && widocz0.length > 2;
+      const widoczne = kompakt ? widocz0.slice(0, 1) : widocz0;
       h += '<div class="card"><h3>' + I('check', 1) + 'Plan sprawdzeń' + (zmian ? ' <span class="pill o">' + zmian + ' do wysłania</span>' : '') + '</h3>' +
         (zrob.length ? '<div class="as-zrob" style="border-top:0;padding-top:0" onclick="asPlanWsz()">' + (ST.planWsz ? 'Zwiń zrobione ›' : 'Zrobione: ' + zrob.map(k => k.id + (k.stan === 'ok' ? '✔' : k.stan === 'nok' ? '✖' : '–')).join(' ') + ' · pokaż ›') + '</div>' : '') +
         widoczne.map(k => {
@@ -328,7 +334,7 @@
           (k.oczekiwane ? '<div class="mute">' + esc(k.oczekiwane) + '</div>' : '') + '</div>' +
           '<div class="b"><button class="t' + (stan === 'ok' ? ' on' : '') + '" onclick="asKrok(' + k.id + ',\'ok\')">✔</button>' +
           '<button class="f' + (stan === 'nok' ? ' on' : '') + '" onclick="asKrok(' + k.id + ',\'nok\')">✖</button></div></div>';
-      }).join('') + '<div class="note">✔ = jak powinno / OK · ✖ = nieprawidłowo · drugi klik cofa. Uwagi do wyników dopisz w wiadomości.</div></div>';
+      }).join('') + (kompakt ? '<div class="as-zrob" onclick="asCalosc()">Pokaż cały plan (jeszcze ' + (widocz0.length - 1) + ') ›</div>' : (ST.calosc && widocz0.length > 2 ? '<div class="as-zrob" onclick="asCalosc()">‹ Zwiń plan</div>' : '')) + '<div class="note">✔ = jak powinno / OK · ✖ = nieprawidłowo · drugi klik cofa. Uwagi do wyników dopisz w wiadomości.</div></div>';
     }
     if ((o.zrodla || []).length) h += '<div class="mute" style="margin:-4px 4px 12px">Źródła: ' + esc(o.zrodla.join(', ')) + '</div>';
 
@@ -369,9 +375,11 @@
         miniatury('') + narzedzia('as-tekst') +
         '<div class="as-bar" style="margin-top:12px">' +
         '<button class="btn2" onclick="asTrudny()" title="Mocniejszy model">' + I('star', 1) + 'Trudny</button>' +
-        '<button class="btn2" onclick="asZamykanie(true)">' + I('shield', 1) + 'Zakończ</button><span style="flex:1"></span>' +
+        '<button class="btn2" onclick="asZostaw()">' + I('back', 1) + 'Zostaw</button>' +
+        '<button class="btn2" onclick="asZamykanie(true)">' + I('shield', 1) + 'Zamknij</button><span style="flex:1"></span>' +
         '<button class="btn" onclick="asWyslij()">Wyślij</button></div></div>';
     }
+    if (s.id && s.id !== '?') h += '<div style="text-align:center;margin:4px 0 12px"><button class="btn2" style="font-size:13px" onclick="asUsunTest()">' + I('eyeoff', 1) + 'Usuń z historii (test)</button></div>';
     if ((s.rozmowa || []).length > 1) h += '<div class="card"><button class="as-sek' + (ST.przebieg ? ' on' : '') + '" style="border:0;padding:0;justify-content:flex-start" onclick="asPrzebieg()">' + I('history', 1) + 'Przebieg <span class="n">' + s.rozmowa.length + '</span><span class="s">›</span></button>' +
       (ST.przebieg ? '<div class="as-chat" style="margin-top:10px">' +
       s.rozmowa.slice().reverse().map(r => '<div class="' + (r.rola === 'user' ? 'u' : '') + '">' + (r.rola === 'user' ? '▸ ' : '') + esc(String(r.tekst || '').replace(/^(NOWA SESJA\.|RUNDA \d+\.)\s*/, '').slice(0, 400)) + (r.zdjec ? ' 📷' + r.zdjec : '') + '</div>').join('') + '</div>' : '') + '</div>';
@@ -380,7 +388,7 @@
 
   function wyczysc() {
     ST.s = null; ST.wyniki = {}; ST.zdj = []; ST.objaw = ''; ST.kody = ''; ST.tekst = ''; ST.trudny = false; ST.zamykanie = false;
-    ST.potwierdz = null; ST.zamknijDane = null; ST.sesje = null; ST.ladBlad = false; ST.omow = false; ST.podglad = false; ST.przebieg = false; ST.planWsz = false; zapiszStan();
+    ST.potwierdz = null; ST.zamknijDane = null; ST.sesje = null; ST.calosc = false; ST.ladBlad = false; ST.omow = false; ST.podglad = false; ST.przebieg = false; ST.planWsz = false; zapiszStan();
   }
   function porzadek() {
     const s = ST.s;
@@ -402,11 +410,11 @@
   /* ---------- pytanie (v2) ---------- */
   function widokPytanie() {
     const p = ST.p, tury = p.tury || [];
-    let h = '<div class="as-bar" style="margin-bottom:12px"><button class="btn2" onclick="asPytZamknij()">' + I('back', 1) + 'Pytania</button><span style="flex:1"></span>' +
+    let h = '<div class="as-bar pin" style="margin-bottom:12px"><button class="btn2" onclick="asPytZamknij()">' + I('back', 1) + 'Pytania</button><span style="flex:1"></span>' +
       (p.myjnia ? '<span class="as-tag">' + esc(skrot(p.myjnia)) + '</span>' : '') + (p.koszt ? '<span class="mute" style="font-size:12px">≈ ' + (+p.koszt).toFixed(2) + ' USD</span>' : '') + '</div>';
     tury.forEach((t, i) => {
       const ost = i === tury.length - 1;
-      h += '<div class="card" style="background:var(--acc2)"><b>' + esc(t.q) + '</b>' + (t.zdjec ? ' <span class="mute">📷' + t.zdjec + '</span>' : '') + '</div>';
+      h += '<div class="card" id="as-t-' + i + '" style="background:var(--acc2)"><b>' + esc(t.q) + '</b>' + (t.zdjec ? ' <span class="mute">📷' + t.zdjec + '</span>' : '') + '</div>';
       if (t.szybka && !(t.odp && t.trafienie)) h += szybkaKarta(t.szybka);
       if ((t.pytania1 || []).length && !t.odp) h += t.pytania1.map(q => '<div class="as-q">' + esc(q) + '</div>').join('');
       if (t.etap === 'h') h += busy('Chwila…');
@@ -496,7 +504,7 @@
     const t = { q: q || '(zdjęcie)', zdjec: zd.length };
     const kont = kontekstPyt();
     ST.p.tury.push(t); ST.dop = ''; ST.zdjP = [];
-    dalej(t, { tekst: q, zdjecia: zd, kontekst: kont }).then(() => window.scrollTo(0, document.body.scrollHeight));
+    dalej(t, { tekst: q, zdjecia: zd, kontekst: kont }).then(() => { const x = document.getElementById('as-t-' + (ST.p.tury.length - 1)); if (x) x.scrollIntoView({ block: 'start' }); });
   };
   window.asPytPelny = () => { const t = { q: 'Szukaj w całej bazie' }; ST.p.tury.push(t); dalej(t, { pelny: true, kontekst: kontekstPyt() }); };
   window.asPytPonow = () => {
@@ -532,7 +540,16 @@
   };
   window.asOstatnioX = () => { ST.ostatnio = null; odswiez(); };
   window.asKolejka = () => oprozniaj(true);
-  window.asZamykanie = on => { ST.zamykanie = on; odswiez(); window.scrollTo(0, document.body.scrollHeight); };
+  window.asZamykanie = on => { ST.zamykanie = on; odswiez(); if (on) { const x = document.getElementById('as-przyczyna'); if (x) x.scrollIntoView({ block: 'center' }); } else window.scrollTo(0, 0); };
+  window.asCalosc = () => { ST.calosc = !ST.calosc; odswiez(); };
+  window.asZostaw = () => { toast('Zostawione — wrócisz do niego z listy'); asNowa(); };
+  window.asUsunTest = () => {
+    const s = ST.s; if (!s || !s.id || s.id === '?') return;
+    if (!confirm('Oznaczyć jako test i usunąć z historii myjni? (znika powrót usterki, ogon, szkic; sesja zostaje w arkuszu jako TEST)')) return;
+    ST.busy = true; odswiez();
+    post('as_test_oznacz', { id: s.id }).then(() => { wyczysc(); toast('Usunięte z historii (test)'); })
+      .catch(e => toast('Błąd: ' + e.message)).then(() => { ST.busy = false; odswiez(); window.scrollTo(0, 0); });
+  };
   // odłożenie sesji nic nie kasuje: otwarta zostaje na serwerze i na liście („Otwarte” / „Do omówienia”)
   window.asNowa = () => { wyczysc(); odswiez(); window.scrollTo(0, 0); };
   window.asNowaDla = nazwa => { asNowa(); ST.myjnia = nazwa; if (typeof zamknijDet === 'function') zamknijDet(); go('asystent'); };
@@ -542,7 +559,7 @@
     if (!myj) { toast('Wybierz myjnię'); return; }
     if (!ST.objaw.trim() && !ST.kody.trim() && !ST.zdj.length) { toast('Opisz objaw albo dodaj zdjęcie'); return; }
     const ost = (LSG('as_ost_myjnie') || []).filter(n => n !== myj); ost.unshift(myj); LSS('as_ost_myjnie', ost.slice(0, 5));
-    const dane = { myjnia: myj, objaw: ST.objaw, kody: ST.kody, trudny: ST.trudny, poziom: ST.poziom || undefined, zdjecia: ST.zdj.map(z => ({ b64: z.b64, mime: z.mime })) };
+    const dane = { myjnia: myj, objaw: ST.objaw, kody: ST.kody, trudny: ST.trudny, poziom: ST.poziom || undefined, test: ST.test ? true : undefined, zdjecia: ST.zdj.map(z => ({ b64: z.b64, mime: z.mime })) };
     const lok = { id: '?', myjnia: { nazwa: myj }, odp: { podsumowanie: 'Zgłoszenie zapisane — czeka na zasięg.' }, runda: 1,
                   rozmowa: [{ rola: 'user', tekst: (ST.kody ? '[' + ST.kody + '] ' : '') + ST.objaw, zdjec: ST.zdj.length }] };
     ST.busy = true; ST.szybka = ''; odswiez();
@@ -609,7 +626,7 @@
       ST.ostatnio = { myjnia: (ST.s.myjnia || {}).nazwa || '', szkicUrl: w.szkicUrl, szkicStatus: w.szkicStatus, ogon: w.ogon };
       wyczysc(); toast('Zamknięte — szkic w „Do przeglądu”');
     }).catch(e => { if (e.offline) doKolejki('as_zamknij', dane); else { ST.zamykanie = true; toast('Błąd: ' + e.message); } })
-      .then(() => { ST.busy = false; odswiez(); window.scrollTo(0, ST.s ? document.body.scrollHeight : 0); });
+      .then(() => { ST.busy = false; odswiez(); window.scrollTo(0, 0); });
   }
   // decyzja po „brakuje…”: wróć do formularza / zamknij jako tymczasowo / mimo to naprawione (tylko doświadczony)
   window.asPotwierdz = co => {

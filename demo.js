@@ -268,6 +268,7 @@
                       kroki: ['Sprawdź, czy element jest czysty', 'Porównaj z kartą w bazie'], pytania: [], zrodla: ['Przypadek 14 (demo)'], brak_w_bazie: false, gdzie_szukac: '', awaria: false } };
     }
     if (!s) throw new Error('Nie znam tej sesji (demo)');
+    if (a === 'as_test_oznacz') { s.status = 'zamknieta'; s.objaw = 'TEST ' + (s.objaw || ''); return { id: s.id, test: true }; }
     if (a === 'as_runda') { s.odp = odpRunda(s, b); return wynikSesji(s); }
     if (a === 'as_zamknij') {
       if (!b.wymus && b.wynik === 'naprawione' && !String(b.przyczyna || '').trim() && !s.potw) { s.potw = 1; return { potwierdz: true, braki: ['przyczyna źródłowa (dlaczego się zepsuło)'], poziom: b.poziom || s.poziom || '' }; }
