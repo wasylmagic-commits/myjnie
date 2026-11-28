@@ -390,12 +390,14 @@
     if (s.id !== '?' && Date.now() - s.t > STARA_H * 3600e3) { wyczysc(); setTimeout(() => toast('Poprzednia diagnoza odłożona — jest na liście'), 300); }
   }
   const szybkaKarta = t => t ? '<div class="card"><div class="row" style="padding:0;align-items:flex-start"><div style="color:var(--acc)">' + I('spark') + '</div><div class="g">' + esc(t) + '</div></div></div>' : '';
+  /* v134: cały ekran asystenta i pytań można zaznaczać i kopiować (reszta aplikacji ma user-select:none); przyciski dalej nie zaznaczają się */
+  const SEL1 = '<style>.as-sel button,.as-sel select{-webkit-user-select:none;user-select:none}</style><div class="sel as-sel">';
   function widok() {
     porzadek();
-    return css + (ST.s ? widokSesja() : (ST.busy ? szybkaKarta(ST.szybka) + busy(ST.szybka ? 'Analizuję… zwykle 10–20 s' : 'Zaczynam… zwykle 10–20 s') : widokStart()));
+    return css + SEL1 + (ST.s ? widokSesja() : (ST.busy ? szybkaKarta(ST.szybka) + busy(ST.szybka ? 'Analizuję… zwykle 10–20 s' : 'Zaczynam… zwykle 10–20 s') : widokStart())) + '</div>';
   }
 
-  function widokPyt() { return css + (ST.p ? widokPytanie() : widokPytStart()); }
+  function widokPyt() { return css + SEL1 + (ST.p ? widokPytanie() : widokPytStart()) + '</div>'; }
 
   /* ---------- pytanie (v2) ---------- */
   function widokPytanie() {
